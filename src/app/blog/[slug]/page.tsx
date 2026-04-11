@@ -1,5 +1,4 @@
 'use client'
-import { use } from 'react'
 import Link from 'next/link'
 import { PublicLayout } from '@/components/layout/PublicLayout'
 import { useLang } from '@/components/layout/LanguageContext'
@@ -197,8 +196,8 @@ function renderContent(markdown: string, bn: boolean): React.ReactNode[] {
   return elements
 }
 
-export default function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params)
+export default function BlogPostPage({ params }: { params: { slug: string } }) {
+  const { slug } = params
   const { t, lang } = useLang()
   const bn = lang === 'bn'
   const post = getPost(slug)

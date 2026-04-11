@@ -4,6 +4,8 @@ export type Post = {
   readingTime: number
   author: { en: string; bn: string }
   category: { en: string; bn: string }
+  coverGradient: string
+  coverIcon: string
   title: { en: string; bn: string }
   excerpt: { en: string; bn: string }
   content: { en: string; bn: string }
@@ -16,6 +18,8 @@ export const posts: Post[] = [
     readingTime: 8,
     author: { en: 'Tuhin', bn: 'তুহিন' },
     category: { en: 'Building Management', bn: 'ভবন ব্যবস্থাপনা' },
+    coverGradient: 'linear-gradient(135deg, #085041 0%, #1D9E75 60%, #34c998 100%)',
+    coverIcon: '🏢',
     title: {
       en: 'How Much Should Apartment Service Charge Be?',
       bn: 'বিল্ডিংয়ের সার্ভিস চার্জ কত হওয়া উচিত?',
@@ -234,6 +238,8 @@ Create a brief monthly report showing: total collected, total spent, expense bre
     readingTime: 5,
     author: { en: 'Tuhin', bn: 'তুহিন' },
     category: { en: 'Rent Collection', bn: 'ভাড়া সংগ্রহ' },
+    coverGradient: 'linear-gradient(135deg, #1a3a5c 0%, #2563a8 60%, #3b82d4 100%)',
+    coverIcon: '💰',
     title: {
       en: 'How to collect rent on time — every month',
       bn: 'প্রতি মাসে সময়মতো ভাড়া আদায়ের উপায়',
@@ -297,6 +303,8 @@ Following these five steps consistently will eliminate most late-payment situati
     readingTime: 4,
     author: { en: 'Tuhin', bn: 'তুহিন' },
     category: { en: 'Property Management', bn: 'সম্পত্তি ব্যবস্থাপনা' },
+    coverGradient: 'linear-gradient(135deg, #4a1d6e 0%, #7c3aed 60%, #a78bfa 100%)',
+    coverIcon: '🧾',
     title: {
       en: 'Digital receipts vs. paper receipts: why the switch matters',
       bn: 'ডিজিটাল বনাম কাগজের রসিদ: পরিবর্তন কেন জরুরি',
@@ -350,6 +358,8 @@ If you're already using Bari Shamlai, receipts are generated automatically when 
     readingTime: 6,
     author: { en: 'Tuhin', bn: 'তুহিন' },
     category: { en: 'Scaling Up', bn: 'সম্প্রসারণ' },
+    coverGradient: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 60%, #fb923c 100%)',
+    coverIcon: '🏙️',
     title: {
       en: 'Managing multiple buildings without losing your mind',
       bn: 'একাধিক ভবন সামলানোর স্মার্ট উপায়',

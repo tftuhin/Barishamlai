@@ -51,13 +51,14 @@ export default function BlogPage() {
         <div style={{ maxWidth: 1000, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '1.5rem' }}>
           {posts.map(post => (
             <Link key={post.slug} href={`/blog/${post.slug}`} style={{ textDecoration: 'none' }}>
-              <article style={{
-                background: 'var(--land-card)', border: '1px solid var(--land-border)',
-                borderRadius: 16, padding: '1.75rem', height: '100%',
-                display: 'flex', flexDirection: 'column', gap: '0.75rem',
-                transition: 'border-color 0.2s, transform 0.2s',
-                cursor: 'pointer',
-              }}
+              <article
+                style={{
+                  background: 'var(--land-card)', border: '1px solid var(--land-border)',
+                  borderRadius: 16, overflow: 'hidden', height: '100%',
+                  display: 'flex', flexDirection: 'column',
+                  transition: 'border-color 0.2s, transform 0.2s',
+                  cursor: 'pointer',
+                }}
                 onMouseEnter={e => {
                   const el = e.currentTarget as HTMLElement
                   el.style.borderColor = 'rgba(29,158,117,0.5)'
@@ -69,52 +70,56 @@ export default function BlogPage() {
                   el.style.transform = 'translateY(0)'
                 }}
               >
-                {/* Category */}
-                <span style={{
-                  display: 'inline-block', padding: '3px 10px', borderRadius: 20,
-                  background: 'rgba(29,158,117,0.1)', border: '1px solid rgba(29,158,117,0.2)',
-                  fontSize: 11, fontWeight: 700, color: 'var(--pub-brand, #1D9E75)',
-                  letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'flex-start',
-                  fontFamily: bn ? 'var(--font-bn)' : 'inherit',
+                {/* Cover image */}
+                <div style={{
+                  background: post.coverGradient, height: 140,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 52, flexShrink: 0,
                 }}>
-                  {post.category[lang]}
-                </span>
-
-                {/* Title */}
-                <h2 style={{
-                  fontSize: '1.1rem', fontWeight: 700, color: 'var(--land-text)',
-                  margin: 0, lineHeight: 1.4,
-                  fontFamily: bn ? 'var(--font-bn)' : 'inherit',
-                }}>
-                  {post.title[lang]}
-                </h2>
-
-                {/* Excerpt */}
-                <p style={{
-                  fontSize: 14, color: 'var(--land-muted)', lineHeight: 1.7,
-                  margin: 0, flex: 1,
-                  fontFamily: bn ? 'var(--font-bn)' : 'inherit',
-                }}>
-                  {post.excerpt[lang]}
-                </p>
-
-                {/* Meta footer */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                  <span style={{ fontSize: 12, color: 'var(--land-muted)', fontFamily: bn ? 'var(--font-bn)' : 'inherit' }}>
-                    {formatDate(post.date, lang)}
-                  </span>
-                  <span style={{ fontSize: 12, color: 'var(--land-muted)', fontFamily: bn ? 'var(--font-bn)' : 'inherit' }}>
-                    {post.readingTime} {t('blogMinRead')}
-                  </span>
+                  {post.coverIcon}
                 </div>
 
-                {/* Read more */}
-                <span style={{
-                  fontSize: 13, fontWeight: 600, color: 'var(--pub-brand, #1D9E75)',
-                  fontFamily: bn ? 'var(--font-bn)' : 'inherit',
-                }}>
-                  {t('blogReadMore')}
-                </span>
+                {/* Card body */}
+                <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', flex: 1 }}>
+                  {/* Category */}
+                  <span style={{
+                    display: 'inline-block', padding: '3px 10px', borderRadius: 20,
+                    background: 'rgba(29,158,117,0.1)', border: '1px solid rgba(29,158,117,0.2)',
+                    fontSize: 11, fontWeight: 700, color: 'var(--pub-brand, #1D9E75)',
+                    letterSpacing: '0.06em', textTransform: 'uppercase', alignSelf: 'flex-start',
+                    fontFamily: bn ? 'var(--font-bn)' : 'inherit',
+                  }}>
+                    {post.category[lang]}
+                  </span>
+
+                  {/* Title */}
+                  <h2 style={{
+                    fontSize: '1rem', fontWeight: 700, color: 'var(--land-text)',
+                    margin: 0, lineHeight: 1.4,
+                    fontFamily: bn ? 'var(--font-bn)' : 'inherit',
+                  }}>
+                    {post.title[lang]}
+                  </h2>
+
+                  {/* Excerpt */}
+                  <p style={{
+                    fontSize: 13, color: 'var(--land-muted)', lineHeight: 1.7,
+                    margin: 0, flex: 1,
+                    fontFamily: bn ? 'var(--font-bn)' : 'inherit',
+                  }}>
+                    {post.excerpt[lang]}
+                  </p>
+
+                  {/* Meta + Read more */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                    <span style={{ fontSize: 12, color: 'var(--land-muted)', fontFamily: bn ? 'var(--font-bn)' : 'inherit' }}>
+                      {formatDate(post.date, lang)} · {post.readingTime} {t('blogMinRead')}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--pub-brand, #1D9E75)', fontFamily: bn ? 'var(--font-bn)' : 'inherit' }}>
+                      {t('blogReadMore')}
+                    </span>
+                  </div>
+                </div>
               </article>
             </Link>
           ))}
