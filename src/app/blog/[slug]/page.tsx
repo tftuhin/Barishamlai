@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { PublicLayout } from '@/components/layout/PublicLayout'
 import { useLang } from '@/components/layout/LanguageContext'
 import { getPost } from '../posts'
@@ -62,6 +63,21 @@ function renderContent(markdown: string, bn: boolean): React.ReactNode[] {
 
   while (i < lines.length) {
     const line = lines[i]
+
+    // Inline image: ![alt](url)
+    if (line.startsWith('![')) {
+      flushList(i)
+      const match = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/)
+      if (match) {
+        const [, alt, src] = match
+        elements.push(
+          <div key={`img-${i}`} style={{ margin: '1.75rem 0', borderRadius: 12, overflow: 'hidden', position: 'relative', aspectRatio: '16/9' }}>
+            <Image src={src} alt={alt} fill style={{ objectFit: 'cover' }} sizes="(max-width: 760px) 100vw, 760px" />
+          </div>
+        )
+      }
+      i++; continue
+    }
 
     // Table block
     if (isTableRow(line)) {
@@ -220,6 +236,11 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
           </p>
         ) : (
           <article>
+            {/* Cover image */}
+            <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', aspectRatio: '16/7', marginBottom: '2rem' }}>
+              <Image src={post.coverImage} alt={post.coverAlt} fill style={{ objectFit: 'cover' }} sizes="760px" priority />
+            </div>
+
             {/* Category */}
             <span style={{
               display: 'inline-block', padding: '3px 12px', borderRadius: 20,

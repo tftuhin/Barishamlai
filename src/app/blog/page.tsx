@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { PublicLayout } from '@/components/layout/PublicLayout'
 import { useLang } from '@/components/layout/LanguageContext'
 import { posts } from './posts'
@@ -71,12 +72,14 @@ export default function BlogPage() {
                 }}
               >
                 {/* Cover image */}
-                <div style={{
-                  background: post.coverGradient, height: 140,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 52, flexShrink: 0,
-                }}>
-                  {post.coverIcon}
+                <div style={{ position: 'relative', height: 180, flexShrink: 0, overflow: 'hidden' }}>
+                  <Image
+                    src={post.coverImage}
+                    alt={post.coverAlt}
+                    fill
+                    style={{ objectFit: 'cover', transition: 'transform 0.4s ease' }}
+                    sizes="(max-width: 768px) 100vw, 400px"
+                  />
                 </div>
 
                 {/* Card body */}
