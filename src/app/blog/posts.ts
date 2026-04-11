@@ -18,8 +18,8 @@ export const posts: Post[] = [
     readingTime: 8,
     author: { en: 'Tuhin', bn: 'তুহিন' },
     category: { en: 'Building Management', bn: 'ভবন ব্যবস্থাপনা' },
-    coverImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
-    coverAlt: 'Modern apartment building exterior',
+    coverImage: 'https://images.unsplash.com/photo-kEXSg0okRGc?auto=format&fit=crop&w=1200&q=80',
+    coverAlt: 'Apartment building with balconies in Dhaka, Bangladesh',
     title: {
       en: 'How Much Should Apartment Service Charge Be?',
       bn: 'বিল্ডিংয়ের সার্ভিস চার্জ কত হওয়া উচিত?',
@@ -33,7 +33,7 @@ export const posts: Post[] = [
 
 ## What Is Service Charge, Really?
 
-![A modern residential apartment complex with landscaped entrance](https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80)
+![Rooftop view overlooking Uttara residential area in Dhaka](https://images.unsplash.com/photo-lKRIG1eFPVQ?auto=format&fit=crop&w=800&q=80)
 
 Service charge is the monthly fee collected from each flat in an apartment building to cover the shared cost of running the building — security, cleaning, common area electricity, lift maintenance, caretaker wages, and more. It is entirely separate from rent and covers facilities that every resident uses equally, regardless of flat size.
 
@@ -58,7 +58,7 @@ Most building committees pick a number intuitively — often based on what neigh
 
 ## Service Charge by Dhaka Neighbourhood
 
-![Aerial view of Dhaka city residential and commercial areas](https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=800&q=80)
+![Dhaka city skyline with tall residential and commercial buildings](https://images.unsplash.com/photo-Cyph9RB5hAM?auto=format&fit=crop&w=800&q=80)
 
 The figures below are based on property listings, resident accounts, and building committee data collected from across Dhaka. Your building's age, amenities, staff count, and size will affect actual figures — treat this as a directional reference, not a fixed benchmark.
 
@@ -128,7 +128,7 @@ Service charge should be reviewed once a year — staff wages, electricity tarif
 
 ## The Core of Transparent Management
 
-![A building management committee reviewing financial documents together](https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?auto=format&fit=crop&w=800&q=80)
+![Business people in a meeting reviewing financial documents](https://images.unsplash.com/photo-FD9ncnQo9Ew?auto=format&fit=crop&w=800&q=80)
 
 Transparency is no longer optional. Residents are increasingly aware of their rights and expectations. Building committees that maintain clear accounts consistently collect more and face far fewer disputes than those that don't.
 
@@ -140,7 +140,7 @@ Create a brief monthly report showing: total collected, total spent, expense bre
 
 ## সার্ভিস চার্জ আসলে কী?
 
-![একটি আধুনিক আবাসিক অ্যাপার্টমেন্ট কমপ্লেক্সের বাইরের দৃশ্য](https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80)
+![ঢাকার উত্তরা এলাকার ছাদ থেকে আবাসিক এলাকার দৃশ্য](https://images.unsplash.com/photo-lKRIG1eFPVQ?auto=format&fit=crop&w=800&q=80)
 
 সার্ভিস চার্জ হলো একটি অ্যাপার্টমেন্ট বিল্ডিংয়ের সাধারণ সুবিধা এবং পরিষেবা পরিচালনার জন্য প্রতিটি ফ্লোরের বাসিন্দাদের থেকে মাসে মাসে সংগ্রহ করা অর্থ। এটি ভাড়ার অতিরিক্ত একটি আলাদা খরচ — ভবনের সকলের জন্য সমান সুবিধা নিশ্চিত করে: নিরাপত্তা, পরিচ্ছন্নতা, লিফট, পানির পাম্প, কেয়ারটেকার — সবই এর অন্তর্ভুক্ত।
 
@@ -165,7 +165,7 @@ Create a brief monthly report showing: total collected, total spent, expense bre
 
 ## ঢাকার এলাকাভিত্তিক সার্ভিস চার্জ তুলনা
 
-![ঢাকা শহরের আবাসিক ও বাণিজ্যিক এলাকার বায়বীয় দৃশ্য](https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=800&q=80)
+![ঢাকা শহরের আকাশরেখা — উঁচু আবাসিক ও বাণিজ্যিক ভবন](https://images.unsplash.com/photo-Cyph9RB5hAM?auto=format&fit=crop&w=800&q=80)
 
 নিচের তথ্য সম্পত্তির বিজ্ঞাপন, বাসিন্দাদের অভিজ্ঞতা এবং বিভিন্ন এলাকার বিল্ডিং কমিটির তথ্যের উপর ভিত্তি করে তৈরি। আপনার বিল্ডিংয়ের বয়স, সুবিধা, কর্মী সংখ্যা এবং আকারের উপর নির্ভর করে পার্থক্য হতে পারে — এটি একটি আনুমানিক রেফারেন্স, নিশ্চিত মানদণ্ড নয়।
 
@@ -235,7 +235,7 @@ Create a brief monthly report showing: total collected, total spent, expense bre
 
 ## স্বচ্ছ ব্যবস্থাপনার মূল কথা
 
-![বিল্ডিং কমিটির সদস্যরা আর্থিক নথি পর্যালোচনা করছেন](https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?auto=format&fit=crop&w=800&q=80)
+![ব্যবসায়িক বৈঠকে আর্থিক নথি পর্যালোচনা করছেন সদস্যরা](https://images.unsplash.com/photo-FD9ncnQo9Ew?auto=format&fit=crop&w=800&q=80)
 
 স্বচ্ছতা এখন আর ঐচ্ছিক নয়। বাসিন্দারা ক্রমশ সচেতন হচ্ছেন এবং তাদের অধিকার সম্পর্কে জানছেন। যে বিল্ডিং কমিটি হিসাব স্বচ্ছভাবে রাখে, তাদের সংগ্রহ বেশি এবং অভিযোগ কম — এটি বারবার প্রমাণিত।
 
@@ -250,8 +250,8 @@ Create a brief monthly report showing: total collected, total spent, expense bre
     readingTime: 5,
     author: { en: 'Tuhin', bn: 'তুহিন' },
     category: { en: 'Rent Collection', bn: 'ভাড়া সংগ্রহ' },
-    coverImage: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80',
-    coverAlt: 'Cash money and financial documents on a desk',
+    coverImage: 'https://images.unsplash.com/photo-90R5VIueiPQ?auto=format&fit=crop&w=1200&q=80',
+    coverAlt: 'Person counting cash money for rent payment in Bangladesh',
     title: {
       en: 'How to collect rent on time — every month',
       bn: 'প্রতি মাসে সময়মতো ভাড়া আদায়ের উপায়',
@@ -261,7 +261,7 @@ Create a brief monthly report showing: total collected, total spent, expense bre
       bn: 'দেরিতে ভাড়া পাওয়া বাংলাদেশের বাড়িওয়ালাদের সবচেয়ে বড় সমস্যা। সময়মতো ভাড়া পাওয়ার পাঁচটি কার্যকর কৌশল এখানে দেওয়া হলো।',
     },
     content: {
-      en: `![A landlord and tenant reviewing a rental agreement together](https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80)
+      en: `![A woman signing a rental agreement document](https://images.unsplash.com/photo-HJckKnwCXxQ?auto=format&fit=crop&w=800&q=80)
 
 Late rent disrupts cash flow and strains landlord-tenant relationships. After talking to hundreds of property managers across Bangladesh, we've distilled the best practices into five actionable steps.
 
@@ -288,7 +288,7 @@ Tenants who feel respected are more likely to communicate proactively when cash 
 ---
 
 Following these five steps consistently will eliminate most late-payment situations before they become a problem.`,
-      bn: `![একজন বাড়িওয়ালা এবং ভাড়াটে ভাড়া চুক্তি পর্যালোচনা করছেন](https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80)
+      bn: `![একজন মহিলা ভাড়া চুক্তি স্বাক্ষর করছেন](https://images.unsplash.com/photo-HJckKnwCXxQ?auto=format&fit=crop&w=800&q=80)
 
 দেরিতে ভাড়া পাওয়া নগদ প্রবাহ ব্যাহত করে এবং বাড়িওয়ালা-ভাড়াটে সম্পর্ককে ক্ষতিগ্রস্ত করে। বাংলাদেশের শত শত সম্পত্তি ব্যবস্থাপকের সাথে কথা বলে আমরা পাঁচটি কার্যকর পদক্ষেপ তৈরি করেছি।
 
@@ -319,8 +319,8 @@ Following these five steps consistently will eliminate most late-payment situati
     readingTime: 4,
     author: { en: 'Tuhin', bn: 'তুহিন' },
     category: { en: 'Property Management', bn: 'সম্পত্তি ব্যবস্থাপনা' },
-    coverImage: 'https://images.unsplash.com/photo-1512941937691-364c1e9b91c7?auto=format&fit=crop&w=1200&q=80',
-    coverAlt: 'Person using smartphone for digital payment and receipts',
+    coverImage: 'https://images.unsplash.com/photo-Utg8ggdGJRw?auto=format&fit=crop&w=1200&q=80',
+    coverAlt: 'People walking near Dhaka buildings at night with mobile phones',
     title: {
       en: 'Digital receipts vs. paper receipts: why the switch matters',
       bn: 'ডিজিটাল বনাম কাগজের রসিদ: পরিবর্তন কেন জরুরি',
@@ -330,7 +330,7 @@ Following these five steps consistently will eliminate most late-payment situati
       bn: 'কাগজের রসিদ হারিয়ে যায়, বিবর্ণ হয় এবং বিরোধ তৈরি করে। ডিজিটাল রসিদ তাৎক্ষণিক, অনুসন্ধানযোগ্য এবং আইনগতভাবে শক্তিশালী।',
     },
     content: {
-      en: `![Stack of old paper receipts next to a modern smartphone showing a digital receipt](https://images.unsplash.com/photo-1568992687947-868a62a9f521?auto=format&fit=crop&w=800&q=80)
+      en: `![People walking on a Dhaka street using mobile phones for digital transactions](https://images.unsplash.com/photo-qIUb3VNmxjI?auto=format&fit=crop&w=800&q=80)
 
 For decades, landlords in Bangladesh have handed over handwritten paper receipts after collecting rent. It works — until it doesn't. A faded receipt, a lost book, or a disputed payment can turn a simple transaction into a months-long conflict.
 
@@ -353,7 +353,7 @@ For decades, landlords in Bangladesh have handed over handwritten paper receipts
 ## Getting started
 
 If you're already using Bari Shamlai, receipts are generated automatically when you record a payment. You can resend any past receipt at any time from the Receipts section of your dashboard.`,
-      bn: `![পুরানো কাগজের রসিদ এবং আধুনিক স্মার্টফোনে ডিজিটাল রসিদ পাশাপাশি](https://images.unsplash.com/photo-1568992687947-868a62a9f521?auto=format&fit=crop&w=800&q=80)
+      bn: `![ঢাকার রাস্তায় মানুষজন মোবাইল ফোনে ডিজিটাল লেনদেন করছেন](https://images.unsplash.com/photo-qIUb3VNmxjI?auto=format&fit=crop&w=800&q=80)
 
 বছরের পর বছর ধরে বাংলাদেশের বাড়িওয়ালারা ভাড়া নেওয়ার পরে হাতে লেখা কাগজের রসিদ দিয়ে আসছেন। এটি কাজ করে — যতক্ষণ না কোনো সমস্যা হয়।
 
@@ -378,8 +378,8 @@ If you're already using Bari Shamlai, receipts are generated automatically when 
     readingTime: 6,
     author: { en: 'Tuhin', bn: 'তুহিন' },
     category: { en: 'Scaling Up', bn: 'সম্প্রসারণ' },
-    coverImage: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=1200&q=80',
-    coverAlt: 'Aerial view of a modern city with multiple residential buildings',
+    coverImage: 'https://images.unsplash.com/photo-ioA9B-RAFHE?auto=format&fit=crop&w=1200&q=80',
+    coverAlt: 'Aerial view of Bibir Bagicha Road, Dhaka showing dense urban buildings',
     title: {
       en: 'Managing multiple buildings without losing your mind',
       bn: 'একাধিক ভবন সামলানোর স্মার্ট উপায়',
@@ -389,7 +389,7 @@ If you're already using Bari Shamlai, receipts are generated automatically when 
       bn: 'একটির বেশি ভবন থাকলে জটিলতা দ্রুত বাড়ে। মাল্টি-প্রপার্টি ব্যবস্থাপনাকে সহজ ও লাভজনক রাখার পদ্ধতি জানুন।',
     },
     content: {
-      en: `![Aerial view of a dense urban neighbourhood with many apartment buildings](https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?auto=format&fit=crop&w=800&q=80)
+      en: `![Row of apartment buildings in Dia-Bari, Dhaka, Bangladesh](https://images.unsplash.com/photo-pQgEzFOq8Uk?auto=format&fit=crop&w=800&q=80)
 
 Growing from one building to two — then five — feels exciting until you realize you're drowning in spreadsheets, missed calls, and conflicting records. Here is how experienced multi-property owners in Bangladesh stay on top of it all.
 
@@ -420,7 +420,7 @@ Bari Shamlai's monthly report feature generates this summary automatically.
 ## Know when to bring in professional management
 
 If you cross 50 units, consider whether a professional property management company — one that charges 8–12% of collected rent — frees enough of your time to justify the cost.`,
-      bn: `![একটি ঘন শহুরে এলাকার বায়বীয় দৃশ্য যেখানে অনেক অ্যাপার্টমেন্ট ভবন রয়েছে](https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?auto=format&fit=crop&w=800&q=80)
+      bn: `![ঢাকার ডিয়া-বাড়ি এলাকায় অ্যাপার্টমেন্ট ভবনের সারি](https://images.unsplash.com/photo-pQgEzFOq8Uk?auto=format&fit=crop&w=800&q=80)
 
 একটি থেকে দুটি — তারপর পাঁচটি ভবনে বাড়ার পরে উত্তেজনা অনুভব হয় যতক্ষণ না বুঝতে পারেন যে আপনি স্প্রেডশিট, মিসড কল এবং সাংঘর্ষিক রেকর্ডে ডুবে যাচ্ছেন।
 
