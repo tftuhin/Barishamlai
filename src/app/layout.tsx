@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { Inter, Hind_Siliguri } from 'next/font/google'
+import { Suspense } from 'react'
 import './globals.css'
 import { LanguageProvider } from '@/components/layout/LanguageContext'
 import { ThemeProvider } from '@/components/layout/ThemeContext'
+import { PostHogProvider } from '@/components/layout/PostHogProvider'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,7 +36,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <LanguageProvider>
-            {children}
+            <Suspense>
+              <PostHogProvider>
+                {children}
+              </PostHogProvider>
+            </Suspense>
           </LanguageProvider>
         </ThemeProvider>
       </body>
