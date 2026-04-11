@@ -33,17 +33,18 @@ export function LandingFooter({ staticPage = false }: { staticPage?: boolean }) 
       { label: t('landFooterFAQ'),        href: `${p}#faq` },
     ]},
     { titleKey: 'landFooterAccount', links: [
-      { label: t('landFooterSignUp'), href: '/signup' },
-      { label: t('landFooterSignIn'), href: '/login' },
-      { label: 'About Us',            href: '/about' },
-      { label: 'Contact Us',          href: '/contact' },
+      { label: t('landFooterSignUp'),  href: '/signup' },
+      { label: t('landFooterSignIn'),  href: '/login' },
+      { label: t('landFooterAbout'),   href: '/about' },
+      { label: t('landFooterContact'), href: '/contact' },
+      { label: t('landFooterBlog'),    href: '/blog' },
     ]},
     { titleKey: 'landFooterLegal', links: [
-      { label: t('landFooterPrivacy'), href: '/privacy' },
-      { label: t('landFooterTerms'),   href: '/terms' },
-      { label: 'Refund Policy',        href: '/refund' },
-      { label: 'Data Security',        href: '/data-security' },
-      { label: 'Ad Policy',            href: '/ad-policy' },
+      { label: t('landFooterPrivacy'),        href: '/privacy' },
+      { label: t('landFooterTerms'),          href: '/terms' },
+      { label: t('landFooterRefund'),         href: '/refund' },
+      { label: t('landFooterDataSecurity'),   href: '/data-security' },
+      { label: t('landFooterAdPolicy'),       href: '/ad-policy' },
     ]},
   ]
 

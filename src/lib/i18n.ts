@@ -323,6 +323,26 @@ export const translations = {
   landFooterCookies: { en: 'Cookie Policy', bn: 'কুকি নীতি' },
   landFooterCopyright: { en: '© {year} Bari Shamlai. All rights reserved.', bn: '© {year} বাড়ি সামলাই। সর্বস্বত্ব সংরক্ষিত।' },
   landFooterMade:    { en: "Made with ❤️ for Bangladesh's apartment managers", bn: 'বাংলাদেশের বাড়িওয়ালাদের জন্য ❤️ দিয়ে তৈরি' },
+
+  // ── Footer missing translations ──────────────────────────────────────────
+  landFooterAbout:        { en: 'About Us',       bn: 'আমাদের সম্পর্কে' },
+  landFooterContact:      { en: 'Contact Us',     bn: 'যোগাযোগ করুন' },
+  landFooterRefund:       { en: 'Refund Policy',  bn: 'ফেরত নীতি' },
+  landFooterDataSecurity: { en: 'Data Security',  bn: 'ডেটা নিরাপত্তা' },
+  landFooterAdPolicy:     { en: 'Ad Policy',      bn: 'বিজ্ঞাপন নীতি' },
+  landFooterBlog:         { en: 'Blog',           bn: 'ব্লগ' },
+
+  // ── Blog ─────────────────────────────────────────────────────────────────
+  blogNavLabel:      { en: 'Blog', bn: 'ব্লগ' },
+  blogHeroBadge:     { en: 'Blog', bn: 'ব্লগ' },
+  blogHeroTitle:     { en: 'Tips, guides & updates', bn: 'টিপস, গাইড ও আপডেট' },
+  blogHeroSubtitle:  { en: 'Property management insights for Bangladesh landlords and building managers.', bn: 'বাংলাদেশের বাড়িওয়ালা ও ভবন ব্যবস্থাপকদের জন্য সম্পত্তি ব্যবস্থাপনার পরামর্শ।' },
+  blogReadMore:      { en: 'Read article →', bn: 'নিবন্ধ পড়ুন →' },
+  blogBy:            { en: 'By', bn: 'লেখক' },
+  blogBackToList:    { en: '← Back to Blog', bn: '← ব্লগে ফিরুন' },
+  blogMinRead:       { en: 'min read', bn: 'মিনিট পড়া' },
+  blogShareTitle:    { en: 'Share this article', bn: 'এই নিবন্ধটি শেয়ার করুন' },
+  blogNotFound:      { en: 'Post not found.', bn: 'পোস্টটি পাওয়া যায়নি।' },
 } as const
 
 export type TranslationKey = keyof typeof translations

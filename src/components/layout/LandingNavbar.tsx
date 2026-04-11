@@ -41,6 +41,7 @@ export function LandingNavbar({ staticPage = false }: { staticPage?: boolean }) 
     { label: t('landNavPricing'),    href: `${p}#pricing` },
     { label: t('landNavHowItWorks'), href: `${p}#how-it-works` },
     { label: t('landNavFAQ'),        href: `${p}#faq` },
+    { label: t('blogNavLabel'),      href: '/blog' },
   ]
 
   return (
