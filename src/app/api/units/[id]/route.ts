@@ -1,0 +1,62 @@
+import { NextRequest } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { ok, Err, requireAuth, requireAdmin } from '@/lib/api'
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const [session, e] = await requireAuth()
+  if (e) return e
+
+  const role = session.user.role
+  if (!['ADMIN', 'OWNER'].includes(role)) return Err.forbidden()
+
+  try {
+    const unit = await prisma.unit.findUnique({ where: { id: params.id } })
+    if (!unit) return Err.notFound('Unit not found')
+
+    if (role === 'OWNER' && unit.ownerId !== session.user.id) return Err.forbidden()
+
+    const body = await req.json() as Record<string, unknown>
+    const data: Record<string, unknown> = {}
+
+    if (body.ownerContactName  !== undefined) data.ownerContactName  = body.ownerContactName  ?? null
+    if (body.ownerPhone        !== undefined) data.ownerPhone        = body.ownerPhone        ?? null
+    if (body.tenantContactName !== undefined) data.tenantContactName = body.tenantContactName ?? null
+    if (body.tenantPhone       !== undefined) data.tenantPhone       = body.tenantPhone       ?? null
+    if (body.tenantNid         !== undefined) data.tenantNid         = body.tenantNid         ?? null
+
+    if (role === 'ADMIN') {
+      if (body.status          !== undefined) data.status          = body.status
+      if (body.monthlyRent     !== undefined) data.monthlyRent     = Number(body.monthlyRent)
+      if (body.floor           !== undefined) data.floor           = Number(body.floor)
+      if (body.area            !== undefined) data.area            = body.area ? Number(body.area) : null
+      if (body.ownerId         !== undefined) data.ownerId         = body.ownerId  || null
+      if (body.tenantId        !== undefined) data.tenantId        = body.tenantId || null
+      if (body.isOwnerOccupied !== undefined) data.isOwnerOccupied = Boolean(body.isOwnerOccupied)
+      if (body.isOwnerOccupied) {
+        data.tenantId = null
+        data.status   = 'OCCUPIED'
+      }
+    }
+
+    const updated = await prisma.unit.update({
+      where: { id: params.id },
+      data,
+      include: { owner: true, tenant: true },
+    })
+    return ok(updated)
+  } catch {
+    return Err.internal('Failed to update unit')
+  }
+}
+
+export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+  const [, e] = await requireAdmin()
+  if (e) return e
+
+  try {
+    await prisma.unit.delete({ where: { id: params.id } })
+    return ok({ success: true })
+  } catch {
+    return Err.internal('Failed to delete unit')
+  }
+}

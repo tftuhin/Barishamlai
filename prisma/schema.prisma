@@ -1,0 +1,326 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ── Enums ──────────────────────────────────────────────────────
+enum Role {
+  ADMIN
+  OWNER
+  TENANT
+}
+
+enum BillType {
+  RENT
+  SERVICE_CHARGE
+  GAS
+  WATER
+  ELECTRICITY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum UnitStatus {
+  OCCUPIED
+  VACANT
+}
+
+enum ExpenseCategory {
+  MAINTENANCE
+  CLEANING
+  UTILITIES
+  SECURITY
+  INSURANCE
+  LEGAL
+  OTHER
+}
+
+// Which income bucket this expense is charged against
+enum ExpenseSource {
+  GAS            // deducted from gas fund
+  SERVICE_CHARGE // deducted from service charge / building maintenance fund
+  GENERAL        // general / not attributed to a specific fund
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BuildingPlan {
+  FREE
+  PREMIUM
+}
+
+enum BuildingTier {
+  BASIC      // ৳200/mo — up to 10 units
+  STANDARD   // ৳300/mo — up to 20 units
+  PRO        // ৳400/mo — up to 30 units
+  ENTERPRISE // ৳500/mo — unlimited
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+enum BuildingStatus {
+  ACTIVE
+  LOCKED   // read-only warning; dashboard accessible but changes disabled
+  BLOCKED  // access denied pending review
+  BANNED   // permanent account ban
+}
+
+enum SubscriptionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ── Building (tenant root) ─────────────────────────────────────
+model Building {
+  id              String          @id @default(cuid())
+  name            String
+  plan            BuildingPlan    @default(FREE)
+  tier            BuildingTier?   // null = FREE plan
+  premiumUntil    DateTime?
+  status          BuildingStatus  @default(ACTIVE)
+  statusNote      String?         // developer note for lock/block/ban
+  statusUpdatedAt DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  users                User[]
+  units                Unit[]
+  bills                Bill[]
+  expenses             Expense[]
+  messages             Message[]
+  config               BuildingConfig?
+  joinRequests         JoinRequest[]
+  invitations          Invitation[]
+  subscriptionPayments SubscriptionPayment[]
+}
+
+// ── Users ──────────────────────────────────────────────────────
+model User {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  password            String
+  phone               String?
+  profileImage        String?   // data URL or external URL
+  passwordResetToken  String?   @unique
+  passwordResetExpiry DateTime?
+  role                Role      @default(TENANT)
+  buildingId          String?
+  building            Building? @relation(fields: [buildingId], references: [id])
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  ownedUnit        Unit?     @relation("UnitOwner")
+  tenantUnit       Unit?     @relation("UnitTenant")
+  sentMessages     Message[] @relation("MessageSender")
+  receivedMessages MessageRecipient[]
+  receiptsIssued   Receipt[] @relation("ReceiptIssuer")
+  receiptsReceived Receipt[] @relation("ReceiptRecipient")
+  joinRequests     JoinRequest[]
+  sentInvitations  Invitation[] @relation("InvitationSender")
+}
+
+// ── Units ──────────────────────────────────────────────────────
+model Unit {
+  id                String     @id @default(cuid())
+  number            String
+  floor             Int
+  area              Float?
+  monthlyRent       Float
+  status            UnitStatus @default(OCCUPIED)
+  isOwnerOccupied   Boolean    @default(false)  // owner lives here — no rent charged
+  ownerContactName  String?
+  ownerPhone        String?
+  tenantContactName String?
+  tenantPhone       String?
+  tenantNid         String?
+
+  buildingId String?
+  building   Building? @relation(fields: [buildingId], references: [id])
+
+  ownerId  String? @unique
+  tenantId String? @unique
+  owner    User?   @relation("UnitOwner",  fields: [ownerId],  references: [id])
+  tenant   User?   @relation("UnitTenant", fields: [tenantId], references: [id])
+
+  bills    Bill[]
+  receipts Receipt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([buildingId, number])
+}
+
+// ── Bills ──────────────────────────────────────────────────────
+model Bill {
+  id           String        @id @default(cuid())
+  unitId       String
+  unit         Unit          @relation(fields: [unitId], references: [id])
+  buildingId   String?
+  building     Building?     @relation(fields: [buildingId], references: [id])
+  type         BillType
+  amount       Float
+  month        Int
+  year         Int
+  dueDate      DateTime
+  status       PaymentStatus @default(PENDING)
+  paidAt       DateTime?
+  note         String?
+  meterReading Float?
+
+  receipt Receipt?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([unitId, type, month, year])
+}
+
+// ── Receipts ───────────────────────────────────────────────────
+model Receipt {
+  id          String   @id @default(cuid())
+  billId      String   @unique
+  bill        Bill     @relation(fields: [billId], references: [id])
+  unitId      String
+  unit        Unit     @relation(fields: [unitId], references: [id])
+  issuedById  String
+  issuedBy    User     @relation("ReceiptIssuer",   fields: [issuedById],  references: [id])
+  recipientId String
+  recipient   User     @relation("ReceiptRecipient", fields: [recipientId], references: [id])
+  amount      Float
+  pdfUrl      String?
+  sentEmail   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// ── Expenses ───────────────────────────────────────────────────
+model Expense {
+  id           String          @id @default(cuid())
+  title        String
+  amount       Float
+  category     ExpenseCategory
+  incomeSource ExpenseSource   @default(GENERAL)
+  date         DateTime
+  description  String?
+  month        Int
+  year         Int
+  buildingId   String?
+  building     Building?       @relation(fields: [buildingId], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+// ── BuildingConfig ─────────────────────────────────────────────
+model BuildingConfig {
+  id                   String   @id           // equals buildingId
+  building             Building @relation(fields: [id], references: [id])
+  featureRent          Boolean  @default(true)
+  featureElectricity   Boolean  @default(true)
+  featureGas           Boolean  @default(true)
+  featureLift          Boolean  @default(false)
+  featureSecurityGuard Boolean  @default(false)
+  featureGarbage       Boolean  @default(false)
+  featureServiceCharge Boolean  @default(true)
+  serviceChargeOccupied Float   @default(0)
+  serviceChargeVacant  Float    @default(0)
+  gasUnitRate          Float    @default(0)
+  updatedAt            DateTime @updatedAt
+}
+
+// ── Messages ───────────────────────────────────────────────────
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  sender     User     @relation("MessageSender", fields: [senderId], references: [id])
+  buildingId String?
+  building   Building? @relation(fields: [buildingId], references: [id])
+  subject    String
+  body       String   @db.Text
+  isGlobal   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  recipients MessageRecipient[]
+}
+
+model MessageRecipient {
+  id        String   @id @default(cuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId])
+}
+
+// ── Join Requests ──────────────────────────────────────────────
+// When an OWNER or TENANT registers with a building ID, a JoinRequest
+// is created. The admin approves or rejects it.
+model JoinRequest {
+  id         String            @id @default(cuid())
+  userId     String
+  buildingId String
+  role       Role
+  status     JoinRequestStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  building Building @relation(fields: [buildingId], references: [id])
+}
+
+// ── Subscription Payments ──────────────────────────────────────
+// Tracks SSLCommerz payments for plan upgrades/renewals.
+model SubscriptionPayment {
+  id          String             @id @default(cuid())
+  buildingId  String
+  building    Building           @relation(fields: [buildingId], references: [id])
+  tier        BuildingTier
+  months      Int                @default(1)
+  amount      Float              // total amount charged (BDT)
+  tranId      String             @unique  // our unique transaction ID sent to SSLCommerz
+  valId       String?            // SSLCommerz validation ID on success
+  status      SubscriptionStatus @default(PENDING)
+  createdAt   DateTime           @default(now())
+  completedAt DateTime?
+}
+
+// ── Invitations ────────────────────────────────────────────────
+// Admin pre-invites a user by email. The token is shared with the
+// invitee, who uses it during signup to be auto-approved.
+model Invitation {
+  id          String           @id @default(cuid())
+  email       String
+  buildingId  String
+  role        Role
+  token       String           @unique @default(cuid())
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  invitedById String
+  createdAt   DateTime         @default(now())
+
+  building  Building @relation(fields: [buildingId], references: [id])
+  invitedBy User     @relation("InvitationSender", fields: [invitedById], references: [id])
+}

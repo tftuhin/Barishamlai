@@ -1,0 +1,326 @@
+'use client'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, PageHeader, Button } from '@/components/ui'
+import { formatCurrency, getMonthName } from '@/lib/utils'
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => ({ val: i + 1, label: getMonthName(i + 1) }))
+
+function getLastMonths(n = 12) {
+  const out = []
+  const now = new Date()
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    out.push({ month: d.getMonth() + 1, year: d.getFullYear() })
+  }
+  return out
+}
+
+type BatchRow = {
+  unitId: string
+  unitNumber: string
+  floor: number
+  prevReading: string
+  currentReading: string
+  amount: string
+  skip: boolean
+}
+
+export function GasClient({ units, gasBills, gasUnitRate, currentMonth, currentYear }: {
+  units: any[]; gasBills: any[]; gasUnitRate: number; currentMonth: number; currentYear: number
+}) {
+  const router = useRouter()
+  const months = getLastMonths(12)
+
+  // Matrix view state
+  const [view, setView] = useState<'matrix' | 'batch'>('matrix')
+
+  // Batch state
+  const [batchMonth, setBatchMonth] = useState(String(currentMonth))
+  const [batchYear, setBatchYear] = useState(String(currentYear))
+  const [batchDueDate, setBatchDueDate] = useState('')
+  const [batchRows, setBatchRows] = useState<BatchRow[]>([])
+  const [saving, setSaving] = useState(false)
+  const [result, setResult] = useState<{ created: number; skipped: number } | null>(null)
+
+  function getBill(unitId: string, month: number, year: number) {
+    return gasBills.find(b => b.unitId === unitId && b.month === month && b.year === year) ?? null
+  }
+
+  // Find most recent gas bill before target month for a unit
+  function getPrevReading(unitId: string, targetMonth: number, targetYear: number): number | null {
+    const prev = gasBills
+      .filter(b => b.unitId === unitId && (b.year < targetYear || (b.year === targetYear && b.month < targetMonth)) && b.meterReading != null)
+      .sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month)
+    return prev[0]?.meterReading ?? null
+  }
+
+  const initBatchRows = useCallback((month: number, year: number) => {
+    setBatchRows(units.map(u => {
+      const pr = getPrevReading(u.id, month, year)
+      return {
+        unitId: u.id,
+        unitNumber: u.number,
+        floor: u.floor,
+        prevReading: pr !== null ? String(pr) : '',
+        currentReading: '',
+        amount: '',
+        skip: false,
+      }
+    }))
+  }, [units, gasBills])
+
+  // When batch view opens or month/year changes, reinit rows
+  useEffect(() => {
+    if (view === 'batch') initBatchRows(Number(batchMonth), Number(batchYear))
+  }, [view, batchMonth, batchYear])
+
+  function updateRow(idx: number, field: keyof BatchRow, value: string | boolean) {
+    setBatchRows(rows => {
+      const next = [...rows]
+      next[idx] = { ...next[idx], [field]: value }
+      // Auto-calc amount when readings change
+      if (field === 'currentReading' || field === 'prevReading') {
+        const row = next[idx]
+        const prev = parseFloat(field === 'prevReading' ? value as string : row.prevReading)
+        const curr = parseFloat(field === 'currentReading' ? value as string : row.currentReading)
+        if (!isNaN(prev) && !isNaN(curr) && curr > prev && gasUnitRate > 0) {
+          next[idx].amount = String(Math.round((curr - prev) * gasUnitRate))
+        }
+      }
+      return next
+    })
+  }
+
+  async function submitBatch() {
+    if (!batchDueDate) return alert('Please set a due date')
+    setSaving(true); setResult(null)
+    const bills = batchRows
+      .filter(r => !r.skip && r.currentReading && r.amount)
+      .map(r => ({
+        unitId: r.unitId,
+        type: 'GAS',
+        amount: Number(r.amount),
+        month: Number(batchMonth),
+        year: Number(batchYear),
+        dueDate: batchDueDate,
+        meterReading: Number(r.currentReading),
+      }))
+    const res = await fetch('/api/bills/batch', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bills }),
+    })
+    const data = await res.json()
+    setResult(data)
+    setSaving(false)
+    if (data.created > 0) router.refresh()
+  }
+
+  const totalPaid = gasBills.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0)
+  const totalDue  = gasBills.filter(b => b.status !== 'PAID').reduce((s, b) => s + b.amount, 0)
+
+  const inputSt: React.CSSProperties = { width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '13px', background: '#fff', outline: 'none', boxSizing: 'border-box' }
+  const readonlySt: React.CSSProperties = { ...inputSt, background: '#f1f5f9', color: 'var(--text-muted)', cursor: 'not-allowed' }
+
+  return (
+    <div className="page-content" style={{ padding: '2rem 2.5rem', animation: 'fadeIn 0.4s ease-out' }}>
+      <PageHeader
+        title="Gas Bills"
+        subtitle="Monthly gas meter readings and payment status per unit"
+        action={
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Button variant={view === 'matrix' ? 'secondary' : 'primary'} onClick={() => setView('matrix')}>Matrix View</Button>
+            <Button variant={view === 'batch' ? 'secondary' : 'primary'} onClick={() => setView('batch')}>+ Add Batch</Button>
+          </div>
+        }
+      />
+
+      {/* Summary */}
+      <div className="resp-grid-sum" style={{ marginBottom: '1.5rem' }}>
+        {[
+          { label: 'Total Bills', val: String(gasBills.length), color: 'var(--brand)' },
+          { label: 'Collected', val: formatCurrency(totalPaid), color: '#15803d' },
+          { label: 'Outstanding', val: formatCurrency(totalDue), color: '#dc2626' },
+        ].map(s => (
+          <Card key={s.label} style={{ padding: '1rem 1.25rem' }}>
+            <p style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', margin: '0 0 4px' }}>{s.label}</p>
+            <p style={{ fontSize: '1.4rem', fontWeight: 600, color: s.color, margin: 0 }}>{s.val}</p>
+          </Card>
+        ))}
+      </div>
+
+      {/* ── BATCH ENTRY VIEW ── */}
+      {view === 'batch' && (
+        <Card>
+          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: 0 }}>Batch Gas Bill Entry</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '3px 0 0' }}>
+                Gas unit rate: ৳{gasUnitRate}/unit
+                {gasUnitRate === 0 && <span style={{ color: '#d97706', marginLeft: '8px' }}>⚠ Set rate in Settings first</span>}
+              </p>
+            </div>
+            {/* Month/Year + Due Date selectors */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <select value={batchMonth} onChange={e => setBatchMonth(e.target.value)} style={{ ...inputSt, width: 'auto' }}>
+                {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
+              </select>
+              <input type="number" value={batchYear} onChange={e => setBatchYear(e.target.value)} style={{ ...inputSt, width: '80px' }} min="2020" max="2035" />
+              <input type="date" value={batchDueDate} onChange={e => setBatchDueDate(e.target.value)} style={{ ...inputSt, width: 'auto' }} placeholder="Due date" />
+            </div>
+          </div>
+
+          {result && (
+            <div style={{ padding: '10px 1.5rem', background: result.created > 0 ? '#f0fdf4' : '#fef9c3', borderBottom: '1px solid var(--border)', fontSize: '13px', color: result.created > 0 ? '#15803d' : '#a16207' }}>
+              ✓ Created {result.created} bills, skipped {result.skipped} (already exist)
+            </div>
+          )}
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+              <thead>
+                <tr style={{ background: 'var(--surface-subtle)' }}>
+                  {['Unit', 'Prev Reading', 'Current Reading', 'Usage', 'Amount (৳)', 'Skip'].map(h => (
+                    <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {batchRows.map((row, i) => {
+                  const existing = getBill(row.unitId, Number(batchMonth), Number(batchYear))
+                  const usage = row.prevReading && row.currentReading
+                    ? Math.max(0, Number(row.currentReading) - Number(row.prevReading))
+                    : null
+                  return (
+                    <tr key={row.unitId} style={{ background: row.skip || existing ? '#f8fafc' : i % 2 === 0 ? '#fff' : 'var(--surface-subtle)', opacity: row.skip ? 0.45 : 1 }}>
+                      <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--brand)', fontSize: '13px' }}>{row.unitNumber}</span>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Floor {row.floor}</div>
+                        {existing && <div style={{ fontSize: '10px', color: '#d97706', marginTop: '2px' }}>⚠ Bill exists</div>}
+                      </td>
+                      <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>
+                        <input
+                          type="number"
+                          value={row.prevReading}
+                          onChange={e => updateRow(i, 'prevReading', e.target.value)}
+                          style={inputSt}
+                          placeholder="—"
+                          disabled={row.skip || !!existing}
+                        />
+                      </td>
+                      <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>
+                        <input
+                          type="number"
+                          value={row.currentReading}
+                          onChange={e => updateRow(i, 'currentReading', e.target.value)}
+                          style={row.skip || existing ? readonlySt : inputSt}
+                          placeholder="Enter reading"
+                          disabled={row.skip || !!existing}
+                        />
+                      </td>
+                      <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        {usage !== null ? `${usage.toFixed(1)} units` : '—'}
+                      </td>
+                      <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>
+                        <input
+                          type="number"
+                          value={row.amount}
+                          onChange={e => updateRow(i, 'amount', e.target.value)}
+                          style={row.skip || existing ? readonlySt : inputSt}
+                          placeholder="0"
+                          disabled={row.skip || !!existing}
+                        />
+                      </td>
+                      <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', textAlign: 'center' }}>
+                        {!existing && (
+                          <input type="checkbox" checked={row.skip} onChange={e => updateRow(i, 'skip', e.target.checked)} />
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border)' }}>
+            <Button variant="secondary" onClick={() => { setView('matrix'); setResult(null) }}>Cancel</Button>
+            <Button onClick={submitBatch} disabled={saving}>
+              {saving ? 'Saving...' : `Submit Batch (${batchRows.filter(r => !r.skip && r.currentReading && r.amount).length} units)`}
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* ── MATRIX VIEW ── */}
+      {view === 'matrix' && (
+        <>
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '1rem', flexWrap: 'wrap' }}>
+            {[
+              { color: '#dcfce7', border: '#86efac', label: 'Paid' },
+              { color: '#fee2e2', border: '#fca5a5', label: 'Due / Overdue' },
+              { color: '#f1f5f9', border: '#cbd5e1', label: 'No bill' },
+            ].map(l => (
+              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: l.color, border: `1px solid ${l.border}` }} />
+                {l.label}
+              </div>
+            ))}
+          </div>
+
+          <Card>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--surface-subtle)' }}>
+                    <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', position: 'sticky', left: 0, background: 'var(--surface-subtle)', zIndex: 1, minWidth: '80px' }}>Unit</th>
+                    {months.map(({ month, year }) => (
+                      <th key={`${year}-${month}`} style={{ padding: '10px 8px', textAlign: 'center', fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', minWidth: '90px', whiteSpace: 'nowrap' }}>
+                        {getMonthName(month).slice(0, 3)} {String(year).slice(2)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {units.map((unit, i) => (
+                    <tr key={unit.id} style={{ background: i % 2 === 0 ? '#fff' : 'var(--surface-subtle)' }}>
+                      <td style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--brand)', borderBottom: '1px solid var(--border)', position: 'sticky', left: 0, background: i % 2 === 0 ? '#fff' : 'var(--surface-subtle)', zIndex: 1, whiteSpace: 'nowrap' }}>
+                        {unit.number}
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 400 }}>Floor {unit.floor}</div>
+                      </td>
+                      {months.map(({ month, year }) => {
+                        const bill = getBill(unit.id, month, year)
+                        if (!bill) return (
+                          <td key={`${year}-${month}`} style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>—</div>
+                          </td>
+                        )
+                        const isPaid = bill.status === 'PAID'
+                        return (
+                          <td key={`${year}-${month}`} style={{ padding: '6px 8px', textAlign: 'center', borderBottom: '1px solid var(--border)' }}>
+                            <div style={{ borderRadius: '8px', padding: '6px 4px', background: isPaid ? '#dcfce7' : '#fee2e2', border: `1px solid ${isPaid ? '#86efac' : '#fca5a5'}` }}>
+                              <div style={{ fontSize: '12px', fontWeight: 600, color: isPaid ? '#15803d' : '#dc2626' }}>{formatCurrency(bill.amount)}</div>
+                              {bill.meterReading != null && (
+                                <div style={{ fontSize: '10px', color: isPaid ? '#15803d' : '#dc2626', opacity: 0.75, marginTop: '2px' }}>📟 {bill.meterReading}</div>
+                              )}
+                              <div style={{ fontSize: '10px', color: isPaid ? '#166534' : '#991b1b', marginTop: '1px', fontWeight: 500 }}>
+                                {isPaid ? 'PAID' : bill.status}
+                              </div>
+                            </div>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                  {units.length === 0 && (
+                    <tr><td colSpan={months.length + 1} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>No units found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
+    </div>
+  )
+}
