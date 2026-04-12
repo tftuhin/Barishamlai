@@ -2,7 +2,7 @@ import type { Role } from '@prisma/client'
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ok, created, Err, requireAdmin } from '@/lib/api'
-import { sendEmail } from '@/lib/email'
+import { sendEmail, emailBase } from '@/lib/email'
 
 export async function GET() {
   const [session, e] = await requireAdmin()
@@ -55,20 +55,22 @@ export async function POST(req: NextRequest) {
       await sendEmail({
         to:      String(email).toLowerCase().trim(),
         subject: `You've been invited to join ${buildingName}`,
-        html: `
-          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff">
-            <h2 style="color:#1e3a5f;margin:0 0 8px">You're invited!</h2>
-            <p style="color:#64748b;margin:0 0 24px">
+        html: emailBase({
+          heading:    "You're Invited!",
+          subheading: buildingName,
+          bodyHtml: `
+            <p style="color:#1A2E2A;margin:0 0 12px">Hello,</p>
+            <p style="color:#3D5A53;margin:0 0 20px;line-height:1.65">
               You've been invited to join <strong>${buildingName}</strong> as a <strong>${roleLabel}</strong>.
+              Click the button below to create your account and accept the invitation.
             </p>
-            <a href="${signupUrl}" style="display:inline-block;padding:12px 28px;background:#1e3a5f;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin-bottom:24px">
-              Accept Invitation
-            </a>
-            <p style="color:#94a3b8;font-size:12px;margin:0">
-              This invitation expires in 7 days. If you didn't expect this, you can safely ignore this email.
+            <p style="color:#94a3b8;font-size:13px;margin:0">
+              This invitation expires in <strong>7 days</strong>. If you weren't expecting this, you can safely ignore this email.
             </p>
-          </div>
-        `,
+          `,
+          ctaLabel: 'Accept Invitation →',
+          ctaUrl:   signupUrl,
+        }),
       })
     } catch (e) {
       emailWarning = e instanceof Error ? e.message : 'Email failed to send'

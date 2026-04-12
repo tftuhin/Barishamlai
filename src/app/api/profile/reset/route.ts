@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendEmail } from '@/lib/email'
+import { sendEmail, emailBase } from '@/lib/email'
 import crypto from 'crypto'
 
 export async function POST(req: NextRequest) {
@@ -12,29 +12,37 @@ export async function POST(req: NextRequest) {
   // Always return success to prevent email enumeration
   if (!user) return NextResponse.json({ success: true })
 
-  const token = crypto.randomBytes(32).toString('hex')
+  const token  = crypto.randomBytes(32).toString('hex')
   const expiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordResetToken: token, passwordResetExpiry: expiry },
+    data:  { passwordResetToken: token, passwordResetExpiry: expiry },
   })
 
-  const appUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  const appUrl   = process.env.NEXTAUTH_URL || 'http://localhost:3000'
   const resetUrl = `${appUrl}/reset-password?token=${token}`
 
   await sendEmail({
     to:      user.email,
     toName:  user.name ?? undefined,
     subject: 'Reset your Bari Shamlai password',
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
-        <h2 style="color:#1A3A5C;margin-bottom:8px">Reset your password</h2>
-        <p style="color:#64748B;margin-bottom:24px">Hi ${user.name}, click the button below to reset your Bari Shamlai password. This link expires in 1 hour.</p>
-        <a href="${resetUrl}" style="display:inline-block;padding:12px 28px;background:#2563EB;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">Reset Password</a>
-        <p style="color:#94A3B8;font-size:12px;margin-top:24px">If you didn't request this, you can safely ignore this email.</p>
-      </div>
-    `,
+    html: emailBase({
+      heading:    'Reset Your Password',
+      subheading: 'বাড়ি সামলাই — Bari Shamlai',
+      bodyHtml: `
+        <p style="color:#1A2E2A;margin:0 0 12px">Hi <strong>${user.name ?? 'there'}</strong>,</p>
+        <p style="color:#3D5A53;margin:0 0 20px;line-height:1.65">
+          We received a request to reset your <strong>Bari Shamlai</strong> password.
+          Click the button below to set a new one. This link expires in <strong>1 hour</strong>.
+        </p>
+        <p style="color:#94a3b8;font-size:13px;margin:0">
+          If you didn't request a password reset, you can safely ignore this email — your account is not affected.
+        </p>
+      `,
+      ctaLabel: 'Reset Password →',
+      ctaUrl:   resetUrl,
+    }),
   })
 
   return NextResponse.json({ success: true })
