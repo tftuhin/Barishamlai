@@ -5,7 +5,7 @@
 :root {
   --font-display: var(--font-inter), sans-serif;
   --font-body: var(--font-inter), sans-serif;
-  --font-bn: var(--font-hind), var(--font-inter), sans-serif;
+  --font-bn: var(--font-noto-bn), var(--font-inter), sans-serif;
 
   /* Brand green palette (from brand guidelines §9) */
   --brand: #1D9E75;          /* Brand Green — primary CTAs, active states */

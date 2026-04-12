@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { BillType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ok, created, Err, isPrismaConflict, requireAuth, requireAdmin } from '@/lib/api'
 
@@ -26,13 +27,15 @@ export async function GET() {
   }
 }
 
+type OpeningDue = { type: string; month: number; year: number; amount: number }
+
 export async function POST(req: NextRequest) {
   const [session, e] = await requireAdmin()
   if (e) return e
 
   try {
     const body = await req.json() as Record<string, unknown>
-    const { number, floor, area, monthlyRent, ownerId, tenantId } = body
+    const { number, floor, area, monthlyRent, ownerId, tenantId, openingDues } = body
 
     if (!number || !floor || !monthlyRent)
       return Err.badRequest('number, floor and monthlyRent are required')
@@ -53,18 +56,42 @@ export async function POST(req: NextRequest) {
     if ((building?._count.units ?? 0) >= limit)
       return NextResponse_unitLimit(limit, tierKey)
 
-    const unit = await prisma.unit.create({
-      data: {
-        number:      String(number),
-        floor:       Number(floor),
-        area:        area  ? Number(area)       : null,
-        monthlyRent: Number(monthlyRent),
-        ownerId:     ownerId  ? String(ownerId)  : null,
-        tenantId:    tenantId ? String(tenantId) : null,
-        buildingId:  bId,
-      },
-      include: { owner: true, tenant: true },
+    const dues: OpeningDue[] = Array.isArray(openingDues) ? openingDues : []
+
+    const unit = await prisma.$transaction(async (tx) => {
+      const newUnit = await tx.unit.create({
+        data: {
+          number:      String(number),
+          floor:       Number(floor),
+          area:        area  ? Number(area)       : null,
+          monthlyRent: Number(monthlyRent),
+          ownerId:     ownerId  ? String(ownerId)  : null,
+          tenantId:    tenantId ? String(tenantId) : null,
+          buildingId:  bId,
+        },
+        include: { owner: true, tenant: true },
+      })
+
+      if (dues.length > 0) {
+        await tx.bill.createMany({
+          data: dues.map(d => ({
+            unitId:    newUnit.id,
+            buildingId: bId,
+            type:      d.type as BillType,
+            amount:    Number(d.amount),
+            month:     Number(d.month),
+            year:      Number(d.year),
+            dueDate:   new Date(Number(d.year), Number(d.month) - 1, 1),
+            status:    'PENDING' as const,
+            note:      'Opening balance',
+          })),
+          skipDuplicates: true,
+        })
+      }
+
+      return newUnit
     })
+
     return created(unit)
   } catch (e) {
     if (isPrismaConflict(e))

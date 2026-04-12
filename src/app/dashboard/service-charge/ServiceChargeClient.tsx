@@ -2,8 +2,18 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, PageHeader, Button, Modal, FormField, inputStyle, selectStyle } from '@/components/ui'
-import { formatCurrency, getMonthName } from '@/lib/utils'
+import { formatCurrency, getMonthName, formatDate } from '@/lib/utils'
 import Link from 'next/link'
+
+const SC_EXPENSE_CATEGORIES = [
+  { value: 'SECURITY_GUARD_SALARY', label: 'Security Guard Salary' },
+  { value: 'CARETAKER_SALARY',      label: 'Caretaker Salary' },
+  { value: 'CLEANER_SALARY',        label: 'Cleaner Salary' },
+  { value: 'LIFT_SERVICING',        label: 'Lift Servicing' },
+  { value: 'COMMON_ELECTRICITY',    label: 'Common Area Electricity' },
+  { value: 'GENERATOR',             label: 'Generator Fuel / Service' },
+  { value: 'SC_MAINTENANCE',        label: 'Maintenance & Repairs' },
+]
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => ({ val: i + 1, label: getMonthName(i + 1) }))
 
@@ -17,9 +27,10 @@ function getLastMonths(n = 12) {
   return out
 }
 
-export function ServiceChargeClient({ units, bills, serviceChargeOccupied, serviceChargeVacant, currentMonth, currentYear }: {
-  units: any[]; bills: any[]; serviceChargeOccupied: number; serviceChargeVacant: number
-  currentMonth: number; currentYear: number
+export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, serviceChargeOccupied, serviceChargeVacant, currentMonth, currentYear, isReadOnly }: {
+  units: any[]; bills: any[]; scExpenses: any[]; fundBalance: any | null
+  serviceChargeOccupied: number; serviceChargeVacant: number
+  currentMonth: number; currentYear: number; isReadOnly?: boolean
 }) {
   const router = useRouter()
   const months = getLastMonths(12)
@@ -31,6 +42,40 @@ export function ServiceChargeClient({ units, bills, serviceChargeOccupied, servi
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<{ created: number; skipped: number } | null>(null)
+
+  // SC Expenses
+  const [showAddExp, setShowAddExp] = useState(false)
+  const [savingExp, setSavingExp] = useState(false)
+  const [expError, setExpError] = useState('')
+  const now = new Date()
+  const [expForm, setExpForm] = useState({ title: '', amount: '', serviceCategory: 'SECURITY_GUARD_SALARY', date: now.toISOString().split('T')[0], description: '', month: String(currentMonth), year: String(currentYear) })
+
+  async function submitExpense() {
+    setExpError(''); setSavingExp(true)
+    const res = await fetch('/api/expenses', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: expForm.title || SC_EXPENSE_CATEGORIES.find(c => c.value === expForm.serviceCategory)?.label,
+        amount: Number(expForm.amount),
+        category: 'OTHER',
+        serviceCategory: expForm.serviceCategory,
+        incomeSource: 'SERVICE_CHARGE',
+        date: expForm.date,
+        description: expForm.description,
+        month: Number(expForm.month),
+        year: Number(expForm.year),
+      }),
+    })
+    if (res.ok) { setShowAddExp(false); router.refresh() }
+    else { const d = await res.json(); setExpError(d.error || 'Failed') }
+    setSavingExp(false)
+  }
+
+  async function deleteExpense(id: string) {
+    if (!confirm('Delete this expense?')) return
+    await fetch(`/api/expenses/${id}`, { method: 'DELETE' })
+    router.refresh()
+  }
 
   function getBill(unitId: string, month: number, year: number) {
     return bills.find(b => b.unitId === unitId && b.month === month && b.year === year) ?? null
@@ -68,20 +113,25 @@ export function ServiceChargeClient({ units, bills, serviceChargeOccupied, servi
 
   const totalPaid = bills.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0)
   const totalDue  = bills.filter(b => b.status !== 'PAID').reduce((s, b) => s + b.amount, 0)
+  const totalExpenses = scExpenses.reduce((s, e) => s + e.amount, 0)
+  const opening = fundBalance?.amount ?? 0
+  const currentBalance = opening + totalPaid - totalExpenses
 
   return (
     <div className="page-content" style={{ padding: '2rem 2.5rem', animation: 'fadeIn 0.4s ease-out' }}>
       <PageHeader
         title="Service Charges"
         subtitle="Monthly service charge status per unit"
-        action={<Button onClick={() => { setShowAdd(true); setResult(null) }}>+ Add for Month</Button>}
+        action={!isReadOnly ? <Button onClick={() => { setShowAdd(true); setResult(null) }}>+ Add for Month</Button> : undefined}
       />
 
       {/* Summary */}
       <div className="resp-grid-sum" style={{ marginBottom: '1.5rem' }}>
         {[
-          { label: 'Collected', val: formatCurrency(totalPaid), color: '#15803d' },
+          { label: 'Fund Balance', val: formatCurrency(currentBalance), color: currentBalance >= 0 ? '#15803d' : '#dc2626' },
+          { label: 'Collected (all time)', val: formatCurrency(totalPaid), color: '#15803d' },
           { label: 'Outstanding', val: formatCurrency(totalDue), color: '#dc2626' },
+          { label: 'Expenses (all time)', val: formatCurrency(totalExpenses), color: '#d97706' },
           { label: 'Rates', val: `Occupied: ৳${serviceChargeOccupied} / Vacant: ৳${serviceChargeVacant}`, color: 'var(--brand)' },
         ].map(s => (
           <Card key={s.label} style={{ padding: '1rem 1.25rem' }}>
@@ -154,6 +204,65 @@ export function ServiceChargeClient({ units, bills, serviceChargeOccupied, servi
           </table>
         </div>
       </Card>
+
+      {/* SC Expenses Section */}
+      <div style={{ marginTop: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', color: 'var(--brand)', margin: 0 }}>Service Charge Expenses</h2>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '2px 0 0' }}>Security, cleaning, lift, electricity, generator & maintenance costs</p>
+          </div>
+          {!isReadOnly && <Button onClick={() => setShowAddExp(true)}>+ Add Expense</Button>}
+        </div>
+        <Card>
+          {scExpenses.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>No service charge expenses logged yet.</div>
+          ) : (
+            <table className="data-table">
+              <thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount</th>{!isReadOnly && <th></th>}</tr></thead>
+              <tbody>
+                {scExpenses.map(e => (
+                  <tr key={e.id}>
+                    <td style={{ fontWeight: 500 }}>{e.title}</td>
+                    <td><span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 12, background: 'rgba(29,158,117,0.12)', color: 'var(--brand)', fontWeight: 500 }}>
+                      {SC_EXPENSE_CATEGORIES.find(c => c.value === e.serviceCategory)?.label ?? e.serviceCategory ?? 'Other'}
+                    </span></td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{formatDate(e.date)}</td>
+                    <td style={{ fontWeight: 600, color: '#dc2626' }}>{formatCurrency(e.amount)}</td>
+                    {!isReadOnly && (
+                      <td><button onClick={() => deleteExpense(e.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', borderRadius: 4 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button></td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+      </div>
+
+      {/* Add SC Expense Modal */}
+      <Modal open={showAddExp} onClose={() => setShowAddExp(false)} title="Add Service Charge Expense">
+        <FormField label="Category">
+          <select value={expForm.serviceCategory} onChange={e => setExpForm({ ...expForm, serviceCategory: e.target.value, title: '' })} style={selectStyle}>
+            {SC_EXPENSE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+        </FormField>
+        <FormField label="Title / Note (optional)">
+          <input value={expForm.title} onChange={e => setExpForm({ ...expForm, title: e.target.value })} style={inputStyle} placeholder={SC_EXPENSE_CATEGORIES.find(c => c.value === expForm.serviceCategory)?.label} />
+        </FormField>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <FormField label="Amount (৳)"><input type="number" value={expForm.amount} onChange={e => setExpForm({ ...expForm, amount: e.target.value })} style={inputStyle} placeholder="0" /></FormField>
+          <FormField label="Date"><input type="date" value={expForm.date} onChange={e => setExpForm({ ...expForm, date: e.target.value })} style={inputStyle} /></FormField>
+        </div>
+        <FormField label="Description (optional)"><input value={expForm.description} onChange={e => setExpForm({ ...expForm, description: e.target.value })} style={inputStyle} /></FormField>
+        {expError && <p style={{ color: '#dc2626', fontSize: 13 }}>{expError}</p>}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <Button variant="secondary" onClick={() => setShowAddExp(false)}>Cancel</Button>
+          <Button onClick={submitExpense} disabled={savingExp || !expForm.amount}>{savingExp ? 'Saving...' : 'Log Expense'}</Button>
+        </div>
+      </Modal>
 
       {/* Add for Month Modal */}
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Service Charges for Month">

@@ -1,0 +1,38 @@
+# Barishamlai — Building Management System
+
+> A web application for managing residential apartment buildings in Bangladesh. Handles rent collection, service charges, gas bills, expenses, and tenant management.
+
+## Pages
+
+- [Home](https://barishamlai.com/): Landing page with product overview
+- [Blog](https://barishamlai.com/blog): Articles on building management best practices
+- [About](https://barishamlai.com/about): About the platform
+- [Contact](https://barishamlai.com/contact): Contact information
+- [Privacy Policy](https://barishamlai.com/privacy): Privacy policy
+- [Terms of Service](https://barishamlai.com/terms): Terms of service
+
+## Blog Posts
+
+- [What Is a Service Charge?](https://barishamlai.com/blog/what-is-service-charge)
+- [How to Calculate Service Charges](https://barishamlai.com/blog/how-to-calculate-service-charge)
+- [Tenant Rights Regarding Service Charges](https://barishamlai.com/blog/tenant-rights-service-charge)
+- [How to Manage Rent Collection](https://barishamlai.com/blog/how-to-manage-rent-collection)
+- [Digital Rent Receipts](https://barishamlai.com/blog/digital-rent-receipts)
+- [Why Building Management Software Matters](https://barishamlai.com/blog/why-building-management-software)
+
+## Dashboard (Private — Login Required)
+
+The /dashboard area requires authentication. It includes:
+- Rent management (per-unit billing, payment tracking)
+- Service charge management (fund tracking, expense categories)
+- Gas bill management (unit consumption, cylinder purchases)
+- Expense tracking by category
+- Tenant and unit management
+- Financial reports and fund summaries
+- Building configuration and onboarding
+
+## Notes
+
+- Dashboard routes are private and require authentication
+- Supported roles: Admin, President, Secretary, Tenant
+- Supports bilingual interface (English and Bengali)

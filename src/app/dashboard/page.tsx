@@ -1,4 +1,5 @@
 import { getServerSession } from 'next-auth'
+import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { formatCurrency, getMonthName, getBillTypeLabel } from '@/lib/utils'
@@ -66,6 +67,18 @@ async function getDashboardData(role: string, userId: string, buildingId: string
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
   if (!session) return null
+
+  // Redirect ADMIN to onboarding wizard if not yet complete
+  if (session.user.role === 'ADMIN' && session.user.buildingId) {
+    const cfg = await prisma.buildingConfig.findUnique({
+      where:  { id: session.user.buildingId },
+      select: { onboardingComplete: true },
+    })
+    if (cfg && !cfg.onboardingComplete) {
+      redirect('/dashboard/onboarding')
+    }
+  }
+
   const data = await getDashboardData(session.user.role, session.user.id, session.user.buildingId)
 
   return (

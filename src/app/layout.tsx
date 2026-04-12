@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Hind_Siliguri } from 'next/font/google'
+import { Inter, Noto_Sans_Bengali } from 'next/font/google'
 import { Suspense } from 'react'
 import './globals.css'
 import { LanguageProvider } from '@/components/layout/LanguageContext'
@@ -13,11 +13,11 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-const hindSiliguri = Hind_Siliguri({
+const notoBengali = Noto_Sans_Bengali({
   subsets: ['bengali', 'latin'],
   weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
-  variable: '--font-hind',
+  variable: '--font-noto-bn',
 })
 
 export const metadata: Metadata = {
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="bn" className={`${inter.variable} ${hindSiliguri.variable}`}>
+    <html lang="bn" className={`${inter.variable} ${notoBengali.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('bs_theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}` }} />
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-4F5H83BZ8G" />

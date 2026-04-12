@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { ok, Err, requireAuth, requireAdmin } from '@/lib/api'
+import { ok, Err, requireAuth, requireAdmin, requireViewer } from '@/lib/api'
 
 const DEFAULT_CONFIG = {
   featureRent:           true,
@@ -13,10 +13,11 @@ const DEFAULT_CONFIG = {
   serviceChargeOccupied: 0,
   serviceChargeVacant:   0,
   gasUnitRate:           0,
+  onboardingComplete:    false,
 }
 
 export async function GET() {
-  const [session, e] = await requireAuth()
+  const [session, e] = await requireAuth()   // any authenticated user can read config
   if (e) return e
 
   try {
@@ -38,7 +39,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json() as Record<string, unknown>
     const bId  = session.user.buildingId!
 
-    const data = {
+    const data: Record<string, unknown> = {
       featureRent:           Boolean(body.featureRent),
       featureElectricity:    Boolean(body.featureElectricity),
       featureGas:            Boolean(body.featureGas),
@@ -49,6 +50,10 @@ export async function PUT(req: NextRequest) {
       serviceChargeOccupied: Math.max(0, Number(body.serviceChargeOccupied) || 0),
       serviceChargeVacant:   Math.max(0, Number(body.serviceChargeVacant)   || 0),
       gasUnitRate:           Math.max(0, Number(body.gasUnitRate)           || 0),
+    }
+    // Only set onboardingComplete if explicitly passed
+    if (body.onboardingComplete !== undefined) {
+      data.onboardingComplete = Boolean(body.onboardingComplete)
     }
 
     const config = await prisma.buildingConfig.upsert({

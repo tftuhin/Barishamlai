@@ -39,15 +39,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (session.user.role === 'DEVELOPER') redirect('/developer')
   if (!session.user.buildingId) redirect('/pending-approval')
 
-  const building = session.user.buildingId
-    ? await prisma.building.findUnique({
-        where: { id: session.user.buildingId },
-        select: { plan: true, premiumUntil: true, status: true, statusNote: true },
-      })
-    : null
+  const bId = session.user.buildingId
+
+  const [building, config] = await Promise.all([
+    bId ? prisma.building.findUnique({
+      where:  { id: bId },
+      select: { plan: true, premiumUntil: true, status: true, statusNote: true },
+    }) : null,
+    bId ? prisma.buildingConfig.findUnique({
+      where:  { id: bId },
+      select: { featureRent: true, featureServiceCharge: true, featureGas: true, onboardingComplete: true },
+    }) : null,
+  ])
 
   const isPremium = isPremiumBuilding(building)
   const status = building?.status ?? 'ACTIVE'
+
+  // onboardingComplete is passed down; individual pages redirect if needed
 
   // BLOCKED and BANNED: full access denial
   if (status === 'BLOCKED' || status === 'BANNED') {
@@ -75,10 +83,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
     )
   }
 
+  const moduleConfig = {
+    featureRent:          config?.featureRent          ?? true,
+    featureServiceCharge: config?.featureServiceCharge ?? true,
+    featureGas:           config?.featureGas           ?? true,
+  }
+
   return (
     <AuthProvider>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--surface)' }}>
-        <Sidebar user={session.user} isPremium={isPremium} />
+        <Sidebar user={session.user} isPremium={isPremium} moduleConfig={moduleConfig} />
         <main className="main-content" style={{ flex: 1, marginLeft: '260px', minHeight: '100vh', overflow: 'auto' }}>
           {/* LOCKED: show warning banner but allow access */}
           {status === 'LOCKED' && (

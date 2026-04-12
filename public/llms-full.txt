@@ -1,0 +1,122 @@
+# Barishamlai — Building Management System
+# Full Content Index for LLMs
+
+> Barishamlai is a SaaS building management platform for residential apartment buildings in Bangladesh. It streamlines rent collection, service charges, gas billing, expense management, and tenant communications. The platform supports bilingual (English/Bengali) operation.
+
+---
+
+## Public Pages
+
+### Home (/)
+Landing page introducing the platform with feature highlights: rent management, service charges, gas bills, financial reports, and multi-role access.
+
+### Blog (/blog)
+Educational articles on building management, tenant rights, and financial best practices.
+
+### Blog Posts
+
+#### What Is a Service Charge? (/blog/what-is-service-charge)
+Explains the concept of service charges in residential buildings — shared costs for common area maintenance, security, cleaning, and utilities. Covers what is typically included, how it differs from rent, and why it is legally required to be itemized.
+
+#### How to Calculate Service Charges (/blog/how-to-calculate-service-charge)
+Step-by-step guide on calculating per-unit service charges. Covers area-based vs. flat-rate methods, occupied vs. vacant unit rates, and how to present charges transparently to tenants.
+
+#### Tenant Rights Regarding Service Charges (/blog/tenant-rights-service-charge)
+Overview of tenant rights when it comes to service charges in Bangladesh. Covers the right to itemized statements, disputing unreasonable charges, and what constitutes a valid service charge.
+
+#### How to Manage Rent Collection (/blog/how-to-manage-rent-collection)
+Best practices for collecting rent: setting due dates, handling late payments, keeping records, and using digital tools to reduce disputes and missed payments.
+
+#### Digital Rent Receipts (/blog/digital-rent-receipts)
+Why paper receipts are being replaced by digital records. Covers benefits (audit trails, searchability, automatic reminders), what a valid rent receipt must contain, and how Barishamlai generates them automatically.
+
+#### Why Building Management Software Matters (/blog/why-building-management-software)
+The case for moving from manual ledgers and spreadsheets to dedicated software. Covers common pain points (errors, lost records, disputes) and how software solves them for small and mid-size residential buildings.
+
+### About (/about)
+Background on the Barishamlai platform, its mission to modernize building management in Bangladesh, and the team behind it.
+
+### Contact (/contact)
+Contact form and support information for building owners, managers, and tenants.
+
+### Privacy Policy (/privacy)
+Describes what data is collected, how it is stored, and user rights under applicable law.
+
+### Terms of Service (/terms)
+Terms governing use of the Barishamlai platform, including acceptable use, payment terms, and liability limitations.
+
+---
+
+## Application Features (Dashboard — Private)
+
+Access requires authentication. Available to registered buildings with appropriate role assignments.
+
+### Roles
+- **Admin**: Full access — billing, expenses, configuration, user management
+- **President**: Read-only access to all financial and tenant data
+- **Secretary**: Read-only access to all financial and tenant data
+- **Tenant**: Access to their own bills and payment history
+
+### Rent Module (/dashboard/rent)
+- Per-unit monthly rent billing
+- Payment tracking and due balance management
+- Opening balance entry for migration from manual systems
+- Bilingual receipt generation
+
+### Service Charge Module (/dashboard/service-charge)
+- Per-unit service charge billing (different rates for occupied vs. vacant units)
+- Service Charge Fund balance tracking (opening balance + collected - expenses)
+- Expense categories: Security Guard Salary, Caretaker Salary, Cleaner Salary, Lift Servicing, Common Electricity, Generator, Maintenance
+- Opening balance entry for fund migration
+
+### Gas Bill Module (/dashboard/gas)
+- Per-unit gas consumption billing based on unit rate
+- Gas Fund balance tracking (opening balance + collected - expenses)
+- Gas Cylinder Purchase expense tracking
+- Opening balance entry for fund migration
+
+### General Expenses (/dashboard/expenses)
+- Non-fund expenses not related to service charge or gas
+- Category-based tracking
+
+### Units & Tenants (/dashboard/units)
+- Unit inventory management (floor, number, area)
+- Tenant assignment per unit
+- Per-unit opening due balances for each bill type (rent, service charge, gas)
+
+### Reports (/dashboard/reports)
+- Fund summaries: opening balance + collected - expenses = current balance
+- Per-unit payment history
+- Monthly billing summaries
+
+### Configuration (/dashboard/config)
+- Building-level rate settings (rent, service charge rates, gas unit rate)
+- Module toggles: enable/disable Rent, Service Charge, and Gas modules
+- Disabled modules are hidden from the sidebar
+
+### Onboarding Wizard (/dashboard/onboarding)
+- Step 1: Select which modules to enable
+- Step 2: Enter opening balances for each fund (service charge fund, gas fund)
+- Step 3: Enter per-unit opening due/advance balances for each bill type
+- Designed for easy migration from manual systems or spreadsheets
+
+---
+
+## Technical Details
+
+- **Framework**: Next.js 14 (App Router)
+- **Database**: PostgreSQL via Prisma ORM
+- **Authentication**: NextAuth.js with JWT sessions
+- **Architecture**: Multi-tenant (one building = one workspace)
+- **Languages**: English and Bengali (বাংলা)
+- **Hosting**: Vercel
+
+---
+
+## Sitemap
+
+https://barishamlai.com/sitemap.xml
+
+## Robots
+
+https://barishamlai.com/robots.txt

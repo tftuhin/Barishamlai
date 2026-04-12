@@ -18,6 +18,14 @@ type Unit = {
 }
 
 type User = { id: string; name: string; role: string }
+type OpeningDue = { type: 'RENT' | 'SERVICE_CHARGE' | 'GAS'; month: number; year: number; amount: string }
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const BILL_TYPES: OpeningDue['type'][] = ['RENT', 'SERVICE_CHARGE', 'GAS']
+const BILL_LABELS: Record<OpeningDue['type'], string> = { RENT: 'Rent', SERVICE_CHARGE: 'Service Charge', GAS: 'Gas' }
+
+const now = new Date()
+const EMPTY_DUE: OpeningDue = { type: 'RENT', month: now.getMonth() + 1, year: now.getFullYear(), amount: '' }
 
 const EMPTY_FORM = { number: '', floor: '1', area: '', monthlyRent: '', ownerId: '', tenantId: '' }
 
@@ -59,6 +67,9 @@ export function UnitsClient({
   const [addForm, setAddForm] = useState(EMPTY_FORM)
   const [addSaving, setAddSaving] = useState(false)
   const [addError, setAddError] = useState('')
+  const [openingDues, setOpeningDues] = useState<OpeningDue[]>([])
+  const [dueForm, setDueForm] = useState<OpeningDue>(EMPTY_DUE)
+  const [showDueForm, setShowDueForm] = useState(false)
 
   // Edit modal
   const [editUnit, setEditUnit] = useState<Unit | null>(null)
@@ -91,6 +102,17 @@ export function UnitsClient({
     setEditError('')
   }
 
+  function addDueEntry() {
+    if (!dueForm.amount || Number(dueForm.amount) <= 0) return
+    setOpeningDues(prev => [...prev, { ...dueForm }])
+    setDueForm(EMPTY_DUE)
+    setShowDueForm(false)
+  }
+
+  function removeDue(i: number) {
+    setOpeningDues(prev => prev.filter((_, idx) => idx !== i))
+  }
+
   async function submitAdd() {
     setAddError(''); setAddSaving(true)
     const res = await fetch('/api/units', {
@@ -100,10 +122,13 @@ export function UnitsClient({
         area: addForm.area ? Number(addForm.area) : null,
         monthlyRent: Number(addForm.monthlyRent),
         ownerId: addForm.ownerId || null, tenantId: addForm.tenantId || null,
+        openingDues: openingDues.map(d => ({ ...d, amount: Number(d.amount) })),
       }),
     })
-    if (res.ok) { setShowAdd(false); setAddForm(EMPTY_FORM); router.refresh() }
-    else {
+    if (res.ok) {
+      setShowAdd(false); setAddForm(EMPTY_FORM); setOpeningDues([]); setShowDueForm(false)
+      router.refresh()
+    } else {
       const d = await res.json()
       if (d.error === 'UNIT_LIMIT_REACHED') { setShowAdd(false); setShowUpgradeWall(true) }
       else setAddError(d.error || 'Failed')
@@ -399,8 +424,77 @@ export function UnitsClient({
             {unassignedTenants.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
         </FormField>
-        {addError && <p style={{ color: '#dc2626', fontSize: '13px' }}>{addError}</p>}
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
+        {/* Opening Due Balances */}
+        <div style={{ marginTop: '18px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '10px', paddingBottom: '6px', borderBottom: '1px solid var(--border)' }}>
+            Opening Due Balances <span style={{ fontWeight: 400, fontSize: '10px', textTransform: 'none', letterSpacing: 0 }}>(optional — enter unpaid dues from before joining)</span>
+          </div>
+
+          {openingDues.length > 0 && (
+            <div style={{ marginBottom: '10px', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--surface-subtle)' }}>
+                    {['Type','Month','Year','Amount (৳)',''].map(h => (
+                      <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {openingDues.map((d, i) => (
+                    <tr key={i} style={{ borderBottom: i < openingDues.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <td style={{ padding: '6px 10px', fontWeight: 500 }}>{BILL_LABELS[d.type]}</td>
+                      <td style={{ padding: '6px 10px', color: 'var(--text-secondary)' }}>{MONTHS[d.month - 1]}</td>
+                      <td style={{ padding: '6px 10px', color: 'var(--text-secondary)' }}>{d.year}</td>
+                      <td style={{ padding: '6px 10px', fontWeight: 600, color: '#15803d' }}>৳{Number(d.amount).toLocaleString()}</td>
+                      <td style={{ padding: '6px 6px', textAlign: 'right' }}>
+                        <button onClick={() => removeDue(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '13px', padding: '2px 6px' }}>✕</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {showDueForm ? (
+            <div style={{ padding: '12px', background: 'var(--surface-subtle)', borderRadius: '10px', border: '1px solid var(--border)', marginBottom: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 80px 1fr', gap: '8px', alignItems: 'end' }}>
+                <FormField label="Bill Type">
+                  <select value={dueForm.type} onChange={e => setDueForm({ ...dueForm, type: e.target.value as OpeningDue['type'] })} style={{ ...selectStyle, fontSize: '13px', padding: '6px 8px' }}>
+                    {BILL_TYPES.map(t => <option key={t} value={t}>{BILL_LABELS[t]}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Month">
+                  <select value={dueForm.month} onChange={e => setDueForm({ ...dueForm, month: Number(e.target.value) })} style={{ ...selectStyle, fontSize: '13px', padding: '6px 8px' }}>
+                    {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Year">
+                  <input type="number" value={dueForm.year} onChange={e => setDueForm({ ...dueForm, year: Number(e.target.value) })} style={{ ...inputStyle, fontSize: '13px', padding: '6px 8px' }} min="2000" max="2100" />
+                </FormField>
+                <FormField label="Amount (৳)">
+                  <input type="number" value={dueForm.amount} onChange={e => setDueForm({ ...dueForm, amount: e.target.value })} style={{ ...inputStyle, fontSize: '13px', padding: '6px 8px' }} placeholder="0" min="1" />
+                </FormField>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <button onClick={addDueEntry} disabled={!dueForm.amount || Number(dueForm.amount) <= 0} style={{ padding: '6px 14px', borderRadius: '7px', border: 'none', background: 'var(--brand)', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                  Add Entry
+                </button>
+                <button onClick={() => { setShowDueForm(false); setDueForm(EMPTY_DUE) }} style={{ padding: '6px 14px', borderRadius: '7px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowDueForm(true)} style={{ fontSize: '12px', color: 'var(--brand)', background: 'none', border: '1px dashed var(--brand)', borderRadius: '7px', padding: '5px 14px', cursor: 'pointer', fontWeight: 500, opacity: 0.8 }}>
+              + Add Due Entry
+            </button>
+          )}
+        </div>
+
+        {addError && <p style={{ color: '#dc2626', fontSize: '13px', marginTop: '10px' }}>{addError}</p>}
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '12px' }}>
           <Button variant="secondary" onClick={() => setShowAdd(false)}>Cancel</Button>
           <Button onClick={submitAdd} disabled={addSaving || !addForm.number || !addForm.monthlyRent}>{addSaving ? 'Saving...' : 'Create Unit'}</Button>
         </div>

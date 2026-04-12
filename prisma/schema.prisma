@@ -12,6 +12,8 @@ datasource db {
 // ── Enums ──────────────────────────────────────────────────────
 enum Role {
   ADMIN
+  PRESIDENT   // read-only admin access
+  SECRETARY   // read-only admin access
   OWNER
   TENANT
 }
@@ -50,6 +52,26 @@ enum ExpenseSource {
   GAS            // deducted from gas fund
   SERVICE_CHARGE // deducted from service charge / building maintenance fund
   GENERAL        // general / not attributed to a specific fund
+}
+
+// Granular categories for module-specific expenses
+enum ServiceExpenseCategory {
+  // Service charge module expenses
+  SECURITY_GUARD_SALARY
+  CARETAKER_SALARY
+  CLEANER_SALARY
+  LIFT_SERVICING
+  COMMON_ELECTRICITY
+  GENERATOR
+  SC_MAINTENANCE
+  // Gas module expenses
+  GAS_CYLINDER
+}
+
+// Fund types for opening balance tracking
+enum FundType {
+  SERVICE_CHARGE
+  GAS
 }
 
 enum JoinRequestStatus {
@@ -112,6 +134,8 @@ model Building {
   joinRequests         JoinRequest[]
   invitations          Invitation[]
   subscriptionPayments SubscriptionPayment[]
+  fundBalances         FundBalance[]
+  unitOpeningBalances  UnitOpeningBalance[]
 }
 
 // ── Users ──────────────────────────────────────────────────────
@@ -163,8 +187,9 @@ model Unit {
   owner    User?   @relation("UnitOwner",  fields: [ownerId],  references: [id])
   tenant   User?   @relation("UnitTenant", fields: [tenantId], references: [id])
 
-  bills    Bill[]
-  receipts Receipt[]
+  bills           Bill[]
+  receipts        Receipt[]
+  openingBalances UnitOpeningBalance[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -216,19 +241,20 @@ model Receipt {
 
 // ── Expenses ───────────────────────────────────────────────────
 model Expense {
-  id           String          @id @default(cuid())
-  title        String
-  amount       Float
-  category     ExpenseCategory
-  incomeSource ExpenseSource   @default(GENERAL)
-  date         DateTime
-  description  String?
-  month        Int
-  year         Int
-  buildingId   String?
-  building     Building?       @relation(fields: [buildingId], references: [id])
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  id              String                  @id @default(cuid())
+  title           String
+  amount          Float
+  category        ExpenseCategory
+  serviceCategory ServiceExpenseCategory? // set for SC or Gas module expenses
+  incomeSource    ExpenseSource           @default(GENERAL)
+  date            DateTime
+  description     String?
+  month           Int
+  year            Int
+  buildingId      String?
+  building        Building?               @relation(fields: [buildingId], references: [id])
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
 }
 
 // ── BuildingConfig ─────────────────────────────────────────────
@@ -245,6 +271,7 @@ model BuildingConfig {
   serviceChargeOccupied Float   @default(0)
   serviceChargeVacant  Float    @default(0)
   gasUnitRate          Float    @default(0)
+  onboardingComplete   Boolean  @default(false)
   updatedAt            DateTime @updatedAt
 }
 
@@ -305,6 +332,40 @@ model SubscriptionPayment {
   status      SubscriptionStatus @default(PENDING)
   createdAt   DateTime           @default(now())
   completedAt DateTime?
+}
+
+// ── Fund Opening Balances ──────────────────────────────────────
+// Stores the opening cash balance per fund at time of migration.
+// One row per fund type per building. Missing row = zero balance.
+model FundBalance {
+  id         String    @id @default(cuid())
+  buildingId String
+  building   Building  @relation(fields: [buildingId], references: [id])
+  fundType   FundType
+  amount     Float     // positive = surplus, negative = deficit
+  note       String?
+  setAt      DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([buildingId, fundType])
+}
+
+// ── Unit Opening Balances ──────────────────────────────────────
+// Per-unit opening due/advance at time of migration.
+// Positive = tenant owes; negative = tenant has credit/advance.
+model UnitOpeningBalance {
+  id         String    @id @default(cuid())
+  unitId     String
+  unit       Unit      @relation(fields: [unitId], references: [id])
+  buildingId String
+  building   Building  @relation(fields: [buildingId], references: [id])
+  billType   BillType
+  amount     Float
+  note       String?
+  setAt      DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([unitId, billType])
 }
 
 // ── Invitations ────────────────────────────────────────────────

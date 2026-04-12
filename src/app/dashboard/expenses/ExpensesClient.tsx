@@ -14,7 +14,7 @@ const SOURCE_COLORS: Record<string,{ bg:string; color:string }> = {
   GENERAL:        { bg:'#f1f5f9', color:'#475569' },
 }
 
-export function ExpensesClient({ expenses }: { expenses: any[] }) {
+export function ExpensesClient({ expenses, isReadOnly }: { expenses: any[]; isReadOnly?: boolean }) {
   const router = useRouter()
   const [showAdd, setShowAdd] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -45,7 +45,10 @@ export function ExpensesClient({ expenses }: { expenses: any[] }) {
 
   return (
     <div style={{ padding: '2rem 2.5rem', animation: 'fadeIn 0.4s ease-out' }}>
-      <PageHeader title="Expenses" subtitle="Track building maintenance and operating costs" action={<Button onClick={() => setShowAdd(true)}>+ Log Expense</Button>} />
+      <PageHeader title="General Expenses" subtitle="Other building costs not tied to a specific fund" action={!isReadOnly ? <Button onClick={() => setShowAdd(true)}>+ Log Expense</Button> : undefined} />
+      <div style={{ marginBottom: '1rem', padding: '10px 14px', borderRadius: 8, background: 'rgba(29,158,117,0.07)', border: '1px solid rgba(29,158,117,0.2)', fontSize: 13, color: 'var(--text-secondary)' }}>
+        Service charge expenses are managed on the <a href="/dashboard/service-charge" style={{ color:'var(--brand,#1D9E75)', fontWeight:600 }}>Service Charge</a> page. Gas cylinder expenses are on the <a href="/dashboard/gas" style={{ color:'var(--brand,#1D9E75)', fontWeight:600 }}>Gas</a> page.
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
         <StatCard label="All Time Total" value={formatCurrency(total)} color="#dc2626" />
@@ -78,11 +81,13 @@ export function ExpensesClient({ expenses }: { expenses: any[] }) {
                     </td>
                     <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{formatDate(e.date)} <span style={{color:'var(--text-muted)',fontSize:'11px'}}>{getMonthName(e.month)} {e.year}</span></td>
                     <td style={{ fontWeight: 600, color: '#dc2626' }}>{formatCurrency(e.amount)}</td>
-                    <td>
-                      <button onClick={() => deleteExpense(e.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', padding:'4px', borderRadius:'4px' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </button>
-                    </td>
+                    {!isReadOnly && (
+                      <td>
+                        <button onClick={() => deleteExpense(e.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', padding:'4px', borderRadius:'4px' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -108,20 +113,11 @@ export function ExpensesClient({ expenses }: { expenses: any[] }) {
 
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Log Expense">
         <FormField label="Title"><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} style={inputStyle} placeholder="e.g. Elevator maintenance" /></FormField>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
-          <FormField label="Category">
-            <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})} style={selectStyle}>
-              {CATEGORIES.map(c=><option key={c} value={c}>{getExpenseCategoryLabel(c)}</option>)}
-            </select>
-          </FormField>
-          <FormField label="Charge to Fund">
-            <select value={form.incomeSource} onChange={e=>setForm({...form,incomeSource:e.target.value})} style={selectStyle}>
-              <option value="SERVICE_CHARGE">Service Charge Fund</option>
-              <option value="GAS">Gas Fund</option>
-              <option value="GENERAL">General</option>
-            </select>
-          </FormField>
-        </div>
+        <FormField label="Category">
+          <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})} style={selectStyle}>
+            {CATEGORIES.map(c=><option key={c} value={c}>{getExpenseCategoryLabel(c)}</option>)}
+          </select>
+        </FormField>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
           <FormField label="Amount (৳)"><input type="number" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})} style={inputStyle} placeholder="0" /></FormField>
           <FormField label="Date"><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={inputStyle} /></FormField>

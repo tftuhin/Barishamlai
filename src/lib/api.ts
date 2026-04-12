@@ -69,11 +69,29 @@ export async function requireAuth(): Promise<[AuthSession, null] | [null, NextRe
   return [session, null]
 }
 
-/** Requires ADMIN role with a valid buildingId. */
+/** Admin-tier roles — can perform write operations */
+export const ADMIN_ROLES = ['ADMIN'] as const
+
+/** Viewer-tier roles — read-only access to admin data (PRESIDENT & SECRETARY) */
+export const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY'] as const
+
+/** Requires ADMIN role with a valid buildingId (write operations). */
 export async function requireAdmin(): Promise<[AuthSession, null] | [null, NextResponse]> {
   const [session, e] = await requireAuth()
   if (e) return [null, e]
   if (session.user.role !== 'ADMIN') return [null, Err.forbidden()]
+  if (!session.user.buildingId) return [null, Err.badRequest('No building assigned')]
+  return [session, null]
+}
+
+/**
+ * Requires ADMIN, PRESIDENT, or SECRETARY role with a valid buildingId.
+ * Use for GET (read-only) endpoints that admins and viewers can access.
+ */
+export async function requireViewer(): Promise<[AuthSession, null] | [null, NextResponse]> {
+  const [session, e] = await requireAuth()
+  if (e) return [null, e]
+  if (!(VIEWER_ROLES as readonly string[]).includes(session.user.role)) return [null, Err.forbidden()]
   if (!session.user.buildingId) return [null, Err.badRequest('No building assigned')]
   return [session, null]
 }
