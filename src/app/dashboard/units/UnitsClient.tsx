@@ -10,6 +10,7 @@ const FREE_UNIT_LIMIT = 5
 type Unit = {
   id: string; number: string; floor: number; area: number | null; monthlyRent: number
   status: 'OCCUPIED' | 'VACANT'; isOwnerOccupied: boolean
+  customServiceCharge: number | null
   ownerContactName: string | null; ownerPhone: string | null
   tenantContactName: string | null; tenantPhone: string | null; tenantNid: string | null
   ownerId: string | null; tenantId: string | null
@@ -33,6 +34,7 @@ const EMPTY_EDIT = {
   status: 'OCCUPIED' as 'OCCUPIED' | 'VACANT',
   isOwnerOccupied: false,
   monthlyRent: '', floor: '', area: '',
+  customServiceCharge: '',
   ownerId: '', tenantId: '',
   ownerContactName: '', ownerPhone: '',
   tenantContactName: '', tenantPhone: '', tenantNid: '',
@@ -91,6 +93,7 @@ export function UnitsClient({
       monthlyRent: String(unit.monthlyRent),
       floor: String(unit.floor),
       area: unit.area ? String(unit.area) : '',
+      customServiceCharge: unit.customServiceCharge != null ? String(unit.customServiceCharge) : '',
       ownerId: unit.ownerId ?? '',
       tenantId: unit.tenantId ?? '',
       ownerContactName: unit.ownerContactName ?? '',
@@ -153,8 +156,9 @@ export function UnitsClient({
       payload.monthlyRent     = Number(editForm.monthlyRent)
       payload.floor           = Number(editForm.floor)
       payload.area            = editForm.area ? Number(editForm.area) : null
-      payload.ownerId         = editForm.ownerId  || null
-      payload.tenantId        = editForm.isOwnerOccupied ? null : (editForm.tenantId || null)
+      payload.ownerId             = editForm.ownerId  || null
+      payload.tenantId            = editForm.isOwnerOccupied ? null : (editForm.tenantId || null)
+      payload.customServiceCharge = editForm.customServiceCharge !== '' ? Number(editForm.customServiceCharge) : null
     }
 
     const res = await fetch(`/api/units/${editUnit.id}`, {
@@ -311,10 +315,17 @@ export function UnitsClient({
               {/* Rent + meta */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Floor {unit.floor}{unit.area ? ` · ${unit.area} sqft` : ''}</span>
-                {unit.isOwnerOccupied
-                  ? <span style={{ fontSize: '12px', color: '#0F6E56', fontWeight: 500 }}>No rent (owner resident)</span>
-                  : <span style={{ fontWeight: 600, color: '#15803d', fontSize: '14px' }}>{formatCurrency(unit.monthlyRent)}<span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>/mo</span></span>
-                }
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                  {unit.isOwnerOccupied
+                    ? <span style={{ fontSize: '12px', color: '#0F6E56', fontWeight: 500 }}>No rent (owner resident)</span>
+                    : <span style={{ fontWeight: 600, color: '#15803d', fontSize: '14px' }}>{formatCurrency(unit.monthlyRent)}<span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>/mo</span></span>
+                  }
+                  {unit.customServiceCharge != null && (
+                    <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 7px', borderRadius: '10px', background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0' }}>
+                      SC: ৳{unit.customServiceCharge}/mo (custom)
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* People */}
@@ -526,6 +537,20 @@ export function UnitsClient({
                   <FormField label="Area (sqft)">
                     <input type="number" value={editForm.area} onChange={e => setEditForm({ ...editForm, area: e.target.value })} style={inputStyle} placeholder="Optional" />
                   </FormField>
+                </div>
+                {/* Custom service charge */}
+                <div style={{ padding: '10px 14px', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #BBF7D0', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#166534', marginBottom: '4px' }}>Custom Service Charge Rate</div>
+                  <div style={{ fontSize: '11px', color: '#15803d', marginBottom: '8px' }}>Leave blank to use the building default (occupied / vacant rate). Set a value to override for this flat only.</div>
+                  <FormField label="Custom Rate (৳/month) — optional">
+                    <input type="number" value={editForm.customServiceCharge} onChange={e => setEditForm({ ...editForm, customServiceCharge: e.target.value })} style={inputStyle} placeholder="e.g. 1500 — leave blank for default" min="0" />
+                  </FormField>
+                  {editForm.customServiceCharge !== '' && (
+                    <button type="button" onClick={() => setEditForm({ ...editForm, customServiceCharge: '' })}
+                      style={{ fontSize: '11px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0', marginTop: '2px' }}>
+                      ✕ Remove custom rate — revert to default
+                    </button>
+                  )}
                 </div>
                 {/* Owner-occupied toggle */}
                 <div style={{ padding: '10px 14px', background: '#E1F5EE', borderRadius: '10px', border: '1px solid #9FE1CB', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

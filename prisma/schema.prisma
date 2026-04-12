@@ -173,6 +173,7 @@ model Unit {
   monthlyRent       Float
   status            UnitStatus @default(OCCUPIED)
   isOwnerOccupied   Boolean    @default(false)  // owner lives here — no rent charged
+  customServiceCharge Float?    // overrides building-level rate when set
   ownerContactName  String?
   ownerPhone        String?
   tenantContactName String?

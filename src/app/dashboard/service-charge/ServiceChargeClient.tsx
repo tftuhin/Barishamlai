@@ -82,10 +82,13 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
   }
 
   // Preview for the selected month
+  // Per-unit custom rate overrides the building-level standard
   const preview = units.map(u => {
     const existing = getBill(u.id, Number(addMonth), Number(addYear))
-    const rate = u.status === 'VACANT' ? serviceChargeVacant : serviceChargeOccupied
-    return { unit: u, existing, rate }
+    const standardRate = u.status === 'VACANT' ? serviceChargeVacant : serviceChargeOccupied
+    const rate = u.customServiceCharge != null ? u.customServiceCharge : standardRate
+    const isCustom = u.customServiceCharge != null
+    return { unit: u, existing, rate, isCustom }
   })
 
   async function submitBatch() {
@@ -177,6 +180,9 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
                   <td style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--brand)', borderBottom: '1px solid var(--border)', position: 'sticky', left: 0, background: i % 2 === 0 ? '#fff' : 'var(--surface-subtle)', zIndex: 1, whiteSpace: 'nowrap' }}>
                     {unit.number}
                     <div style={{ fontSize: '10px', color: unit.status === 'VACANT' ? '#d97706' : '#15803d', fontWeight: 500 }}>{unit.status}</div>
+                    {unit.customServiceCharge != null && (
+                      <div style={{ fontSize: '10px', color: '#166534', fontWeight: 500 }}>৳{unit.customServiceCharge} custom</div>
+                    )}
                   </td>
                   {months.map(({ month, year }) => {
                     const bill = getBill(unit.id, month, year)
@@ -300,7 +306,10 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
                       {p.existing && <span style={{ fontSize: '10px', color: '#d97706', marginLeft: '6px' }}>exists</span>}
                     </td>
                     <td style={{ padding: '7px 12px', fontSize: '12px', color: p.unit.status === 'VACANT' ? '#d97706' : '#15803d', borderTop: '1px solid var(--border)' }}>{p.unit.status}</td>
-                    <td style={{ padding: '7px 12px', fontSize: '13px', fontWeight: 600, textAlign: 'right', borderTop: '1px solid var(--border)' }}>{formatCurrency(p.rate)}</td>
+                    <td style={{ padding: '7px 12px', fontSize: '13px', fontWeight: 600, textAlign: 'right', borderTop: '1px solid var(--border)' }}>
+                      {formatCurrency(p.rate)}
+                      {p.isCustom && <span style={{ display: 'block', fontSize: '10px', fontWeight: 500, color: '#166534' }}>custom rate</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

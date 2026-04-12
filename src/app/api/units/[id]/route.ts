@@ -36,6 +36,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         data.tenantId = null
         data.status   = 'OCCUPIED'
       }
+      if (body.customServiceCharge !== undefined)
+        data.customServiceCharge = body.customServiceCharge !== null && body.customServiceCharge !== '' ? Number(body.customServiceCharge) : null
     }
 
     const updated = await prisma.unit.update({
