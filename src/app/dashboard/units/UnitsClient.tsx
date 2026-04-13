@@ -176,6 +176,20 @@ export function UnitsClient({
     setEditSaving(false)
   }
 
+  async function deleteUnit(unit: Unit) {
+    const confirmed = window.confirm(
+      `Delete Flat ${unit.number}?\n\nThis will permanently remove the unit and all associated bills, receipts, and balances. This cannot be undone.`
+    )
+    if (!confirmed) return
+    setUnits(prev => prev.filter(u => u.id !== unit.id))
+    const res = await fetch(`/api/units/${unit.id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      // Restore on failure
+      setUnits(prev => [...prev, unit].sort((a, b) => a.floor - b.floor || a.number.localeCompare(b.number)))
+    }
+    router.refresh()
+  }
+
   async function toggleStatus(unit: Unit) {
     const next = unit.status === 'OCCUPIED' ? 'VACANT' : 'OCCUPIED'
     setUnits(prev => prev.map(u => u.id === unit.id ? { ...u, status: next } : u))
@@ -298,6 +312,22 @@ export function UnitsClient({
                       onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  )}
+                  {/* Delete button — admin only */}
+                  {role === 'ADMIN' && (
+                    <button
+                      onClick={() => deleteUnit(unit)}
+                      title="Delete unit"
+                      style={{
+                        background: 'none', border: '1px solid var(--border)', borderRadius: '6px',
+                        padding: '5px', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)',
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#dc2626'; (e.currentTarget as HTMLButtonElement).style.color = '#dc2626' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </button>
                   )}
                 </div>

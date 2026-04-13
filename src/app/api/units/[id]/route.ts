@@ -56,7 +56,13 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
   if (e) return e
 
   try {
-    await prisma.unit.delete({ where: { id: params.id } })
+    await prisma.$transaction([
+      // Remove child records before removing the unit
+      prisma.unitOpeningBalance.deleteMany({ where: { unitId: params.id } }),
+      prisma.receipt.deleteMany({           where: { unitId: params.id } }),
+      prisma.bill.deleteMany({              where: { unitId: params.id } }),
+      prisma.unit.delete({                  where: { id:     params.id } }),
+    ])
     return ok({ success: true })
   } catch {
     return Err.internal('Failed to delete unit')
