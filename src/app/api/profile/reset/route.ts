@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
     data:  { passwordResetToken: token, passwordResetExpiry: expiry },
   })
 
-  const appUrl   = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  const proto    = req.headers.get('x-forwarded-proto') ?? 'http'
+  const host     = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000'
+  const appUrl   = process.env.NEXTAUTH_URL || `${proto}://${host}`
   const resetUrl = `${appUrl}/reset-password?token=${token}`
 
   await sendEmail({
