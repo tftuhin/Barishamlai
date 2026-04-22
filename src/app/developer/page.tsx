@@ -116,6 +116,16 @@ export default function DeveloperPage() {
   const [statusSaving, setStatusSaving] = useState(false)
   const [statusError, setStatusError] = useState('')
 
+  const [editModal, setEditModal] = useState<Building | null>(null)
+  const [editForm, setEditForm] = useState({ buildingName: '', adminName: '', adminEmail: '', adminPhone: '', adminPassword: '' })
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  const [deleteModal, setDeleteModal] = useState<Building | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [deleteSaving, setDeleteSaving] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
   useEffect(() => { fetchBuildings() }, [])
   useEffect(() => { if (tab === 'requests') fetchPropertyRequests() }, [tab])
 
@@ -170,6 +180,55 @@ export default function DeveloperPage() {
       setStatusError(d.error || 'Failed')
     }
     setStatusSaving(false)
+  }
+
+  function openEditModal(b: Building) {
+    setEditForm({
+      buildingName:  b.name,
+      adminName:     b.admin?.name  ?? '',
+      adminEmail:    b.admin?.email ?? '',
+      adminPhone:    '',
+      adminPassword: '',
+    })
+    setEditError('')
+    setEditModal(b)
+  }
+
+  async function handleEdit() {
+    if (!editModal) return
+    setEditSaving(true); setEditError('')
+    const res = await fetch(`/api/developer/buildings/${editModal.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editForm),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setBuildings(prev => prev.map(b => b.id === updated.id ? updated : b))
+      setEditModal(null)
+    } else {
+      const d = await res.json()
+      setEditError(d.error || 'Failed to save changes')
+    }
+    setEditSaving(false)
+  }
+
+  async function handleDelete() {
+    if (!deleteModal) return
+    if (deleteConfirm !== deleteModal.name) {
+      setDeleteError('Property name does not match'); return
+    }
+    setDeleteSaving(true); setDeleteError('')
+    const res = await fetch(`/api/developer/buildings/${deleteModal.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      setBuildings(prev => prev.filter(b => b.id !== deleteModal.id))
+      setDeleteModal(null)
+      setDeleteConfirm('')
+    } else {
+      const d = await res.json()
+      setDeleteError(d.error || 'Failed to delete property')
+    }
+    setDeleteSaving(false)
   }
 
   async function handlePlanUpdate() {
@@ -403,7 +462,7 @@ export default function DeveloperPage() {
       {/* Table */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.8fr 110px 70px 120px 160px 120px 200px', padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.8fr 110px 70px 120px 160px 120px 240px', padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
           {['Property','Admin','Units','Users','Plan','Premium Until','Status','Actions'].map(h => (
             <div key={h} style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', padding: '0 8px' }}>{h}</div>
           ))}
@@ -425,7 +484,7 @@ export default function DeveloperPage() {
               return (
                 <motion.div key={b.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                   whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
-                  style={{ display: 'grid', gridTemplateColumns: '2fr 1.8fr 110px 70px 120px 160px 120px 200px', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', transition: 'background 0.15s' }}>
+                  style={{ display: 'grid', gridTemplateColumns: '2fr 1.8fr 110px 70px 120px 160px 120px 240px', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', transition: 'background 0.15s' }}>
 
                   {/* Property */}
                   <div style={{ padding: '0 8px' }}>
@@ -498,6 +557,16 @@ export default function DeveloperPage() {
                       onClick={() => { setStatusAction(b.status); setStatusNote(b.statusNote ?? ''); setStatusError(''); setStatusModal(b) }}
                       style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
                       Status
+                    </motion.button>
+                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                      onClick={() => openEditModal(b)}
+                      style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(52,211,153,0.35)', background: 'rgba(52,211,153,0.08)', color: '#34d399', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
+                      Edit
+                    </motion.button>
+                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                      onClick={() => { setDeleteConfirm(''); setDeleteError(''); setDeleteModal(b) }}
+                      style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)', color: '#f87171', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
+                      Delete
                     </motion.button>
                   </div>
                 </motion.div>
@@ -712,6 +781,147 @@ export default function DeveloperPage() {
                   </div>
                 </>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Property Modal */}
+      <AnimatePresence>
+        {editModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+              onClick={() => setEditModal(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 24 }} transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+              style={{ position: 'relative', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, width: '100%', maxWidth: 500, padding: '2rem', boxShadow: '0 30px 80px rgba(0,0,0,0.6)' }}>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.75rem' }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <div>
+                  <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Edit Property</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: '2px 0 0' }}>{editModal.name}</p>
+                </div>
+              </div>
+
+              {/* Building details */}
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.75rem' }}>Property</p>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 5 }}>Building Name</label>
+                <input
+                  value={editForm.buildingName}
+                  onChange={e => setEditForm(f => ({ ...f, buildingName: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 13px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}
+                />
+              </div>
+
+              {/* Admin details */}
+              {editModal.admin && (<>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.75rem' }}>Admin User</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                  <div>
+                    <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 5 }}>Name</label>
+                    <input
+                      value={editForm.adminName}
+                      onChange={e => setEditForm(f => ({ ...f, adminName: e.target.value }))}
+                      style={{ width: '100%', padding: '9px 13px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 5 }}>Email</label>
+                    <input
+                      type="email"
+                      value={editForm.adminEmail}
+                      onChange={e => setEditForm(f => ({ ...f, adminEmail: e.target.value }))}
+                      style={{ width: '100%', padding: '9px 13px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                  <div>
+                    <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 5 }}>Phone</label>
+                    <input
+                      value={editForm.adminPhone}
+                      onChange={e => setEditForm(f => ({ ...f, adminPhone: e.target.value }))}
+                      placeholder="Leave blank to keep current"
+                      style={{ width: '100%', padding: '9px 13px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 5 }}>New Password <span style={{ opacity: 0.5 }}>(optional)</span></label>
+                    <input
+                      type="password"
+                      value={editForm.adminPassword}
+                      onChange={e => setEditForm(f => ({ ...f, adminPassword: e.target.value }))}
+                      placeholder="Leave blank to keep"
+                      style={{ width: '100%', padding: '9px 13px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}
+                    />
+                  </div>
+                </div>
+              </>)}
+
+              {editError && <p style={{ color: '#f87171', fontSize: 13, marginBottom: '1rem' }}>{editError}</p>}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button onClick={() => setEditModal(null)} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleEdit} disabled={editSaving}
+                  style={{ padding: '9px 22px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#34d399,#059669)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: editSaving ? 0.7 : 1 }}>
+                  {editSaving ? 'Saving…' : 'Save Changes'}
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Property Modal */}
+      <AnimatePresence>
+        {deleteModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)' }}
+              onClick={() => setDeleteModal(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 24 }} transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+              style={{ position: 'relative', background: '#1e293b', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 20, width: '100%', maxWidth: 460, padding: '2rem', boxShadow: '0 30px 80px rgba(0,0,0,0.7)' }}>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.25rem' }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <div>
+                  <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>Delete Property</h3>
+                  <p style={{ color: '#f87171', fontSize: 13, margin: '2px 0 0' }}>This action cannot be undone</p>
+                </div>
+              </div>
+
+              <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, marginBottom: '1.5rem', fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7 }}>
+                Permanently deletes <strong style={{ color: '#fff' }}>{deleteModal.name}</strong> and all its data — units, bills, expenses, messages, receipts, and all member accounts. This cannot be recovered.
+              </div>
+
+              <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 6 }}>
+                Type <strong style={{ color: '#fff' }}>{deleteModal.name}</strong> to confirm
+              </label>
+              <input
+                value={deleteConfirm}
+                onChange={e => { setDeleteConfirm(e.target.value); setDeleteError('') }}
+                placeholder={deleteModal.name}
+                style={{ width: '100%', padding: '10px 13px', borderRadius: 9, border: `1px solid ${deleteConfirm === deleteModal.name ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.12)'}`, background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)', marginBottom: '1.5rem' }}
+              />
+
+              {deleteError && <p style={{ color: '#f87171', fontSize: 13, marginBottom: '1rem' }}>{deleteError}</p>}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button onClick={() => setDeleteModal(null)} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+                <motion.button whileHover={{ scale: deleteConfirm === deleteModal.name ? 1.02 : 1 }} whileTap={{ scale: 0.97 }}
+                  onClick={handleDelete} disabled={deleteSaving || deleteConfirm !== deleteModal.name}
+                  style={{ padding: '9px 22px', borderRadius: 8, border: 'none', background: '#dc2626', color: '#fff', fontSize: 14, fontWeight: 700, cursor: deleteConfirm === deleteModal.name ? 'pointer' : 'not-allowed', opacity: (deleteSaving || deleteConfirm !== deleteModal.name) ? 0.5 : 1 }}>
+                  {deleteSaving ? 'Deleting…' : 'Delete Property'}
+                </motion.button>
+              </div>
             </motion.div>
           </div>
         )}
