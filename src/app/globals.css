@@ -149,6 +149,11 @@ html[data-theme="dark"] {
   --land-grid:        rgba(29,158,117,0.06);
 }
 
+/* ── Logo: green in light mode, gray in dark mode ──────── */
+html[data-theme="dark"] .bari-logo-img {
+  filter: grayscale(1) brightness(0.82);
+}
+
 /* ── Public pages: light/dark theme vars ─────────────── */
 :root {
   --pub-bg:        #F8FFFE;

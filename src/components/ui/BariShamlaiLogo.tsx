@@ -27,6 +27,7 @@ export function BariShamlaiMark({
       alt="Bari Shamlai"
       width={size}
       height={size}
+      className="bari-logo-img"
       style={{ display: 'block', flexShrink: 0, objectFit: 'contain', borderRadius: r }}
     />
   )

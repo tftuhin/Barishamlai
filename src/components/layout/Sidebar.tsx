@@ -78,6 +78,12 @@ function PropertySwitcher({ currentBuildingId, currentBuildingName, lang }: {
     }
   }, [])
 
+  // Fetch on mount so we know whether to show the switcher
+  useEffect(() => {
+    fetchProperties()
+  }, [fetchProperties])
+
+  // Re-fetch when dropdown opens (to pick up newly created properties)
   useEffect(() => {
     if (open) fetchProperties()
   }, [open, fetchProperties])

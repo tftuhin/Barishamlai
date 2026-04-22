@@ -1,29 +1,48 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Card, PageHeader, Button, Modal, FormField, selectStyle, EmptyState, Badge } from '@/components/ui'
+import { Card, PageHeader, Button, Modal, FormField, selectStyle, EmptyState } from '@/components/ui'
 import { formatCurrency, formatDate, getBillTypeLabel, getMonthName } from '@/lib/utils'
 
-export function ReceiptsClient({ receipts, paidBills, role }: { receipts: any[]; paidBills: any[]; role: string }) {
-  const router = useRouter()
-  const [showIssue, setShowIssue] = useState(false)
+export function ReceiptsClient({ receipts: initialReceipts, paidBills: initialPaidBills, role }: { receipts: any[]; paidBills: any[]; role: string }) {
+  const [receipts, setReceipts]     = useState<any[]>(initialReceipts)
+  const [paidBills, setPaidBills]   = useState<any[]>(initialPaidBills)
+  const [showIssue, setShowIssue]   = useState(false)
   const [selectedBillId, setSelectedBillId] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving]         = useState(false)
   const [emailingId, setEmailingId] = useState<string|null>(null)
+  const [error, setError]           = useState<string|null>(null)
 
   async function issueReceipt() {
+    if (!selectedBillId) return
     setSaving(true)
-    await fetch('/api/receipts', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ billId: selectedBillId }),
-    })
-    setShowIssue(false); router.refresh(); setSaving(false)
+    setError(null)
+    try {
+      const res = await fetch('/api/receipts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ billId: selectedBillId }),
+      })
+      if (res.ok) {
+        const newReceipt = await res.json()
+        setReceipts(prev => [newReceipt, ...prev])
+        setPaidBills(prev => prev.filter(b => b.id !== selectedBillId))
+        setSelectedBillId('')
+        setShowIssue(false)
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? 'Failed to issue receipt')
+      }
+    } catch {
+      setError('Network error — please try again')
+    }
+    setSaving(false)
   }
 
   async function sendEmail(receiptId: string) {
     setEmailingId(receiptId)
     await fetch(`/api/receipts/${receiptId}/send`, { method: 'POST' })
-    router.refresh(); setEmailingId(null)
+    setReceipts(prev => prev.map(r => r.id === receiptId ? { ...r, sentEmail: true } : r))
+    setEmailingId(null)
   }
 
   return (
@@ -91,7 +110,7 @@ export function ReceiptsClient({ receipts, paidBills, role }: { receipts: any[];
         )}
       </Card>
 
-      <Modal open={showIssue} onClose={() => setShowIssue(false)} title="Issue Digital Receipt">
+      <Modal open={showIssue} onClose={() => { setShowIssue(false); setError(null) }} title="Issue Digital Receipt">
         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
           Select a paid bill to generate a digital receipt for the tenant.
         </p>
@@ -105,8 +124,13 @@ export function ReceiptsClient({ receipts, paidBills, role }: { receipts: any[];
             ))}
           </select>
         </FormField>
+        {error && (
+          <p style={{ fontSize: '13px', color: '#dc2626', margin: '0 0 0.75rem', padding: '8px 12px', background: '#fef2f2', borderRadius: 6 }}>
+            {error}
+          </p>
+        )}
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-          <Button variant="secondary" onClick={() => setShowIssue(false)}>Cancel</Button>
+          <Button variant="secondary" onClick={() => { setShowIssue(false); setError(null) }}>Cancel</Button>
           <Button onClick={issueReceipt} disabled={!selectedBillId || saving}>{saving ? 'Issuing...' : 'Issue Receipt'}</Button>
         </div>
       </Modal>
