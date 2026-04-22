@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 import { posts } from './blog/posts'
 
-const BASE_URL = (process.env.NEXTAUTH_URL ?? 'https://barishamlai.com').replace(/\/$/, '')
+const BASE_URL = 'https://barishamlai.com'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   // Static public pages

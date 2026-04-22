@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next'
 
-const BASE_URL = (process.env.NEXTAUTH_URL ?? 'https://barishamlai.com').replace(/\/$/, '')
+const BASE_URL = 'https://barishamlai.com'
 
 export default function robots(): MetadataRoute.Robots {
   return {
