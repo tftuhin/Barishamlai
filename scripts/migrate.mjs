@@ -29,11 +29,17 @@ const stderr = (first.stderr ?? Buffer.alloc(0)).toString()
 
 if (stderr.includes('P3005') || stderr.includes('not empty')) {
   console.log(
-    '\n[migrate] Existing schema with no migration history detected (P3005).' +
-    '\n[migrate] Baselining migration as already applied…\n'
+    '\n[migrate] Existing schema detected (P3005).' +
+    '\n[migrate] Marking migration as already applied (baselining)…\n'
   )
-  execSync(`npx prisma migrate resolve --applied ${MIGRATION_NAME}`, { stdio: 'inherit' })
-  console.log('\n[migrate] Baseline done. Running migrate deploy…\n')
+  // P3008 means it was already marked as applied by a previous build — safe to ignore.
+  try {
+    execSync(`npx prisma migrate resolve --applied ${MIGRATION_NAME}`, { stdio: 'inherit' })
+    console.log('\n[migrate] Baseline complete.')
+  } catch {
+    console.log('\n[migrate] Migration already recorded (P3008) — skipping baseline.')
+  }
+  console.log('\n[migrate] Running migrate deploy…\n')
   execSync('npx prisma migrate deploy', { stdio: 'inherit' })
 } else {
   // Some other error — surface it and fail the build
