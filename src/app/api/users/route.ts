@@ -10,9 +10,23 @@ export async function GET() {
   const [session, e] = await requireAdmin()
   if (e) return e
 
+  const bId = session.user.buildingId!
+  const adminId = session.user.id
+
   try {
     const users = await prisma.user.findMany({
-      where: { buildingId: session.user.buildingId! },
+      where: {
+        OR: [
+          // All users whose primary building is the active building
+          { buildingId: bId },
+          // The admin themselves, when managing this building via UserBuilding
+          // (i.e. their primary buildingId differs — they created this as an extra property)
+          {
+            id: adminId,
+            userBuildings: { some: { buildingId: bId } },
+          },
+        ],
+      },
       select: { id: true, name: true, email: true, phone: true, role: true, createdAt: true },
       orderBy: { name: 'asc' },
     })
