@@ -68,7 +68,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         // user is the object returned from authorize() — cast via unknown is safe here
         const u = user as typeof user & {
@@ -81,6 +81,29 @@ export const authOptions: NextAuthOptions = {
         token.buildingId  = u.buildingId
         token.buildingName = u.buildingName
       }
+
+      // Handle property switching: client calls useSession().update({ switchBuildingId })
+      if (trigger === 'update' && (session as Record<string, unknown>)?.switchBuildingId) {
+        const newBuildingId = (session as Record<string, unknown>).switchBuildingId as string
+
+        // Verify admin owns primary building or has UserBuilding access
+        const hasPrimary = token.id && await prisma.user.findFirst({
+          where: { id: token.id, buildingId: newBuildingId },
+        })
+        const hasAccess = hasPrimary ?? await prisma.userBuilding.findUnique({
+          where: { userId_buildingId: { userId: token.id, buildingId: newBuildingId } },
+        })
+
+        if (hasAccess) {
+          const building = await prisma.building.findUnique({
+            where: { id: newBuildingId },
+            select: { name: true },
+          })
+          token.buildingId   = newBuildingId
+          token.buildingName = building?.name ?? null
+        }
+      }
+
       return token
     },
     async session({ session, token }) {

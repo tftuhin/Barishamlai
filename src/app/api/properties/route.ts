@@ -1,0 +1,79 @@
+/**
+ * GET  /api/properties — list all buildings the current admin has access to
+ * POST /api/properties — create a new building (requires approved multi-property request)
+ */
+import { NextRequest } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { ok, created, Err, requireAdmin } from '@/lib/api'
+
+export async function GET() {
+  const [session, e] = await requireAdmin()
+  if (e) return e
+
+  const userId = session.user.id
+  const primaryBuildingId = session.user.buildingId
+
+  try {
+    // Get primary building
+    const primary = primaryBuildingId
+      ? await prisma.building.findUnique({ where: { id: primaryBuildingId }, select: { id: true, name: true } })
+      : null
+
+    // Get additional buildings via UserBuilding
+    const extras = await prisma.userBuilding.findMany({
+      where: { userId },
+      include: { building: { select: { id: true, name: true } } },
+    })
+
+    const properties: { id: string; name: string }[] = []
+    if (primary) properties.push(primary)
+    for (const ub of extras) {
+      if (ub.buildingId !== primaryBuildingId) {
+        properties.push({ id: ub.buildingId, name: ub.building.name })
+      }
+    }
+
+    return ok(properties)
+  } catch {
+    return Err.internal()
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const [session, e] = await requireAdmin()
+  if (e) return e
+
+  const userId = session.user.id
+
+  try {
+    // Verify user has an approved multi-property request
+    const approved = await prisma.multiPropertyRequest.findFirst({
+      where: { userId, status: 'APPROVED' },
+    })
+    if (!approved) {
+      return Err.paymentRequired('Multi-property access not approved. Please submit a request first.')
+    }
+
+    const body = await req.json() as Record<string, unknown>
+    const name  = body.name ? String(body.name).trim() : ''
+    if (!name) return Err.badRequest('Building name is required')
+
+    // Create new building + config + UserBuilding link
+    const building = await prisma.$transaction(async tx => {
+      const b = await tx.building.create({
+        data: { name, plan: 'FREE' },
+      })
+      await tx.buildingConfig.create({
+        data: { id: b.id },
+      })
+      await tx.userBuilding.create({
+        data: { userId, buildingId: b.id },
+      })
+      return b
+    })
+
+    return ok({ id: building.id, name: building.name }, 201)
+  } catch {
+    return Err.internal('Failed to create property')
+  }
+}

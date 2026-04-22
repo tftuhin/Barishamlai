@@ -69,6 +69,7 @@ export const translations = {
   // ── Sidebar / Navigation ─────────────────────────────────────────
   navDashboard:     { en: 'Dashboard', bn: 'ড্যাশবোর্ড' },
   navBilling:       { en: 'Billing', bn: 'বিলিং' },
+  navRent:          { en: 'Rent', bn: 'ভাড়া' },
   navServiceCharge: { en: 'Service Charge', bn: 'সার্ভিস চার্জ' },
   navExpenses:      { en: 'Expenses', bn: 'খরচ' },
   navGasBills:      { en: 'Gas Bills', bn: 'গ্যাস বিল' },
@@ -80,9 +81,13 @@ export const translations = {
   navSection:       { en: 'Navigation', bn: 'নেভিগেশন' },
   navSignOut:       { en: 'Sign out', bn: 'বের হন' },
   navSigningOut:    { en: 'Signing out…', bn: 'বের হচ্ছেন…' },
-  navFreePlan:      { en: 'Free Plan', bn: 'ফ্রি প্ল্যান' },
-  navUpgrade:       { en: 'Upgrade →', bn: 'আপগ্রেড →' },
-  navApartmentMgmt: { en: 'Apartment management', bn: 'অ্যাপার্টমেন্ট ব্যবস্থাপনা' },
+  navFreePlan:          { en: 'Free Plan', bn: 'ফ্রি প্ল্যান' },
+  navUpgrade:           { en: 'Upgrade →', bn: 'আপগ্রেড →' },
+  navApartmentMgmt:     { en: 'Apartment management', bn: 'অ্যাপার্টমেন্ট ব্যবস্থাপনা' },
+  navAddProperty:       { en: '+ Add Another Property', bn: '+ আরও একটি প্রপার্টি যোগ করুন' },
+  navSwitchProperty:    { en: 'Switch Property', bn: 'প্রপার্টি পরিবর্তন করুন' },
+  navMyProperties:      { en: 'My Properties', bn: 'আমার প্রপার্টি' },
+  navRequestMultiProp:  { en: 'Request Multi-Property Access', bn: 'মাল্টি-প্রপার্টি অ্যাক্সেস চাইতে হবে' },
 
   // ── Dashboard — common ──────────────────────────────────────────
   dashGreeting:     { en: 'Good day', bn: 'শুভ দিন' },

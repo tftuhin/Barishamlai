@@ -136,6 +136,8 @@ model Building {
   subscriptionPayments SubscriptionPayment[]
   fundBalances         FundBalance[]
   unitOpeningBalances  UnitOpeningBalance[]
+  userBuildings        UserBuilding[]
+  multiPropertyRequests MultiPropertyRequest[]
 }
 
 // ── Users ──────────────────────────────────────────────────────
@@ -162,6 +164,8 @@ model User {
   receiptsReceived Receipt[] @relation("ReceiptRecipient")
   joinRequests     JoinRequest[]
   sentInvitations  Invitation[] @relation("InvitationSender")
+  userBuildings    UserBuilding[]
+  multiPropertyRequests MultiPropertyRequest[]
 }
 
 // ── Units ──────────────────────────────────────────────────────
@@ -367,6 +371,40 @@ model UnitOpeningBalance {
   updatedAt  DateTime  @updatedAt
 
   @@unique([unitId, billType])
+}
+
+// ── Multi-Property Access ──────────────────────────────────────
+// Links an admin user to additional buildings they manage beyond their
+// primary buildingId. Used for multi-property switching.
+model UserBuilding {
+  id         String   @id @default(cuid())
+  userId     String
+  buildingId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId],     references: [id], onDelete: Cascade)
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, buildingId])
+}
+
+// ── Multi-Property Activation Requests ────────────────────────
+// When an admin on FREE/STANDARD wants to add a second property,
+// they submit a request. Developer reviews and approves manually.
+model MultiPropertyRequest {
+  id              String   @id @default(cuid())
+  userId          String
+  buildingId      String
+  phone           String
+  totalProperties Int
+  totalFlats      Int
+  status          String   @default("PENDING")  // PENDING | APPROVED | REJECTED
+  note            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user     User     @relation(fields: [userId],     references: [id])
+  building Building @relation(fields: [buildingId], references: [id])
 }
 
 // ── Invitations ────────────────────────────────────────────────

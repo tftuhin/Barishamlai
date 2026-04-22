@@ -41,7 +41,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const bId = session.user.buildingId
 
-  const [building, config] = await Promise.all([
+  const userId = session.user.id
+
+  const [building, config, multiPropertyApproved] = await Promise.all([
     bId ? prisma.building.findUnique({
       where:  { id: bId },
       select: { plan: true, premiumUntil: true, status: true, statusNote: true },
@@ -49,6 +51,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     bId ? prisma.buildingConfig.findUnique({
       where:  { id: bId },
       select: { featureRent: true, featureServiceCharge: true, featureGas: true, onboardingComplete: true },
+    }) : null,
+    // Check if admin has an approved multi-property request
+    userId ? prisma.multiPropertyRequest.findFirst({
+      where: { userId, status: 'APPROVED' },
+      select: { id: true },
     }) : null,
   ])
 
@@ -92,7 +99,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <AuthProvider>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--surface)' }}>
-        <Sidebar user={session.user} isPremium={isPremium} moduleConfig={moduleConfig} />
+        <Sidebar user={session.user} isPremium={isPremium} moduleConfig={moduleConfig} multiPropertyApproved={!!multiPropertyApproved} />
         <main className="main-content" style={{ flex: 1, marginLeft: '260px', minHeight: '100vh', overflow: 'auto' }}>
           {/* LOCKED: show warning banner but allow access */}
           {status === 'LOCKED' && (

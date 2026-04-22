@@ -10,20 +10,20 @@ function monthName(m: number) {
 }
 
 function billNotificationHtml(opts: {
-  recipientName: string
-  buildingName:  string
-  billType:      string
-  unit:          string
-  amount:        number
-  month:         number
-  year:          number
-  dueDate:       Date
+  recipientName?: string
+  buildingName:   string
+  billType:       string
+  unit:           string
+  amount:         number
+  month:          number
+  year:           number
+  dueDate:        Date
 }): string {
   return emailBase({
     heading:    `${opts.billType} Bill`,
     subheading: opts.buildingName,
     bodyHtml: `
-      <p style="color:#1A2E2A;margin:0 0 12px">Dear <strong>${opts.recipientName}</strong>,</p>
+      <p style="color:#1A2E2A;margin:0 0 12px">Dear <strong>${opts.recipientName ?? 'Resident'}</strong>,</p>
       <p style="color:#3D5A53;margin:0 0 4px;line-height:1.65">
         Your <strong>${opts.billType}</strong> bill for <strong>${monthName(opts.month)} ${opts.year}</strong>
         has been generated for Unit <strong>${opts.unit}</strong>.
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
 
   const buildings = await prisma.building.findMany({
     include: {
-      units:  { include: { tenant: true } },
+      units:  { include: { tenant: true, owner: true } },
       config: true,
     },
   })
@@ -93,15 +93,36 @@ export async function GET(req: NextRequest) {
           rentCreated++
 
           // Email tenant
-          const recipient = unit.tenant
-          if (recipient?.email) {
+          const tenant = unit.tenant
+          if (tenant?.email) {
             try {
               const sent = await sendEmail({
-                to:      recipient.email,
-                toName:  recipient.name,
+                to:      tenant.email,
+                toName:  tenant.name,
                 subject: `Rent Bill for ${monthName(month)} ${year} — ${building.name}`,
                 html: billNotificationHtml({
-                  recipientName: recipient.name,
+                  recipientName: tenant.name ?? 'Tenant',
+                  buildingName:  building.name,
+                  billType:      'Rent',
+                  unit:          unit.number,
+                  amount:        unit.monthlyRent,
+                  month, year, dueDate,
+                }),
+              })
+              if (sent) emailsSent++
+            } catch { /* email failure is non-fatal */ }
+          }
+
+          // Email flat owner
+          const owner = unit.owner
+          if (owner?.email) {
+            try {
+              const sent = await sendEmail({
+                to:      owner.email,
+                toName:  owner.name,
+                subject: `Rent Bill Generated — ${monthName(month)} ${year} — Unit ${unit.number}`,
+                html: billNotificationHtml({
+                  recipientName: owner.name ?? 'Owner',
                   buildingName:  building.name,
                   billType:      'Rent',
                   unit:          unit.number,

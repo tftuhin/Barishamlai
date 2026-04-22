@@ -7,6 +7,18 @@ type Tier = 'BASIC' | 'STANDARD' | 'PRO' | 'ENTERPRISE'
 
 type BuildingStatus = 'ACTIVE' | 'LOCKED' | 'BLOCKED' | 'BANNED'
 
+type PropertyRequest = {
+  id: string
+  status: string
+  phone: string
+  totalProperties: number
+  totalFlats: number
+  note: string | null
+  createdAt: string
+  user: { id: string; name: string; email: string }
+  building: { id: string; name: string; plan: string; tier: string | null }
+}
+
 type Building = {
   id: string
   name: string
@@ -77,10 +89,20 @@ function formatDate(dateStr: string) {
 }
 
 export default function DeveloperPage() {
+  const [tab, setTab] = useState<'buildings' | 'requests'>('buildings')
+
   const [buildings, setBuildings] = useState<Building[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'ALL' | 'FREE' | 'PREMIUM' | 'EXPIRED'>('ALL')
+
+  const [propRequests, setPropRequests]         = useState<PropertyRequest[]>([])
+  const [requestsLoading, setRequestsLoading]   = useState(false)
+  const [requestAction, setRequestAction]       = useState<PropertyRequest | null>(null)
+  const [requestStatus, setRequestStatus]       = useState<'APPROVED' | 'REJECTED'>('APPROVED')
+  const [requestNote, setRequestNote]           = useState('')
+  const [requestSaving, setRequestSaving]       = useState(false)
+  const [requestError, setRequestError]         = useState('')
 
   const [modal, setModal] = useState<{ building: Building; action: 'grant' | 'revoke' } | null>(null)
   const [selectedTier, setSelectedTier] = useState<Tier>('STANDARD')
@@ -95,6 +117,32 @@ export default function DeveloperPage() {
   const [statusError, setStatusError] = useState('')
 
   useEffect(() => { fetchBuildings() }, [])
+  useEffect(() => { if (tab === 'requests') fetchPropertyRequests() }, [tab])
+
+  async function fetchPropertyRequests() {
+    setRequestsLoading(true)
+    const res = await fetch('/api/developer/property-requests')
+    if (res.ok) setPropRequests(await res.json())
+    setRequestsLoading(false)
+  }
+
+  async function handleRequestAction() {
+    if (!requestAction) return
+    setRequestSaving(true); setRequestError('')
+    const res = await fetch(`/api/developer/property-requests/${requestAction.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: requestStatus, note: requestNote.trim() || null }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setPropRequests(prev => prev.map(r => r.id === updated.id ? { ...r, status: updated.status, note: updated.note } : r))
+      setRequestAction(null)
+    } else {
+      const d = await res.json(); setRequestError(d.error || 'Failed')
+    }
+    setRequestSaving(false)
+  }
 
   async function fetchBuildings() {
     setLoading(true)
@@ -172,8 +220,8 @@ export default function DeveloperPage() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
         style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '2rem' }}>
         <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>Properties Overview</h1>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', margin: '4px 0 0' }}>Manage all registered buildings and their subscription plans</p>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>বাড়ি সামলাই — Developer Dashboard</h1>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', margin: '4px 0 0' }}>Manage all registered properties, plans, and multi-property requests</p>
         </div>
         <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
           onClick={() => signOut({ callbackUrl: '/login' })}
@@ -182,6 +230,130 @@ export default function DeveloperPage() {
           Sign out
         </motion.button>
       </motion.div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: '2rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 0 }}>
+        {[
+          { key: 'buildings', label: `Properties (${buildings.length})` },
+          { key: 'requests',  label: `Property Requests${propRequests.filter(r => r.status === 'PENDING').length > 0 ? ` (${propRequests.filter(r => r.status === 'PENDING').length})` : ''}` },
+        ].map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key as 'buildings' | 'requests')}
+            style={{
+              padding: '10px 20px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+              background: 'transparent',
+              color: tab === t.key ? '#a5b4fc' : 'rgba(255,255,255,0.35)',
+              borderBottom: `2px solid ${tab === t.key ? '#a5b4fc' : 'transparent'}`,
+              transition: 'all 0.15s',
+              marginBottom: -1,
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Property Requests Tab */}
+      {tab === 'requests' && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+          {requestsLoading ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>Loading…</div>
+          ) : propRequests.length === 0 ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No multi-property requests yet.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {propRequests.map(r => {
+                const statusColor = r.status === 'APPROVED' ? '#34d399' : r.status === 'REJECTED' ? '#f87171' : '#fbbf24'
+                return (
+                  <div key={r.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '1.25rem 1.5rem', display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 1fr auto', gap: '1rem', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{r.user.name}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' }}>{r.user.email}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>{r.phone}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>{r.building.name}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Requested {new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{r.totalProperties} properties</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{r.totalFlats} total flats</div>
+                    </div>
+                    <div>
+                      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${statusColor}1a`, color: statusColor, border: `1px solid ${statusColor}44` }}>
+                        {r.status}
+                      </span>
+                      {r.note && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>{r.note}</div>}
+                    </div>
+                    {r.status === 'PENDING' && (
+                      <button
+                        onClick={() => { setRequestAction(r); setRequestStatus('APPROVED'); setRequestNote(''); setRequestError('') }}
+                        style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        Review
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* Request Review Modal */}
+      <AnimatePresence>
+        {requestAction && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+              onClick={() => setRequestAction(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 24 }} transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+              style={{ position: 'relative', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, width: '100%', maxWidth: 480, padding: '2rem', boxShadow: '0 30px 80px rgba(0,0,0,0.6)' }}>
+              <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 700, margin: '0 0 4px' }}>Review Multi-Property Request</h3>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: '0 0 1.5rem' }}>{requestAction.user.name} · {requestAction.building.name}</p>
+
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '12px 16px', marginBottom: '1.5rem', fontSize: 13, lineHeight: 1.8, color: 'rgba(255,255,255,0.6)' }}>
+                <div><strong style={{ color: '#fff' }}>Phone:</strong> {requestAction.phone}</div>
+                <div><strong style={{ color: '#fff' }}>Total Properties:</strong> {requestAction.totalProperties}</div>
+                <div><strong style={{ color: '#fff' }}>Total Flats:</strong> {requestAction.totalFlats}</div>
+                <div><strong style={{ color: '#fff' }}>Pricing:</strong> ৳500 one-time + monthly plan × {requestAction.totalProperties - 1} extra propert{requestAction.totalProperties - 1 !== 1 ? 'ies' : 'y'} at 15% off</div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem' }}>
+                {(['APPROVED', 'REJECTED'] as const).map(s => (
+                  <button key={s} onClick={() => setRequestStatus(s)} style={{
+                    flex: 1, padding: '10px', borderRadius: 10, border: `2px solid ${requestStatus === s ? (s === 'APPROVED' ? '#34d399' : '#f87171') : 'rgba(255,255,255,0.1)'}`,
+                    background: requestStatus === s ? (s === 'APPROVED' ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)') : 'rgba(255,255,255,0.03)',
+                    color: requestStatus === s ? (s === 'APPROVED' ? '#34d399' : '#f87171') : 'rgba(255,255,255,0.4)',
+                    fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  }}>
+                    {s === 'APPROVED' ? '✓ Approve' : '✗ Reject'}
+                  </button>
+                ))}
+              </div>
+
+              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: '0.5rem' }}>Note (optional)</label>
+              <textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} rows={2} placeholder="E.g. Payment confirmed, WhatsApp: 01xxx…"
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 13, outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'var(--font-body)', marginBottom: '1.25rem' }} />
+
+              {requestError && <p style={{ color: '#f87171', fontSize: 13, marginBottom: '1rem' }}>{requestError}</p>}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button onClick={() => setRequestAction(null)} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+                <button onClick={handleRequestAction} disabled={requestSaving}
+                  style={{ padding: '9px 22px', borderRadius: 8, border: 'none', background: requestStatus === 'APPROVED' ? '#059669' : '#dc2626', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: requestSaving ? 0.7 : 1 }}>
+                  {requestSaving ? 'Saving…' : requestStatus === 'APPROVED' ? 'Approve' : 'Reject'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {tab === 'buildings' && (<>
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '1rem', marginBottom: '2rem' }}>
@@ -334,6 +506,8 @@ export default function DeveloperPage() {
           </AnimatePresence>
         )}
       </motion.div>
+
+      </>)}
 
       {/* Status Modal */}
       <AnimatePresence>

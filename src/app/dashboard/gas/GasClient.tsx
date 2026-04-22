@@ -166,11 +166,23 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
         subtitle="Monthly gas meter readings and payment status per unit"
         action={!isReadOnly ? (
           <div style={{ display: 'flex', gap: '8px' }}>
-            <Button variant={view === 'matrix' ? 'secondary' : 'primary'} onClick={() => setView('matrix')}>Matrix View</Button>
-            <Button variant={view === 'batch' ? 'secondary' : 'primary'} onClick={() => setView('batch')}>+ Add Batch</Button>
+            {view === 'batch' && <Button variant="secondary" onClick={() => setView('matrix')}>← Back to Matrix</Button>}
+            {view === 'matrix' && <Button onClick={() => setView('batch')}>Initiate Gas Bills</Button>}
           </div>
         ) : undefined}
       />
+
+      {/* Info banner for gas bill initiation requirement */}
+      {view === 'matrix' && !isReadOnly && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 16px', marginBottom: '1.25rem', fontSize: 13, color: '#92400e', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <span style={{ fontSize: 16, flexShrink: 0 }}>ℹ</span>
+          <span>
+            To generate gas bills, click <strong>Initiate Bills</strong> and enter each unit&apos;s closing meter reading.
+            Gas bill amounts are auto-calculated as: <strong>(current reading − previous reading) × ৳{gasUnitRate}/unit</strong>.
+            {gasUnitRate === 0 && <span style={{ color: '#dc2626', marginLeft: 6 }}> ⚠ Gas unit rate is not configured. <a href="/dashboard/settings" style={{ color: '#dc2626', fontWeight: 600 }}>Set it in Settings →</a></span>}
+          </span>
+        </div>
+      )}
 
       {/* Summary */}
       <div className="resp-grid-sum" style={{ marginBottom: '1.5rem' }}>
@@ -192,10 +204,10 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
         <Card>
           <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: 0 }}>Batch Gas Bill Entry</h3>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: 0 }}>Initiate Gas Bills — Meter Readings</h3>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '3px 0 0' }}>
-                Gas unit rate: ৳{gasUnitRate}/unit
-                {gasUnitRate === 0 && <span style={{ color: '#d97706', marginLeft: '8px' }}>⚠ Set rate in Settings first</span>}
+                Enter current meter reading for each unit. Previous (closing) reading is auto-filled. Rate: ৳{gasUnitRate}/unit
+                {gasUnitRate === 0 && <span style={{ color: '#d97706', marginLeft: '8px' }}>⚠ Set gas rate in Settings first</span>}
               </p>
             </div>
             {/* Month/Year + Due Date selectors */}
@@ -282,7 +294,7 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
           </div>
 
           <div style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border)' }}>
-            <Button variant="secondary" onClick={() => { setView('matrix'); setResult(null) }}>Cancel</Button>
+            <Button variant="secondary" onClick={() => { setView('matrix'); setResult(null) }}>← Back to Matrix</Button>
             <Button onClick={submitBatch} disabled={saving}>
               {saving ? 'Saving...' : `Submit Batch (${batchRows.filter(r => !r.skip && r.currentReading && r.amount).length} units)`}
             </Button>

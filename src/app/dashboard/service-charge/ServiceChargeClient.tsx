@@ -94,21 +94,12 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
   async function submitBatch() {
     if (!addDueDate) { setError('Please set a due date'); return }
     setSaving(true); setError(''); setResult(null)
-    const billsToCreate = preview
-      .filter(p => !p.existing && p.rate > 0)
-      .map(p => ({
-        unitId: p.unit.id,
-        type: 'SERVICE_CHARGE',
-        amount: p.rate,
-        month: Number(addMonth),
-        year: Number(addYear),
-        dueDate: addDueDate,
-      }))
-    const res = await fetch('/api/bills/batch', {
+    const res = await fetch('/api/bills/initiate', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bills: billsToCreate }),
+      body: JSON.stringify({ type: 'SERVICE_CHARGE', month: Number(addMonth), year: Number(addYear), dueDate: addDueDate }),
     })
     const data = await res.json()
+    if (!res.ok) { setError(data.error || 'Failed'); setSaving(false); return }
     setResult(data)
     setSaving(false)
     if (data.created > 0) { router.refresh(); setShowAdd(false) }
@@ -125,7 +116,7 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
       <PageHeader
         title="Service Charges"
         subtitle="Monthly service charge status per unit"
-        action={!isReadOnly ? <Button onClick={() => { setShowAdd(true); setResult(null) }}>+ Add for Month</Button> : undefined}
+        action={!isReadOnly ? <Button onClick={() => { setShowAdd(true); setResult(null) }}>Initiate Bills for Month</Button> : undefined}
       />
 
       {/* Summary */}
@@ -271,7 +262,7 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
       </Modal>
 
       {/* Add for Month Modal */}
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Service Charges for Month">
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Initiate Service Charge Bills">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <FormField label="Month">
             <select value={addMonth} onChange={e => setAddMonth(e.target.value)} style={selectStyle}>
