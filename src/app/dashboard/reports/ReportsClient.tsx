@@ -31,11 +31,13 @@ function FundCard({ label, collected, expenses, color }: { label: string; collec
   )
 }
 
-export function ReportsClient({ bills, expenses, totalUnits, currentMonth, currentYear }: {
-  bills: any[]; expenses: any[]; totalUnits: number; currentMonth: number; currentYear: number
+export function ReportsClient({ bills, expenses, totalUnits, currentMonth, currentYear, fundBalances, unitOpeningBalances }: {
+  bills: any[]; expenses: any[]; totalUnits: number; currentMonth: number; currentYear: number; fundBalances: any[]; unitOpeningBalances: any[]
 }) {
+  const [reportType, setReportType] = useState<'summary' | 'monthly' | 'annual'>('summary')
   const [selMonth, setSelMonth] = useState(currentMonth)
   const [selYear, setSelYear] = useState(currentYear)
+  const [selFund, setSelFund] = useState<'SERVICE_CHARGE' | 'GAS'>('SERVICE_CHARGE')
   const [generating, setGenerating] = useState(false)
 
   const monthBills    = bills.filter(b => b.month === selMonth && b.year === selYear)
@@ -109,23 +111,50 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
     <div style={{ padding: '2rem 2.5rem', animation: 'fadeIn 0.4s ease-out' }}>
       <PageHeader
         title="Reports"
-        subtitle="Monthly financial summary — building funds, rent, and expenses"
+        subtitle="Financial summary — building funds, rent, and expenses"
         action={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <select value={selMonth} onChange={e=>setSelMonth(Number(e.target.value))} style={{ padding:'8px 12px', borderRadius:'8px', border:'1px solid var(--border)', fontSize:'13px', background:'#fff', cursor:'pointer' }}>
-              {months.map(m=><option key={m} value={m}>{getMonthName(m)}</option>)}
-            </select>
+            {reportType !== 'annual' && (
+              <select value={selMonth} onChange={e=>setSelMonth(Number(e.target.value))} style={{ padding:'8px 12px', borderRadius:'8px', border:'1px solid var(--border)', fontSize:'13px', background:'#fff', cursor:'pointer' }}>
+                {months.map(m=><option key={m} value={m}>{getMonthName(m)}</option>)}
+              </select>
+            )}
             <select value={selYear} onChange={e=>setSelYear(Number(e.target.value))} style={{ padding:'8px 12px', borderRadius:'8px', border:'1px solid var(--border)', fontSize:'13px', background:'#fff', cursor:'pointer' }}>
               {years.map(y=><option key={y} value={y}>{y}</option>)}
             </select>
-            <Button onClick={downloadPDF} disabled={generating}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              {generating ? 'Generating...' : 'Download PDF'}
-            </Button>
+            {(reportType === 'summary' || reportType === 'monthly') && (
+              <Button onClick={downloadPDF} disabled={generating}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                {generating ? 'Generating...' : 'Download PDF'}
+              </Button>
+            )}
           </div>
         }
       />
 
+      {/* Report type tabs */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
+        {[
+          { key: 'summary', label: 'Summary' },
+          { key: 'monthly', label: 'Monthly Report' },
+          { key: 'annual', label: 'Annual Report' },
+        ].map(t => (
+          <button key={t.key} onClick={() => setReportType(t.key as any)} style={{
+            padding: '10px 20px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+            background: 'transparent',
+            color: reportType === t.key ? 'var(--brand)' : 'var(--text-secondary)',
+            borderBottom: `2px solid ${reportType === t.key ? 'var(--brand)' : 'transparent'}`,
+            transition: 'all 0.15s',
+            marginBottom: -1,
+          }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── SUMMARY REPORT ── */}
+      {reportType === 'summary' && (
+        <>
       <p style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', color: 'var(--text-secondary)', margin: '0 0 1.25rem' }}>
         {getMonthName(selMonth)} {selYear}
       </p>
@@ -243,6 +272,208 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
           </tbody>
         </table>
       </Card>
+        </>
+      )}
+
+      {/* ── MONTHLY REPORT ── */}
+      {reportType === 'monthly' && (() => {
+        const scBillsForMonth = bills.filter(b => b.month === selMonth && b.year === selYear && b.type === 'SERVICE_CHARGE')
+        const gasBillsForMonth = bills.filter(b => b.month === selMonth && b.year === selYear && b.type === 'GAS')
+        const billsForMonth = selFund === 'SERVICE_CHARGE' ? scBillsForMonth : gasBillsForMonth
+        const expensesForMonth = expenses.filter(e => e.month === selMonth && e.year === selYear && e.incomeSource === selFund)
+
+        // Opening balance = fundBalance + all prior collected - all prior expenses
+        const fundBal = fundBalances.find(f => f.fundType === selFund)
+        const allCollectedBefore = bills.filter(b => b.type === selFund && b.status === 'PAID' && (b.year < selYear || (b.year === selYear && b.month < selMonth))).reduce((s,b) => s + b.amount, 0)
+        const allExpensesBefore = expenses.filter(e => e.incomeSource === selFund && (e.year < selYear || (e.year === selYear && e.month < selMonth))).reduce((s,e) => s + e.amount, 0)
+        const openingBalance = (fundBal?.amount || 0) + allCollectedBefore - allExpensesBefore
+
+        const thisMonthCollected = billsForMonth.filter(b => b.status === 'PAID').reduce((s,b) => s + b.amount, 0)
+        const thisMonthExpenses = expensesForMonth.reduce((s,e) => s + e.amount, 0)
+        const closingBalance = openingBalance + thisMonthCollected - thisMonthExpenses
+
+        // Per-unit breakdown
+        const unitBreakdown = billsForMonth.map(b => {
+          const unitOb = unitOpeningBalances.find(ob => ob.unitId === b.unitId && ob.billType === selFund)
+          const allUnpaidForUnit = bills.filter(bl => bl.unitId === b.unitId && bl.type === selFund && bl.status !== 'PAID' && (bl.year < selYear || (bl.year === selYear && bl.month <= selMonth))).reduce((s,bl) => s + bl.amount, 0)
+          const accumulatedDue = (unitOb?.amount || 0) + allUnpaidForUnit
+          return {
+            unitNumber: b.unit?.number || '—',
+            resident: (b.unit?.tenant?.name || b.unit?.owner?.name || '—'),
+            billAmount: b.amount,
+            paid: b.status === 'PAID' ? b.amount : 0,
+            due: b.status === 'PAID' ? 0 : b.amount,
+            accumulatedDue,
+          }
+        })
+
+        return (
+          <>
+          <p style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', color: 'var(--text-secondary)', margin: '0 0 1.25rem' }}>
+            {getMonthName(selMonth)} {selYear} — {selFund === 'SERVICE_CHARGE' ? 'Service Charge' : 'Gas'} Fund
+          </p>
+
+          {/* Fund selector */}
+          <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '10px' }}>
+            {['SERVICE_CHARGE', 'GAS'].map(f => (
+              <button key={f} onClick={() => setSelFund(f as any)} style={{
+                padding: '8px 16px', borderRadius: '20px', border: `2px solid ${selFund === f ? 'var(--brand)' : 'var(--border)'}`,
+                background: selFund === f ? 'rgba(99,102,241,0.1)' : 'transparent',
+                color: selFund === f ? 'var(--brand)' : 'var(--text-secondary)',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}>
+                {f === 'SERVICE_CHARGE' ? 'Service Charge' : 'Gas'}
+              </button>
+            ))}
+          </div>
+
+          {/* Monthly summary */}
+          <Card style={{ marginBottom: '1.5rem', padding: '1.25rem 1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '1rem' }}>
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Opening Balance</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{formatCurrency(openingBalance)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>This Month Collection</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#15803d' }}>{formatCurrency(thisMonthCollected)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>This Month Expenses</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#dc2626' }}>{formatCurrency(thisMonthExpenses)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Closing Balance</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: closingBalance >= 0 ? '#15803d' : '#dc2626' }}>{formatCurrency(closingBalance)}</div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Per-unit collection table */}
+          {unitBreakdown.length > 0 && (
+            <Card style={{ marginBottom: '1.5rem' }}>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: 'var(--brand)', margin: 0 }}>Collection by Unit</h3>
+              </div>
+              <table className="data-table">
+                <thead><tr><th>Flat</th><th>Resident</th><th>Bill Amount</th><th>Paid</th><th>Due</th><th>Accumulated Due</th></tr></thead>
+                <tbody>
+                  {unitBreakdown.map((row,i) => (
+                    <tr key={i}>
+                      <td style={{ fontWeight: 600 }}>{row.unitNumber}</td>
+                      <td>{row.resident}</td>
+                      <td>{formatCurrency(row.billAmount)}</td>
+                      <td style={{ color: '#15803d', fontWeight: 600 }}>{formatCurrency(row.paid)}</td>
+                      <td style={{ color: '#dc2626', fontWeight: 600 }}>{formatCurrency(row.due)}</td>
+                      <td style={{ color: '#d97706', fontWeight: 600 }}>{formatCurrency(row.accumulatedDue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
+
+          {/* Expenses */}
+          {expensesForMonth.length > 0 && (
+            <Card>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: 'var(--brand)', margin: 0 }}>Expenses</h3>
+              </div>
+              <table className="data-table">
+                <thead><tr><th>Title</th><th>Category</th><th>Amount</th></tr></thead>
+                <tbody>
+                  {expensesForMonth.map((e,i) => (
+                    <tr key={i}>
+                      <td>{e.title}</td>
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{e.category}</td>
+                      <td>{formatCurrency(e.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
+          </>
+        )
+      })()}
+
+      {/* ── ANNUAL REPORT ── */}
+      {reportType === 'annual' && (() => {
+        const annualData = Array.from({length:12}).map((_,i) => {
+          const m = i + 1
+          const billsForMonth = bills.filter(b => b.month === m && b.year === selYear && b.type === selFund)
+          const expensesForMonth = expenses.filter(e => e.month === m && e.year === selYear && e.incomeSource === selFund)
+
+          const fundBal = fundBalances.find(f => f.fundType === selFund)
+          const allCollectedBefore = bills.filter(b => b.type === selFund && b.status === 'PAID' && (b.year < selYear || (b.year === selYear && b.month < m))).reduce((s,b) => s + b.amount, 0)
+          const allExpensesBefore = expenses.filter(e => e.incomeSource === selFund && (e.year < selYear || (e.year === selYear && e.month < m))).reduce((s,e) => s + e.amount, 0)
+          const opening = (fundBal?.amount || 0) + allCollectedBefore - allExpensesBefore
+
+          const collected = billsForMonth.filter(b => b.status === 'PAID').reduce((s,b) => s + b.amount, 0)
+          const expensed = expensesForMonth.reduce((s,e) => s + e.amount, 0)
+          const net = collected - expensed
+          const closing = opening + net
+
+          return { month: m, opening, collected, expensed, net, closing }
+        })
+
+        const totalCollected = annualData.reduce((s,d) => s + d.collected, 0)
+        const totalExpensed = annualData.reduce((s,d) => s + d.expensed, 0)
+        const totalNet = totalCollected - totalExpensed
+        const totals = { collected: totalCollected, expensed: totalExpensed, net: totalNet }
+
+        return (
+          <>
+          <p style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', color: 'var(--text-secondary)', margin: '0 0 1.25rem' }}>
+            {selYear} — {selFund === 'SERVICE_CHARGE' ? 'Service Charge' : 'Gas'} Fund
+          </p>
+
+          {/* Fund selector */}
+          <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '10px' }}>
+            {['SERVICE_CHARGE', 'GAS'].map(f => (
+              <button key={f} onClick={() => setSelFund(f as any)} style={{
+                padding: '8px 16px', borderRadius: '20px', border: `2px solid ${selFund === f ? 'var(--brand)' : 'var(--border)'}`,
+                background: selFund === f ? 'rgba(99,102,241,0.1)' : 'transparent',
+                color: selFund === f ? 'var(--brand)' : 'var(--text-secondary)',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}>
+                {f === 'SERVICE_CHARGE' ? 'Service Charge' : 'Gas'}
+              </button>
+            ))}
+          </div>
+
+          {/* Annual breakdown table */}
+          <Card>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: 'var(--brand)', margin: 0 }}>Monthly Breakdown</h3>
+            </div>
+            <table className="data-table">
+              <thead><tr><th>Month</th><th>Opening Balance</th><th>Collection</th><th>Expenses</th><th>Net</th><th>Closing Balance</th></tr></thead>
+              <tbody>
+                {annualData.map((d,i) => (
+                  <tr key={i}>
+                    <td style={{ fontWeight: 600 }}>{getMonthName(d.month)}</td>
+                    <td>{formatCurrency(d.opening)}</td>
+                    <td style={{ color: '#15803d', fontWeight: 600 }}>{formatCurrency(d.collected)}</td>
+                    <td style={{ color: '#dc2626', fontWeight: 600 }}>{formatCurrency(d.expensed)}</td>
+                    <td style={{ fontWeight: 600, color: d.net >= 0 ? '#15803d' : '#dc2626' }}>{d.net >= 0 ? '+' : ''}{formatCurrency(d.net)}</td>
+                    <td style={{ fontWeight: 700 }}>{formatCurrency(d.closing)}</td>
+                  </tr>
+                ))}
+                <tr style={{ fontWeight: 700, borderTop: '2px solid var(--border)', background: 'var(--surface-subtle)' }}>
+                  <td>Annual Totals</td>
+                  <td>—</td>
+                  <td style={{ color: '#15803d' }}>{formatCurrency(totals.collected)}</td>
+                  <td style={{ color: '#dc2626' }}>{formatCurrency(totals.expensed)}</td>
+                  <td style={{ color: totals.net >= 0 ? '#15803d' : '#dc2626' }}>{totals.net >= 0 ? '+' : ''}{formatCurrency(totals.net)}</td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </Card>
+          </>
+        )
+      })()}
     </div>
   )
 }
