@@ -11,12 +11,18 @@ export async function GET() {
   if (e) return e
 
   const userId = session.user.id
-  const primaryBuildingId = session.user.buildingId
 
   try {
+    // Get user's actual primary building from DB (not from session, since session switches)
+    const dbUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { buildingId: true },
+    })
+    const truePrimaryId = dbUser?.buildingId ?? null
+
     // Get primary building
-    const primary = primaryBuildingId
-      ? await prisma.building.findUnique({ where: { id: primaryBuildingId }, select: { id: true, name: true } })
+    const primary = truePrimaryId
+      ? await prisma.building.findUnique({ where: { id: truePrimaryId }, select: { id: true, name: true } })
       : null
 
     // Get additional buildings via UserBuilding
@@ -28,7 +34,7 @@ export async function GET() {
     const properties: { id: string; name: string }[] = []
     if (primary) properties.push(primary)
     for (const ub of extras) {
-      if (ub.buildingId !== primaryBuildingId) {
+      if (ub.buildingId !== truePrimaryId) {
         properties.push({ id: ub.buildingId, name: ub.building.name })
       }
     }

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { signOut } from 'next-auth/react'
 
@@ -90,6 +90,8 @@ function formatDate(dateStr: string) {
 
 export default function DeveloperPage() {
   const [tab, setTab] = useState<'buildings' | 'requests'>('buildings')
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const [buildings, setBuildings] = useState<Building[]>([])
   const [loading, setLoading] = useState(true)
@@ -128,6 +130,16 @@ export default function DeveloperPage() {
 
   useEffect(() => { fetchBuildings() }, [])
   useEffect(() => { if (tab === 'requests') fetchPropertyRequests() }, [tab])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenu(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   async function fetchPropertyRequests() {
     setRequestsLoading(true)
@@ -462,7 +474,7 @@ export default function DeveloperPage() {
       {/* Table */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.8fr 110px 70px 120px 160px 120px 240px', padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.8fr 110px 70px 120px 160px 120px 60px', padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
           {['Property','Admin','Units','Users','Plan','Premium Until','Status','Actions'].map(h => (
             <div key={h} style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', padding: '0 8px' }}>{h}</div>
           ))}
@@ -484,7 +496,7 @@ export default function DeveloperPage() {
               return (
                 <motion.div key={b.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                   whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
-                  style={{ display: 'grid', gridTemplateColumns: '2fr 1.8fr 110px 70px 120px 160px 120px 240px', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', transition: 'background 0.15s' }}>
+                  style={{ display: 'grid', gridTemplateColumns: '2fr 1.8fr 110px 70px 120px 160px 120px 60px', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', transition: 'background 0.15s' }}>
 
                   {/* Property */}
                   <div style={{ padding: '0 8px' }}>
@@ -540,34 +552,51 @@ export default function DeveloperPage() {
                   </div>
 
                   {/* Actions */}
-                  <div style={{ padding: '0 8px', display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                      onClick={() => { setSelectedTier(b.tier ?? 'STANDARD'); setMonths(1); setSaveError(''); setModal({ building: b, action: 'grant' }) }}
-                      style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
-                      {isPremiumActive ? '+ Extend' : 'Grant'}
+                  <div style={{ padding: '0 8px', position: 'relative' }} ref={b.id === openMenu ? menuRef : undefined}>
+                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                      onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === b.id ? null : b.id) }}
+                      style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      ⋮
                     </motion.button>
-                    {isPremiumActive && (
-                      <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                        onClick={() => { setSaveError(''); setModal({ building: b, action: 'revoke' }) }}
-                        style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#f87171', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
-                        Revoke
-                      </motion.button>
-                    )}
-                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                      onClick={() => { setStatusAction(b.status); setStatusNote(b.statusNote ?? ''); setStatusError(''); setStatusModal(b) }}
-                      style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
-                      Status
-                    </motion.button>
-                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                      onClick={() => openEditModal(b)}
-                      style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(52,211,153,0.35)', background: 'rgba(52,211,153,0.08)', color: '#34d399', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
-                      Edit
-                    </motion.button>
-                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                      onClick={() => { setDeleteConfirm(''); setDeleteError(''); setDeleteModal(b) }}
-                      style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)', color: '#f87171', fontSize: 11, fontWeight: 500, cursor: 'pointer' }}>
-                      Delete
-                    </motion.button>
+                    <AnimatePresence>
+                      {openMenu === b.id && (
+                        <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.1 }}
+                          style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, background: '#0d3d2e', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, overflow: 'hidden', minWidth: 140, zIndex: 10, boxShadow: '0 10px 25px rgba(0,0,0,0.4)' }}>
+                          <button onClick={() => { setSelectedTier(b.tier ?? 'STANDARD'); setMonths(1); setSaveError(''); setModal({ building: b, action: 'grant' }); setOpenMenu(null) }}
+                            style={{ width: '100%', padding: '9px 12px', background: 'transparent', border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#a5b4fc', fontSize: 12, cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(99,102,241,0.15)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                            {isPremiumActive ? '+ Extend' : 'Grant'}
+                          </button>
+                          {isPremiumActive && (
+                            <button onClick={() => { setSaveError(''); setModal({ building: b, action: 'revoke' }); setOpenMenu(null) }}
+                              style={{ width: '100%', padding: '9px 12px', background: 'transparent', border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#f87171', fontSize: 12, cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(248,113,113,0.15)')}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                              Revoke
+                            </button>
+                          )}
+                          <button onClick={() => { setStatusAction(b.status); setStatusNote(b.statusNote ?? ''); setStatusError(''); setStatusModal(b); setOpenMenu(null) }}
+                            style={{ width: '100%', padding: '9px 12px', background: 'transparent', border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', fontSize: 12, cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                            Status
+                          </button>
+                          <button onClick={() => { openEditModal(b); setOpenMenu(null) }}
+                            style={{ width: '100%', padding: '9px 12px', background: 'transparent', border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#34d399', fontSize: 12, cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(52,211,153,0.15)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                            Edit
+                          </button>
+                          <button onClick={() => { setDeleteConfirm(''); setDeleteError(''); setDeleteModal(b); setOpenMenu(null) }}
+                            style={{ width: '100%', padding: '9px 12px', background: 'transparent', border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#f87171', fontSize: 12, cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(248,113,113,0.15)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                            Delete
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </motion.div>
               )
