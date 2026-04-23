@@ -103,6 +103,7 @@ export default function DeveloperPage() {
   const [requestAction, setRequestAction]       = useState<PropertyRequest | null>(null)
   const [requestStatus, setRequestStatus]       = useState<'APPROVED' | 'REJECTED'>('APPROVED')
   const [requestNote, setRequestNote]           = useState('')
+  const [approvedCount, setApprovedCount]       = useState(0)
   const [requestSaving, setRequestSaving]       = useState(false)
   const [requestError, setRequestError]         = useState('')
 
@@ -151,10 +152,14 @@ export default function DeveloperPage() {
   async function handleRequestAction() {
     if (!requestAction) return
     setRequestSaving(true); setRequestError('')
+    const payload: Record<string, unknown> = { status: requestStatus, note: requestNote.trim() || null }
+    if (requestStatus === 'APPROVED') {
+      payload.approvedProperties = approvedCount || requestAction.totalProperties
+    }
     const res = await fetch(`/api/developer/property-requests/${requestAction.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: requestStatus, note: requestNote.trim() || null }),
+      body: JSON.stringify(payload),
     })
     if (res.ok) {
       const updated = await res.json()
@@ -359,7 +364,7 @@ export default function DeveloperPage() {
                     </div>
                     {r.status === 'PENDING' && (
                       <button
-                        onClick={() => { setRequestAction(r); setRequestStatus('APPROVED'); setRequestNote(''); setRequestError('') }}
+                        onClick={() => { setRequestAction(r); setRequestStatus('APPROVED'); setApprovedCount(r.totalProperties); setRequestNote(''); setRequestError('') }}
                         style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
                       >
                         Review
@@ -396,7 +401,7 @@ export default function DeveloperPage() {
 
               <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem' }}>
                 {(['APPROVED', 'REJECTED'] as const).map(s => (
-                  <button key={s} onClick={() => setRequestStatus(s)} style={{
+                  <button key={s} onClick={() => { setRequestStatus(s); if (s === 'APPROVED' && !approvedCount) setApprovedCount(requestAction.totalProperties) }} style={{
                     flex: 1, padding: '10px', borderRadius: 10, border: `2px solid ${requestStatus === s ? (s === 'APPROVED' ? '#34d399' : '#f87171') : 'rgba(255,255,255,0.1)'}`,
                     background: requestStatus === s ? (s === 'APPROVED' ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)') : 'rgba(255,255,255,0.03)',
                     color: requestStatus === s ? (s === 'APPROVED' ? '#34d399' : '#f87171') : 'rgba(255,255,255,0.4)',
@@ -406,6 +411,17 @@ export default function DeveloperPage() {
                   </button>
                 ))}
               </div>
+
+              {requestStatus === 'APPROVED' && (
+                <>
+                  <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: '0.5rem' }}>Approve for (max properties) *</label>
+                  <input type="number" value={approvedCount} onChange={e => setApprovedCount(Math.max(1, Number(e.target.value)))} min="1" max={requestAction.totalProperties}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)', marginBottom: '0.75rem' }} />
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: '0 0 1rem', lineHeight: 1.5 }}>
+                    Developer can grant {requestAction.totalProperties} properties as requested, or a different number. Admin will be able to add up to the approved count.
+                  </p>
+                </>
+              )}
 
               <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: '0.5rem' }}>Note (optional)</label>
               <textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} rows={2} placeholder="E.g. Payment confirmed, WhatsApp: 01xxx…"

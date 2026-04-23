@@ -43,7 +43,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const userId = session.user.id
 
-  const [building, config, multiPropertyApproved] = await Promise.all([
+  const [building, config, multiPropertyRequest, dbUser, additionalCount] = await Promise.all([
     bId ? prisma.building.findUnique({
       where:  { id: bId },
       select: { plan: true, premiumUntil: true, status: true, statusNote: true },
@@ -55,9 +55,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
     // Check if admin has an approved multi-property request
     userId ? prisma.multiPropertyRequest.findFirst({
       where: { userId, status: 'APPROVED' },
-      select: { id: true },
+      select: { id: true, approvedProperties: true },
     }) : null,
+    // Get user's primary building from DB
+    userId ? prisma.user.findUnique({
+      where: { id: userId },
+      select: { buildingId: true },
+    }) : null,
+    // Count additional properties
+    userId ? prisma.userBuilding.count({ where: { userId } }) : 0,
   ])
+
+  // Calculate property count and limit
+  const hasPrimary = dbUser?.buildingId !== null ? 1 : 0
+  const propertyCount = hasPrimary + additionalCount
+  const propertyLimit = multiPropertyRequest?.approvedProperties ?? null
+  const hasMultiPropertyDiscount = propertyCount > 1 && !!multiPropertyRequest
 
   const isPremium = isPremiumBuilding(building)
   const status = building?.status ?? 'ACTIVE'
@@ -99,7 +112,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <AuthProvider>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--surface)' }}>
-        <Sidebar user={session.user} isPremium={isPremium} moduleConfig={moduleConfig} multiPropertyApproved={!!multiPropertyApproved} />
+        <Sidebar user={session.user} isPremium={isPremium} moduleConfig={moduleConfig} multiPropertyApproved={!!multiPropertyRequest} propertyCount={propertyCount} propertyLimit={propertyLimit} hasMultiPropertyDiscount={hasMultiPropertyDiscount} />
         <main className="main-content" style={{ flex: 1, marginLeft: '260px', minHeight: '100vh', overflow: 'auto' }}>
           {/* LOCKED: show warning banner but allow access */}
           {status === 'LOCKED' && (

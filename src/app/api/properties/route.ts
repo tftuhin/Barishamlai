@@ -4,7 +4,7 @@
  */
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { ok, created, Err, requireAdmin } from '@/lib/api'
+import { ok, created, Err, err, requireAdmin } from '@/lib/api'
 
 export async function GET() {
   const [session, e] = await requireAdmin()
@@ -39,7 +39,16 @@ export async function GET() {
       }
     }
 
-    return ok(properties)
+    // Get approved multi-property request for limit/canAdd
+    const approved = await prisma.multiPropertyRequest.findFirst({
+      where: { userId, status: 'APPROVED' },
+      select: { approvedProperties: true },
+    })
+
+    const limit = approved?.approvedProperties ?? null
+    const canAdd = limit === null ? false : properties.length < limit
+
+    return ok({ properties, limit, canAdd })
   } catch {
     return Err.internal()
   }
@@ -58,6 +67,19 @@ export async function POST(req: NextRequest) {
     })
     if (!approved) {
       return Err.paymentRequired('Multi-property access not approved. Please submit a request first.')
+    }
+
+    // Check if user has reached their property limit
+    const dbUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { buildingId: true },
+    })
+    const hasPrimary = dbUser?.buildingId !== null ? 1 : 0
+    const additionalCount = await prisma.userBuilding.count({ where: { userId } })
+    const currentCount = hasPrimary + additionalCount
+
+    if (approved.approvedProperties !== null && currentCount >= approved.approvedProperties) {
+      return err(`Property limit reached (${currentCount}/${approved.approvedProperties})`, 403)
     }
 
     const body = await req.json() as Record<string, unknown>

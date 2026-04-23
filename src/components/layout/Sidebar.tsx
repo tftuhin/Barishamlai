@@ -53,10 +53,11 @@ type ModuleConfig = {
 type Property = { id: string; name: string }
 
 // ── Property Switcher ─────────────────────────────────────────
-function PropertySwitcher({ currentBuildingId, currentBuildingName, lang }: {
+function PropertySwitcher({ currentBuildingId, currentBuildingName, lang, hasMultiPropertyDiscount }: {
   currentBuildingId: string | null
   currentBuildingName: string | null
   lang: string
+  hasMultiPropertyDiscount?: boolean
 }) {
   const { update }  = useSession()
   const router      = useRouter()
@@ -71,7 +72,7 @@ function PropertySwitcher({ currentBuildingId, currentBuildingName, lang }: {
       const res = await fetch('/api/properties')
       if (res.ok) {
         const data = await res.json()
-        setProperties(data)
+        setProperties(data.properties)
       }
     } finally {
       setLoading(false)
@@ -99,20 +100,27 @@ function PropertySwitcher({ currentBuildingId, currentBuildingName, lang }: {
 
   return (
     <div style={{ position: 'relative' }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.8)', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, textAlign: 'left' }}
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-          <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {currentBuildingName ?? 'Select Property'}
-        </span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-          <path d="M19 9l-7 7-7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+        <button
+          onClick={() => setOpen(o => !o)}
+          style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.8)', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, textAlign: 'left' }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {currentBuildingName ?? 'Select Property'}
+          </span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+            <path d="M19 9l-7 7-7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        {hasMultiPropertyDiscount && (
+          <div style={{ padding: '4px 8px', borderRadius: 6, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', fontSize: 10, fontWeight: 600, color: '#86efac', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            15% off
+          </div>
+        )}
+      </div>
 
       <AnimatePresence>
         {open && (
@@ -212,9 +220,9 @@ function MultiPropertyRequestModal({ onClose }: { onClose: () => void }) {
             <div style={{ background: 'rgba(29,158,117,0.08)', border: '1px solid rgba(29,158,117,0.2)', borderRadius: 10, padding: '12px 16px', marginBottom: '1.25rem' }}>
               <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing</p>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                <div>✦ <strong>৳500</strong> one-time setup charge per new property</div>
-                <div>✦ Monthly billing as per your flat-count plan</div>
-                <div>✦ <strong style={{ color: '#15803d' }}>15% discount</strong> on all additional properties</div>
+                <div>✦ <strong>৳500</strong> one-time setup charge</div>
+                <div>✦ Monthly billing as per your unit count</div>
+                <div>✦ <strong style={{ color: '#15803d' }}>15% discount</strong> on subscriptions with 2+ properties</div>
               </div>
             </div>
 
@@ -253,11 +261,13 @@ function MultiPropertyRequestModal({ onClose }: { onClose: () => void }) {
 }
 
 // ── Add Property Button (for approved multi-property admins) ──
-function AddPropertyModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
+function AddPropertyModal({ onClose, onCreated, propertyCount, propertyLimit }: { onClose: () => void; onCreated: (id: string) => void; propertyCount?: number; propertyLimit?: number | null }) {
   const { update } = useSession()
   const [name, setName]     = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
+
+  const canCreate = !propertyLimit || (propertyCount ?? 0) < propertyLimit
 
   async function create() {
     if (!name.trim()) { setError('Building name is required'); return }
@@ -282,21 +292,37 @@ function AddPropertyModal({ onClose, onCreated }: { onClose: () => void; onCreat
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
       <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 380, boxShadow: '0 25px 50px rgba(0,0,0,0.4)' }}>
         <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>New Property</h3>
-        <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Building / Property Name</label>
-        <input
-          value={name}
-          onChange={e => setName(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && create()}
-          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: '1.25rem' }}
-          placeholder="e.g. Green Heights, Block B"
-          autoFocus
-        />
+        {!canCreate && (
+          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '12px 16px', marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: 13, color: '#fca5a5', margin: 0, fontWeight: 600 }}>Property limit reached</p>
+            <p style={{ fontSize: 12, color: 'rgba(239,68,68,0.7)', margin: '4px 0 0', lineHeight: 1.4 }}>
+              You've reached your approved limit of {propertyLimit} properties. Contact support to increase your limit.
+            </p>
+          </div>
+        )}
+
+        {canCreate && (
+          <>
+            <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Building / Property Name</label>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && create()}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: '1.25rem' }}
+              placeholder="e.g. Green Heights, Block B"
+              autoFocus
+            />
+          </>
+        )}
+
         {error && <p style={{ color: '#dc2626', fontSize: 13, marginBottom: '1rem' }}>{error}</p>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 14, cursor: 'pointer' }}>Cancel</button>
-          <button onClick={create} disabled={saving || !name.trim()} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#1D9E75,#085041)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', opacity: (saving || !name.trim()) ? 0.6 : 1 }}>
-            {saving ? 'Creating…' : 'Create & Switch'}
-          </button>
+          {canCreate && (
+            <button onClick={create} disabled={saving || !name.trim()} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#1D9E75,#085041)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', opacity: (saving || !name.trim()) ? 0.6 : 1 }}>
+              {saving ? 'Creating…' : 'Create & Switch'}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -304,11 +330,14 @@ function AddPropertyModal({ onClose, onCreated }: { onClose: () => void; onCreat
 }
 
 // ── Main Sidebar ──────────────────────────────────────────────
-export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved }: {
+export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved, propertyCount, propertyLimit, hasMultiPropertyDiscount }: {
   user: { name: string; email: string; role: string; buildingId?: string | null; buildingName?: string | null }
   isPremium: boolean
   moduleConfig?: ModuleConfig
   multiPropertyApproved?: boolean
+  propertyCount?: number
+  propertyLimit?: number | null
+  hasMultiPropertyDiscount?: boolean
 }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen]   = useState(false)
@@ -409,6 +438,7 @@ export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved }
               currentBuildingId={user.buildingId ?? null}
               currentBuildingName={user.buildingName ?? null}
               lang={lang}
+              hasMultiPropertyDiscount={hasMultiPropertyDiscount}
             />
           </div>
         )}
@@ -507,15 +537,24 @@ export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved }
               transition={{ delay: 0.4 }}
               style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <button
-                onClick={handleAddProperty}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px dashed rgba(29,158,117,0.4)', background: 'rgba(29,158,117,0.06)', color: 'rgba(159,225,203,0.8)', fontSize: '12.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-body)' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                </svg>
-                {t('navAddProperty')}
-              </button>
+              {multiPropertyApproved && propertyLimit && (propertyCount ?? 0) >= propertyLimit ? (
+                <div style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: 'rgba(239,68,68,0.6)', fontSize: '12.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'var(--font-body)' }} title={`Limit reached: ${propertyCount}/${propertyLimit}`}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                    <path d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 2a8 8 0 100 16 8 8 0 000-16zm-.5 7a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" fill="currentColor"/>
+                  </svg>
+                  Limit reached ({propertyCount}/{propertyLimit})
+                </div>
+              ) : (
+                <button
+                  onClick={handleAddProperty}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px dashed rgba(29,158,117,0.4)', background: 'rgba(29,158,117,0.06)', color: 'rgba(159,225,203,0.8)', fontSize: '12.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-body)' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                  {propertyLimit && propertyCount ? `${t('navAddProperty')} (${propertyCount}/${propertyLimit})` : t('navAddProperty')}
+                </button>
+              )}
             </motion.div>
           )}
         </nav>
@@ -573,6 +612,8 @@ export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved }
         <AddPropertyModal
           onClose={() => setShowCreate(false)}
           onCreated={() => { window.location.href = '/dashboard' }}
+          propertyCount={propertyCount}
+          propertyLimit={propertyLimit}
         />
       )}
     </>
