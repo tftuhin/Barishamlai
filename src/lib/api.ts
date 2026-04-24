@@ -11,7 +11,10 @@ import type { Session } from 'next-auth'
 // ── Response helpers ──────────────────────────────────────────────────────────
 
 export function ok<T>(data: T, status = 200) {
-  return NextResponse.json(data, { status })
+  return NextResponse.json(data, {
+    status,
+    headers: { 'Cache-Control': 'no-store, private' },
+  })
 }
 
 export function created<T>(data: T) {
@@ -79,6 +82,7 @@ export const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY'] as const
 export async function requireAdmin(): Promise<[AuthSession, null] | [null, NextResponse]> {
   const [session, e] = await requireAuth()
   if (e) return [null, e]
+  if (!session.user.id) return [null, Err.unauthorized()]
   if (session.user.role !== 'ADMIN') return [null, Err.forbidden()]
   if (!session.user.buildingId) return [null, Err.badRequest('No building assigned')]
   return [session, null]

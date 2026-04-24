@@ -11,6 +11,9 @@ export async function GET() {
   if (e) return e
 
   const userId = session.user.id
+  // Guard: if userId is somehow undefined, Prisma would skip the filter and return
+  // ALL UserBuilding records across all users. Fail fast instead.
+  if (!userId) return Err.unauthorized()
 
   try {
     // Get user's actual primary building from DB (not from session, since session switches)
