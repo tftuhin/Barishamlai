@@ -60,7 +60,7 @@ export function LandingNavbar({ staticPage = false }: { staticPage?: boolean }) 
     >
       <div style={{ maxWidth: 1200, margin: '0 auto', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <BariShamlaiMark size={isMobile ? 48 : 60} variant="color" />
+          <BariShamlaiMark size={isMobile ? 60 : 76} variant="color" />
           {!isMobile && (
             <span style={{
               fontSize: '1.1rem', fontWeight: 800, color: 'var(--land-white)',

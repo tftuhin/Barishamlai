@@ -365,7 +365,7 @@ export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved, 
 
   const logoBlock = (
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-      <BariShamlaiMark size={64} variant="color" />
+      <BariShamlaiMark size={80} variant="color" />
       <div style={{ minWidth: 0 }}>
         <div style={{
           fontFamily: lang === 'bn' ? "var(--font-hind), var(--font-body)" : 'var(--font-body)',

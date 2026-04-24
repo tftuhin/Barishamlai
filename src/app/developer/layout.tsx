@@ -17,7 +17,7 @@ export default async function DeveloperLayout({ children }: { children: React.Re
         display: 'flex', alignItems: 'center', padding: '0 2rem', gap: '16px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <BariShamlaiMark size={30} />
+          <BariShamlaiMark size={42} />
           <span style={{ fontWeight: 700, fontSize: '15px', color: '#fff', letterSpacing: '-0.3px' }}>Bari Shamlai</span>
           <span style={{ fontSize: '11px', background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, border: '1px solid rgba(99,102,241,0.3)' }}>Developer Console</span>
         </div>
