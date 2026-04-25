@@ -13,14 +13,16 @@ export async function GET(req: NextRequest) {
   const month = Number(searchParams.get('month') || new Date().getMonth() + 1)
   const year = Number(searchParams.get('year') || new Date().getFullYear())
 
+  const bId = session.user.buildingId!
+
   const [bills, expenses, units] = await Promise.all([
     prisma.bill.findMany({
-      where: { month, year },
+      where: { month, year, buildingId: bId },
       include: { unit: { include: { tenant: true } } },
       orderBy: { unit: { number: 'asc' } },
     }),
-    prisma.expense.findMany({ where: { month, year }, orderBy: { date: 'asc' } }),
-    prisma.unit.findMany({ orderBy: { number: 'asc' } }),
+    prisma.expense.findMany({ where: { month, year, buildingId: bId }, orderBy: { date: 'asc' } }),
+    prisma.unit.findMany({ where: { buildingId: bId }, orderBy: { number: 'asc' } }),
   ])
 
   const totalCollected = bills.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0)

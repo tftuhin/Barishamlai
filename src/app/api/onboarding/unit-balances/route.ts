@@ -32,8 +32,15 @@ export async function POST(req: NextRequest) {
 
     const bId = session.user.buildingId!
 
-    // Filter out zero-amount entries (no need to store)
-    const nonZero = balances.filter(b => b.amount !== 0)
+    // Fetch valid unit IDs for this building to prevent cross-building writes
+    const validUnits = await prisma.unit.findMany({
+      where: { buildingId: bId },
+      select: { id: true },
+    })
+    const validUnitIds = new Set(validUnits.map(u => u.id))
+
+    // Filter out zero-amount entries and units not belonging to this building
+    const nonZero = balances.filter(b => b.amount !== 0 && validUnitIds.has(b.unitId))
 
     const upserted = await Promise.all(
       nonZero.map(b =>

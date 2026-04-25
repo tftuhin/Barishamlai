@@ -48,16 +48,14 @@ export async function POST(req: NextRequest) {
     const { billId } = await req.json()
     if (!billId) return Err.badRequest('billId is required')
 
-    const bill = await prisma.bill.findUnique({
-      where: { id: billId },
+    // Fetch bill with building ownership check in a single atomic query
+    const bill = await prisma.bill.findFirst({
+      where: { id: billId, buildingId: session.user.buildingId },
       include: { unit: { include: { tenant: true } } },
     })
 
     if (!bill) return Err.notFound('Bill not found')
     if (bill.status !== 'PAID') return Err.badRequest('Cannot issue receipt for unpaid bill')
-
-    // Enforce building isolation
-    if (bill.buildingId !== session.user.buildingId) return Err.forbidden()
 
     const existingReceipt = await prisma.receipt.findUnique({ where: { billId } })
     if (existingReceipt) return Err.conflict('Receipt already issued for this bill')

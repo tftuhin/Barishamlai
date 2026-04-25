@@ -43,11 +43,20 @@ function billNotificationHtml(opts: {
 }
 
 export async function GET(req: NextRequest) {
-  // Protect with CRON_SECRET if configured
+  // Always require CRON_SECRET in production; fail-closed if not configured
   const secret = process.env.CRON_SECRET
-  if (secret) {
-    const auth = req.headers.get('authorization')
-    if (auth !== `Bearer ${secret}`)
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } else {
+    const auth = req.headers.get('authorization') ?? ''
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : ''
+    // Use length-constant comparison to prevent timing attacks
+    const secretBuf = Buffer.from(secret)
+    const tokenBuf  = Buffer.from(token.padEnd(secret.length, '\0').slice(0, secret.length))
+    const match = token.length === secret.length &&
+      require('crypto').timingSafeEqual(secretBuf, tokenBuf)
+    if (!match)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

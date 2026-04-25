@@ -19,7 +19,16 @@ export async function POST(
       include: { bill: true, unit: true, issuedBy: true, recipient: true },
     })
 
-    if (!receipt)                  return Err.notFound('Receipt not found')
+    if (!receipt) return Err.notFound('Receipt not found')
+
+    // Verify ownership: ADMINs must own the building; OWNERs must own the unit
+    if (session.user.role === 'ADMIN') {
+      if (receipt.unit?.buildingId !== session.user.buildingId) return Err.forbidden()
+    } else {
+      // OWNER: can only send receipts for units they own
+      if (receipt.unit?.ownerId !== session.user.id) return Err.forbidden()
+    }
+
     if (!receipt.recipient?.email) return Err.badRequest('Recipient has no email address')
 
     const buildingName = process.env.EMAIL_FROM_NAME || 'বাড়ি সামলাই'

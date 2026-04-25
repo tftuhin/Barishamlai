@@ -52,7 +52,15 @@ export async function POST(req: NextRequest) {
     } else {
       if (!Array.isArray(recipientIds) || recipientIds.length === 0)
         return Err.badRequest('recipientIds must be a non-empty array when isGlobal is false')
-      targetIds = (recipientIds as unknown[]).filter((id): id is string => typeof id === 'string')
+      const candidateIds = (recipientIds as unknown[]).filter((id): id is string => typeof id === 'string')
+      // Verify all recipients actually belong to this building
+      const validRecipients = await prisma.user.findMany({
+        where: { id: { in: candidateIds }, buildingId: bId },
+        select: { id: true },
+      })
+      targetIds = validRecipients.map(r => r.id)
+      if (targetIds.length === 0)
+        return Err.badRequest('No valid recipients found in your building')
     }
 
     const message = await prisma.message.create({

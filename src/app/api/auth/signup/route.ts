@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
     if (!name || !email || !password)
       return Err.badRequest('Name, email and password are required')
 
-    if (typeof password !== 'string' || password.length < 6)
-      return Err.badRequest('Password must be at least 6 characters')
+    if (typeof password !== 'string' || password.length < 8)
+      return Err.badRequest('Password must be at least 8 characters')
 
     const isAdmin = role === 'ADMIN'
 
@@ -58,9 +58,8 @@ export async function POST(req: NextRequest) {
       const invitation = await prisma.invitation.findUnique({
         where: { token: String(invitationToken) },
       })
-      if (!invitation) return Err.notFound('Invalid invitation token')
-      if (invitation.status !== 'PENDING') return Err.gone('This invitation has already been used or expired')
-      if (invitation.expiresAt < new Date())  return Err.gone('This invitation has expired')
+      if (!invitation || invitation.status !== 'PENDING' || invitation.expiresAt < new Date())
+        return Err.notFound('Invalid or expired invitation token')
 
       const hashed = await bcrypt.hash(String(password), 10)
       const result = await prisma.$transaction(async tx => {

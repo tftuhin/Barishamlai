@@ -13,6 +13,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const unit = await prisma.unit.findUnique({ where: { id: params.id } })
     if (!unit) return Err.notFound('Unit not found')
 
+    // Enforce building isolation for all roles
+    if (unit.buildingId !== session.user.buildingId) return Err.forbidden()
+
     if (role === 'OWNER' && unit.ownerId !== session.user.id) return Err.forbidden()
 
     const body = await req.json() as Record<string, unknown>
@@ -52,10 +55,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
-  const [, e] = await requireAdmin()
+  const [session, e] = await requireAdmin()
   if (e) return e
 
   try {
+    const unit = await prisma.unit.findUnique({ where: { id: params.id }, select: { buildingId: true } })
+    if (!unit) return Err.notFound('Unit not found')
+    if (unit.buildingId !== session.user.buildingId) return Err.forbidden()
+
     await prisma.$transaction([
       // Remove child records before removing the unit
       prisma.unitOpeningBalance.deleteMany({ where: { unitId: params.id } }),

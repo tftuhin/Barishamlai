@@ -23,6 +23,18 @@ export async function GET(
 
   if (!receipt) return NextResponse.json({ error: 'Receipt not found' }, { status: 404 })
 
+  // Enforce building isolation: admin must own this receipt's building;
+  // tenants/owners can only access their own receipts.
+  const role = session.user.role
+  if (role === 'ADMIN' || role === 'PRESIDENT' || role === 'SECRETARY') {
+    if (receipt.unit?.buildingId !== session.user.buildingId)
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  } else {
+    // Tenants/owners can only view receipts addressed to them
+    if (receipt.recipientId !== session.user.id)
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const buildingName = process.env.NEXT_PUBLIC_BUILDING_NAME || 'Building Management'
   const r = receipt
   const issueDate = new Date(r.createdAt).toLocaleDateString('en-BD', { day: '2-digit', month: 'long', year: 'numeric' })
