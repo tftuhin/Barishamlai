@@ -23,6 +23,10 @@ const notoBengali = Noto_Sans_Bengali({
 export const metadata: Metadata = {
   title: 'বাড়ি সামলাই — ভবন ব্যবস্থাপনা সিস্টেম',
   description: 'আপনার ভবন, সামলানো হয়েছে। বিল, খরচ, রসিদ এবং বাসিন্দাদের যোগাযোগ — এক প্ল্যাটফর্মে।',
+  icons: {
+    icon: '/logo.webp',
+    apple: '/logo.webp',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
