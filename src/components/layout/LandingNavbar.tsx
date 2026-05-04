@@ -6,6 +6,8 @@ import { useLang, LangToggle } from '@/components/layout/LanguageContext'
 import { ThemeToggle } from '@/components/layout/ThemeContext'
 import { BariShamlaiMark } from '@/components/ui/BariShamlaiLogo'
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? ''
+
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number]
 
 function useWindowWidth() {
@@ -87,14 +89,14 @@ export function LandingNavbar({ staticPage = false }: { staticPage?: boolean }) 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <LangToggle />
             <ThemeToggle />
-            <Link href="/login"
+            <Link href={`${APP_URL}/login`}
               style={{ fontSize: 14, fontWeight: 600, color: 'var(--land-subtle)', textDecoration: 'none', transition: 'color 0.15s', fontFamily: bn ? "var(--font-bn)" : 'inherit' }}
               onMouseEnter={e => ((e.target as HTMLElement).style.color = 'var(--land-white)')}
               onMouseLeave={e => ((e.target as HTMLElement).style.color = 'var(--land-subtle)')}>
               {t('landSignIn')}
             </Link>
             <m.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Link href="/signup" style={{
+              <Link href={`${APP_URL}/signup`} style={{
                 padding: '9px 20px', borderRadius: 10, background: 'linear-gradient(135deg, #1D9E75, #085041)',
                 color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none',
                 boxShadow: '0 4px 16px rgba(29,158,117,0.35)',
@@ -110,7 +112,7 @@ export function LandingNavbar({ staticPage = false }: { staticPage?: boolean }) 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <LangToggle />
             <ThemeToggle />
-            <Link href="/signup" style={{
+            <Link href={`${APP_URL}/signup`} style={{
               padding: '8px 14px', borderRadius: 10, background: 'linear-gradient(135deg, #1D9E75, #085041)',
               color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none',
               whiteSpace: 'nowrap', flexShrink: 0,
@@ -139,7 +141,7 @@ export function LandingNavbar({ staticPage = false }: { staticPage?: boolean }) 
                   {l.label}
                 </a>
               ))}
-              <Link href="/login" onClick={() => setMenuOpen(false)}
+              <Link href={`${APP_URL}/login`} onClick={() => setMenuOpen(false)}
                 style={{ fontSize: 15, color: 'var(--land-subtle)', textDecoration: 'none', fontWeight: 500, padding: '10px 0', marginTop: 4, fontFamily: bn ? "var(--font-bn)" : 'inherit' }}>
                 {t('landSignIn')}
               </Link>

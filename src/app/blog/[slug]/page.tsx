@@ -6,6 +6,8 @@ import { useLang } from '@/components/layout/LanguageContext'
 import { getPost } from '../posts'
 import type { Lang } from '@/lib/i18n'
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? ''
+
 function formatDate(dateStr: string, lang: Lang) {
   const date = new Date(dateStr)
   if (lang === 'bn') {
@@ -309,7 +311,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               }}>
                 {bn ? 'হাজারো বাড়িওয়ালা ইতিমধ্যে বাড়ি সামলাই ব্যবহার করছেন।' : 'Join thousands of property managers across Bangladesh.'}
               </p>
-              <Link href="/signup" style={{
+              <Link href={`${APP_URL}/signup`} style={{
                 display: 'inline-block', padding: '10px 24px', borderRadius: 10,
                 background: 'linear-gradient(135deg, #1D9E75, #085041)',
                 color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none',

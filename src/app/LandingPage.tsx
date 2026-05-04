@@ -35,6 +35,8 @@ const C = {
   subtle:  'var(--land-subtle)',
   white:   'var(--land-white)',
 }
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? ''
+
 const ease = [0.22, 1, 0.36, 1] as [number,number,number,number]
 const fadeUp  = { hidden: { opacity: 0, y: 28 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease } } }
 const stagger = { visible: { transition: { staggerChildren: 0.09 } } }
@@ -254,7 +256,7 @@ function Hero() {
           <m.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85, duration: 0.4 }}
             style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 36 }}>
             <m.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} style={{ width: isMobile ? '100%' : 'auto' }}>
-              <Link href="/signup" style={{
+              <Link href={`${APP_URL}/signup`} style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 padding: '14px 28px', borderRadius: 12, width: isMobile ? '100%' : 'auto',
                 background: 'linear-gradient(135deg, #1D9E75 0%, #085041 100%)',
@@ -548,7 +550,7 @@ function Pricing() {
             </div>
           </div>
           <m.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} style={{ flexShrink: 0 }}>
-            <Link href="/signup" style={{
+            <Link href={`${APP_URL}/signup`} style={{
               display: 'inline-block', padding: '12px 28px', borderRadius: 12,
               border: `1.5px solid rgba(255,255,255,0.15)`, color: C.white,
               fontWeight: 700, fontSize: 14, textDecoration: 'none',
@@ -610,7 +612,7 @@ function Pricing() {
                 ))}
               </div>
               <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                <Link href="/signup" style={{
+                <Link href={`${APP_URL}/signup`} style={{
                   display: 'block', textAlign: 'center', padding: '12px', borderRadius: 12,
                   background: (plan as any).popular ? `linear-gradient(135deg, ${plan.color}, ${C.brand})` : 'rgba(255,255,255,0.07)',
                   border: (plan as any).popular ? 'none' : `1px solid ${C.border}`,
@@ -635,7 +637,7 @@ function Pricing() {
           {!isMobile && <div style={{ width: 1, height: 18, background: C.border }} />}
           <span style={{ fontSize: 13, color: C.muted, fontFamily: bn ? "var(--font-bn)" : 'inherit' }}>{t('landPremiumNote')}</span>
           <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} style={{ marginLeft: isMobile ? 0 : 'auto' }}>
-            <Link href="/signup" style={{ fontSize: 13, fontWeight: 700, color: C.brand, textDecoration: 'none', fontFamily: bn ? "var(--font-bn)" : 'inherit' }}>
+            <Link href={`${APP_URL}/signup`} style={{ fontSize: 13, fontWeight: 700, color: C.brand, textDecoration: 'none', fontFamily: bn ? "var(--font-bn)" : 'inherit' }}>
               {t('landUpgradeLater')}
             </Link>
           </m.div>
@@ -770,7 +772,7 @@ function FinalCTA() {
             </p>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
               <m.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-                <Link href="/signup" style={{
+                <Link href={`${APP_URL}/signup`} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8, padding: '15px 32px', borderRadius: 12,
                   background: 'linear-gradient(135deg, #1D9E75, #085041)',
                   color: '#fff', fontWeight: 700, fontSize: 16, textDecoration: 'none',
@@ -782,7 +784,7 @@ function FinalCTA() {
                 </Link>
               </m.div>
               <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                <Link href="/login" style={{
+                <Link href={`${APP_URL}/login`} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8, padding: '15px 28px', borderRadius: 12,
                   border: '1px solid rgba(255,255,255,0.12)', color: C.subtle, fontWeight: 600, fontSize: 15, textDecoration: 'none',
                   background: 'rgba(255,255,255,0.04)',
