@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
-import { Inter, Noto_Sans_Bengali } from 'next/font/google'
+import { Inter, Noto_Sans_Bengali, Fraunces } from 'next/font/google'
 import { Suspense } from 'react'
 import './globals.css'
+import './landing.css'
 import { LanguageProvider } from '@/components/layout/LanguageContext'
 import { ThemeProvider } from '@/components/layout/ThemeContext'
 import { PostHogProvider } from '@/components/layout/PostHogProvider'
@@ -20,6 +21,14 @@ const notoBengali = Noto_Sans_Bengali({
   variable: '--font-noto-bn',
 })
 
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  style: ['italic'],
+  weight: ['400', '500'],
+  display: 'swap',
+  variable: '--font-fraunces',
+})
+
 export const metadata: Metadata = {
   title: 'বাড়ি সামলাই — ভবন ব্যবস্থাপনা সিস্টেম',
   description: 'আপনার ভবন, সামলানো হয়েছে। বিল, খরচ, রসিদ এবং বাসিন্দাদের যোগাযোগ — এক প্ল্যাটফর্মে।',
@@ -31,7 +40,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="bn" className={`${inter.variable} ${notoBengali.variable}`}>
+    <html lang="bn" className={`${inter.variable} ${notoBengali.variable} ${fraunces.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('bs_theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}` }} />
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-4F5H83BZ8G" />
