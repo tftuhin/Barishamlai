@@ -6,12 +6,12 @@ import { LandingFooter } from '@/components/layout/LandingFooter'
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <LazyMotion features={domAnimation}>
-      <div style={{ background: 'var(--land-bg)', minHeight: '100vh', color: 'var(--land-text)', fontFamily: 'var(--font-body)', display: 'flex', flexDirection: 'column' }}>
-        <LandingNavbar staticPage />
-        <main style={{ flex: 1, paddingTop: 64 /* offset fixed navbar */ }}>
+      <div style={{ background: 'var(--bg, var(--surface))', minHeight: '100vh', color: 'var(--ink, var(--text-primary))', fontFamily: 'var(--sans, var(--font-body))', display: 'flex', flexDirection: 'column' }}>
+        <LandingNavbar />
+        <main style={{ flex: 1, paddingTop: 72 }}>
           {children}
         </main>
-        <LandingFooter staticPage />
+        <LandingFooter />
       </div>
     </LazyMotion>
   )
