@@ -68,6 +68,17 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Allow redirects to both app.barishamlai.com and barishamlai.com
+      if (url.startsWith('https://app.barishamlai.com') || url.startsWith('https://barishamlai.com')) {
+        return url
+      }
+      // Allow redirects to relative paths
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`
+      }
+      return baseUrl
+    },
     async jwt({ token, user, trigger, session }) {
       if (user) {
         // user is the object returned from authorize() — cast via unknown is safe here
