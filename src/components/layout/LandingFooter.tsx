@@ -32,19 +32,19 @@ export function LandingFooter() {
           <ul>
             <li><a href={`${APP_URL}/signup`}>Sign up</a></li>
             <li><a href={`${APP_URL}/login`}>Sign in</a></li>
-            <li><Link href="/about">About</Link></li>
-            <li><Link href="/contact">Contact</Link></li>
-            <li><Link href="/blog">Blog</Link></li>
+            <li><Link href="/about" prefetch={false}>About</Link></li>
+            <li><Link href="/contact" prefetch={false}>Contact</Link></li>
+            <li><Link href="/blog" prefetch={false}>Blog</Link></li>
           </ul>
         </div>
         <div className="footer-col">
           <h4>Legal</h4>
           <ul>
-            <li><Link href="/privacy">Privacy</Link></li>
-            <li><Link href="/terms">Terms</Link></li>
-            <li><Link href="/refund">Refund</Link></li>
-            <li><Link href="/data-security">Data security</Link></li>
-            <li><Link href="/ad-policy">Ad policy</Link></li>
+            <li><Link href="/privacy" prefetch={false}>Privacy</Link></li>
+            <li><Link href="/terms" prefetch={false}>Terms</Link></li>
+            <li><Link href="/refund" prefetch={false}>Refund</Link></li>
+            <li><Link href="/data-security" prefetch={false}>Data security</Link></li>
+            <li><Link href="/ad-policy" prefetch={false}>Ad policy</Link></li>
           </ul>
         </div>
       </div>

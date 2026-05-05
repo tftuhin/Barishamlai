@@ -11,7 +11,7 @@ export function LandingNavbar() {
 
   return (
     <nav className="nav">
-      <Link href="/" className="nav-logo">
+      <Link href="/" className="nav-logo" prefetch={false}>
         <BariShamlaiMark size={22} />
         <span>{lang === 'bn' ? 'বাড়ি সামলাই' : 'Bari Shamlai'}</span>
       </Link>
