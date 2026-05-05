@@ -1,9 +1,9 @@
 'use client'
-import Link from 'next/link'
 import { BariShamlaiMark } from '@/components/ui/BariShamlaiLogo'
 import { useLang } from '@/components/layout/LanguageContext'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? ''
+const MAIN_URL = process.env.NEXT_PUBLIC_MAIN_URL ?? ''
 
 export function LandingFooter() {
   const { lang } = useLang()
@@ -32,19 +32,19 @@ export function LandingFooter() {
           <ul>
             <li><a href={`${APP_URL}/signup`}>Sign up</a></li>
             <li><a href={`${APP_URL}/login`}>Sign in</a></li>
-            <li><Link href="/about" prefetch={false}>About</Link></li>
-            <li><Link href="/contact" prefetch={false}>Contact</Link></li>
-            <li><Link href="/blog" prefetch={false}>Blog</Link></li>
+            <li><a href={`${MAIN_URL}/about`}>About</a></li>
+            <li><a href={`${MAIN_URL}/contact`}>Contact</a></li>
+            <li><a href={`${MAIN_URL}/blog`}>Blog</a></li>
           </ul>
         </div>
         <div className="footer-col">
           <h4>Legal</h4>
           <ul>
-            <li><Link href="/privacy" prefetch={false}>Privacy</Link></li>
-            <li><Link href="/terms" prefetch={false}>Terms</Link></li>
-            <li><Link href="/refund" prefetch={false}>Refund</Link></li>
-            <li><Link href="/data-security" prefetch={false}>Data security</Link></li>
-            <li><Link href="/ad-policy" prefetch={false}>Ad policy</Link></li>
+            <li><a href={`${MAIN_URL}/privacy`}>Privacy</a></li>
+            <li><a href={`${MAIN_URL}/terms`}>Terms</a></li>
+            <li><a href={`${MAIN_URL}/refund`}>Refund</a></li>
+            <li><a href={`${MAIN_URL}/data-security`}>Data security</a></li>
+            <li><a href={`${MAIN_URL}/ad-policy`}>Ad policy</a></li>
           </ul>
         </div>
       </div>

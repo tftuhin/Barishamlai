@@ -5,16 +5,17 @@ import { ThemeToggle } from '@/components/layout/ThemeContext'
 import { BariShamlaiMark } from '@/components/ui/BariShamlaiLogo'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? ''
+const MAIN_URL = process.env.NEXT_PUBLIC_MAIN_URL ?? ''
 
 export function LandingNavbar() {
   const { t, lang } = useLang()
 
   return (
     <nav className="nav">
-      <Link href="/" className="nav-logo" prefetch={false}>
+      <a href={`${MAIN_URL}/`} className="nav-logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <BariShamlaiMark size={22} />
         <span>{lang === 'bn' ? 'বাড়ি সামলাই' : 'Bari Shamlai'}</span>
-      </Link>
+      </a>
       <div className="nav-links">
         <a href="#features">{t('landNavFeatures')}</a>
         <a href="#how">{t('landNavHowItWorks')}</a>
