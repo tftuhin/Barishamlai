@@ -1215,3 +1215,84 @@
   .lp .btn { height: 40px; padding: 0 16px; font-size: 13px; }
   main { padding-top: 0 !important; }
 }
+
+/* ── Nav controls (language, theme, login, CTA) — top right ────── */
+.lp .nav-controls {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 99;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp .nav-controls-login {
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-weight: 500;
+  font-size: 14px;
+  transition: background .2s;
+}
+
+.lp .nav-controls-login:hover {
+  background: color-mix(in oklch, var(--ink) 6%, transparent);
+  color: var(--ink);
+}
+
+.lp .nav-controls-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 500;
+  font-size: 14px;
+  transition: transform .2s, box-shadow .2s;
+}
+
+.lp .nav-controls-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px color-mix(in oklch, var(--ink) 30%, transparent);
+}
+
+.lp .nav-controls-cta .arr {
+  transition: transform .2s;
+}
+
+.lp .nav-controls-cta:hover .arr {
+  transform: translateX(2px);
+}
+
+@media (max-width: 800px) {
+  .lp .nav-controls {
+    top: 12px;
+    right: 12px;
+    gap: 4px;
+  }
+  .lp .nav-controls-login {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  .lp .nav-controls-cta {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lp .nav-controls {
+    flex-wrap: wrap;
+    width: calc(100% - 24px);
+    right: 12px;
+  }
+  .lp .nav-controls-cta {
+    width: 100%;
+    justify-content: center;
+  }
+}
