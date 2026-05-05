@@ -42,8 +42,9 @@ export default withAuth(
     const token    = req.nextauth.token
     const hostType = getHostType(req)
 
-    // ── Subdomain routing (production only, skip localhost) ──────────────────
-    if (hostType !== 'local') {
+    // ── Subdomain routing (only when ENABLE_SUBDOMAIN_ROUTING=true) ─────────
+    // Requires app.barishamlai.com to be configured as a Vercel custom domain
+    if (process.env.ENABLE_SUBDOMAIN_ROUTING === 'true' && hostType !== 'local') {
       if (hostType === 'main' && isAppOnlyPath(pathname)) {
         const dest = `https://${APP_HOST}${pathname}${req.nextUrl.search}`
         return NextResponse.redirect(dest, 301)
