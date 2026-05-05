@@ -1186,7 +1186,7 @@
 
 /* ── Mobile responsive overrides ─────────────────────────────────── */
 @media (max-width: 640px) {
-  .lp .wrap { padding: 0 16px; }
+  .lp .wrap { padding: 0 20px; }
   .lp .nav { padding: 6px 6px 6px 12px; font-size: 13px; top: 12px; }
   .lp .nav-cta { padding: 6px 12px; font-size: 13px; }
   .lp h1 { font-size: clamp(28px, 6vw, 44px); }
@@ -1194,7 +1194,7 @@
   .lp h3 { font-size: clamp(16px, 1.8vw, 20px); }
   .lp .btn { height: 44px; padding: 0 18px; font-size: 14px; }
   .lp section.section { padding: 50px 0 !important; }
-  .lp .hero { padding: 100px 0 60px; gap: 24px; }
+  .lp .hero { padding: 60px 0 50px; gap: 24px; }
   .lp .hero-sub { font-size: clamp(14px, 1.1vw, 16px); margin: 16px 0 24px; }
   .lp .hero-cta { flex-direction: column; width: 100%; }
   .lp .hero-cta .btn { width: 100%; }
@@ -1208,12 +1208,13 @@
 }
 
 @media (max-width: 480px) {
-  .lp .wrap { padding: 0 12px; }
+  .lp .wrap { padding: 0 16px; }
   .lp .nav-links { display: none !important; }
   .lp .nav-controls { display: none !important; }
   .lp h1 { font-size: clamp(24px, 5.5vw, 28px); }
   .lp h2 { font-size: clamp(18px, 3.5vw, 24px); }
   .lp .btn { height: 40px; padding: 0 16px; font-size: 13px; }
+  .lp .hero { padding: 50px 0 40px; }
 }
 
 /* ── Nav controls (language, theme, login, CTA) — top right ────── */
@@ -1378,9 +1379,6 @@
 }
 
 @media (max-width: 640px) {
-  .lp .hero {
-    padding: 80px 0 40px;
-  }
   .lp .hero-copy {
     text-align: left;
   }
