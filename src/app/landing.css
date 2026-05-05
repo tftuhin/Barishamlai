@@ -1305,11 +1305,40 @@
   border: none;
   cursor: pointer;
   color: var(--ink);
-  padding: 8px;
-  margin-left: auto;
+  padding: 6px;
+  margin-right: auto;
 }
 
 @media (max-width: 768px) {
+  .lp .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+    background: var(--bg-elev);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    border-bottom: 1px solid var(--line);
+    box-shadow: none;
+    padding: 12px 16px;
+    transform: none;
+    gap: 0;
+  }
+  .lp .nav-logo {
+    margin-left: auto;
+    gap: 6px;
+  }
+  .lp .nav-logo .mark {
+    width: 28px;
+    height: 28px;
+  }
+  .lp .nav-logo span {
+    display: none;
+  }
   .lp .nav-links { display: none !important; }
   .lp .nav-mobile-toggle { display: block; }
   .lp .nav-controls { display: none !important; }
@@ -1318,7 +1347,7 @@
 /* ── Mobile menu ─────────────────────────────────────────────────── */
 .lp .nav-mobile-menu {
   position: fixed;
-  top: 72px;
+  top: 52px;
   left: 0;
   right: 0;
   background: var(--bg-elev);
