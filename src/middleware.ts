@@ -43,6 +43,13 @@ export default withAuth(
     const { pathname } = req.nextUrl
     const token    = req.nextauth.token
     const hostType = getHostType(req)
+    const host = (req.headers.get('host') ?? '').split(':')[0].toLowerCase()
+
+    // Redirect www to non-www
+    if (host === `www.${MAIN_HOST}`) {
+      const dest = `https://${MAIN_HOST}${pathname}${req.nextUrl.search}`
+      return NextResponse.redirect(dest, 301)
+    }
 
     // ── Subdomain routing (production only, skip localhost) ──────────────────
     if (hostType !== 'local') {
