@@ -23,6 +23,7 @@ export function LandingNavbar() {
           <a href="#features">{t('landNavFeatures')}</a>
           <a href="#how">{t('landNavHowItWorks')}</a>
           <a href="#pricing">{t('landNavPricing')}</a>
+          <a href="/blog">Blog</a>
           <a href="#faq">{t('landNavFAQ')}</a>
         </div>
 
@@ -60,6 +61,7 @@ export function LandingNavbar() {
             <a href="#features" onClick={() => setMobileMenuOpen(false)}>{t('landNavFeatures')}</a>
             <a href="#how" onClick={() => setMobileMenuOpen(false)}>{t('landNavHowItWorks')}</a>
             <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>{t('landNavPricing')}</a>
+            <a href="/blog" onClick={() => setMobileMenuOpen(false)}>Blog</a>
             <a href="#faq" onClick={() => setMobileMenuOpen(false)}>{t('landNavFAQ')}</a>
             <div style={{ borderTop: '1px solid var(--line)', paddingTop: '12px', marginTop: '12px' }}>
               <a href={`${APP_URL}/login`} onClick={() => setMobileMenuOpen(false)} className="nav-mobile-login">
