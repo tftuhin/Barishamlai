@@ -1201,7 +1201,10 @@
   .lp .final-cta { padding: 50px 24px; }
   .lp .final-cta h2 { font-size: clamp(28px, 5vw, 38px); }
   .lp .final-cta p { font-size: 15px; margin: 16px auto 24px; }
-  .lp .kpi-grid { grid-template-columns: 1fr !important; gap: 16px; }
+  .lp .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px; }
+  .lp .kpi { gap: 4px; }
+  .lp .kpi .num { font-size: clamp(24px, 3vw, 36px); }
+  .lp .kpi .lbl { font-size: 12px; }
   .lp .card { padding: 16px; }
   .lp .footer-grid { gap: 24px; }
   .lp .footer-bottom { justify-content: center; text-align: center; }
