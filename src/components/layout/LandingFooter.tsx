@@ -21,10 +21,10 @@ export function LandingFooter() {
         <div className="footer-col">
           <h4>Product</h4>
           <ul>
-            <li><a href="#features">Features</a></li>
-            <li><a href="#pricing">Pricing</a></li>
-            <li><a href="#how">How it works</a></li>
-            <li><a href="#faq">FAQ</a></li>
+            <li><a href={`${MAIN_URL}/#features`}>Features</a></li>
+            <li><a href={`${MAIN_URL}/#pricing`}>Pricing</a></li>
+            <li><a href={`${MAIN_URL}/#how`}>How it works</a></li>
+            <li><a href={`${MAIN_URL}/#faq`}>FAQ</a></li>
           </ul>
         </div>
         <div className="footer-col">
