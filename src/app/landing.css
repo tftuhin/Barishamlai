@@ -722,7 +722,7 @@
 .lp .kpi .lbl { color: var(--muted); font-size: 13px; max-width: 200px; }
 
 /* ── Section header ──────────────────────────────────────────────────── */
-.lp .sec-head { max-width: 760px; margin-bottom: 40px; }
+.lp .sec-head { max-width: 760px; margin-bottom: 40px; padding: 0 8px; }
 .lp .sec-head h2 { margin-top: 12px; }
 .lp .sec-head .sub { margin-top: 12px; color: var(--muted); font-size: 17px; max-width: 600px; }
 
@@ -1186,7 +1186,7 @@
 
 /* ── Mobile responsive overrides ─────────────────────────────────── */
 @media (max-width: 640px) {
-  .lp .wrap { padding: 0 20px; }
+  .lp .wrap { padding: 0 24px; }
   .lp .nav { padding: 6px 6px 6px 12px; font-size: 13px; top: 12px; }
   .lp .nav-cta { padding: 6px 12px; font-size: 13px; }
   .lp h1 { font-size: clamp(28px, 6vw, 44px); }
@@ -1195,14 +1195,14 @@
   .lp .btn { height: 44px; padding: 0 18px; font-size: 14px; }
   .lp section.section { padding: 40px 0 !important; }
   .lp .hero { padding: 60px 0 40px; gap: 16px; }
-  .lp .hero-sub { font-size: clamp(14px, 1.1vw, 16px); margin: 16px 0 24px; }
-  .lp .hero-cta { flex-direction: column; width: 100%; }
-  .lp .hero-cta .btn { width: 100%; }
+  .lp .hero-sub { font-size: clamp(14px, 1.1vw, 16px); margin: 16px 0 24px; padding: 0 4px; }
+  .lp .hero h1 { padding: 0 4px; }
+  .lp .hero-eyebrow { padding: 0 4px; }
   .lp .final-cta { padding: 50px 24px; }
   .lp .final-cta h2 { font-size: clamp(28px, 5vw, 38px); }
   .lp .final-cta p { font-size: 15px; margin: 16px auto 24px; }
   .lp .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px; }
-  .lp .kpi { gap: 4px; }
+  .lp .kpi { gap: 4px; text-align: center; }
   .lp .kpi .num { font-size: clamp(24px, 3vw, 36px); }
   .lp .kpi .lbl { font-size: 12px; }
   .lp .card { padding: 16px; }
@@ -1309,7 +1309,7 @@
   cursor: pointer;
   color: var(--ink);
   padding: 6px;
-  margin-right: auto;
+  margin-left: auto;
 }
 
 @media (max-width: 768px) {
@@ -1414,20 +1414,16 @@
     text-align: left;
   }
   .lp .hero-stage {
-    display: block !important;
-    height: 320px;
-    padding: 20px 0 0;
+    display: none !important;
   }
-  .lp .device-stage {
+  .lp .hero-cta {
+    flex-direction: row;
     width: 100%;
-    max-width: 280px;
-    margin: 30px auto 0;
-    height: auto;
+    gap: 8px;
   }
-  .lp .dev-laptop {
-    display: none !important;
-  }
-  .lp .dev-tablet {
-    display: none !important;
+  .lp .hero-cta .btn {
+    flex: 1;
+    font-size: 13px;
+    height: 40px;
   }
 }
