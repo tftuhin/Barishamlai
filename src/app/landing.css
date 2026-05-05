@@ -1209,11 +1209,11 @@
 
 @media (max-width: 480px) {
   .lp .wrap { padding: 0 12px; }
-  .lp .nav { display: none; }
+  .lp .nav-links { display: none !important; }
+  .lp .nav-controls { display: none !important; }
   .lp h1 { font-size: clamp(24px, 5.5vw, 28px); }
   .lp h2 { font-size: clamp(18px, 3.5vw, 24px); }
   .lp .btn { height: 40px; padding: 0 16px; font-size: 13px; }
-  main { padding-top: 0 !important; }
 }
 
 /* ── Nav controls (language, theme, login, CTA) — top right ────── */
