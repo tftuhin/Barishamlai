@@ -50,7 +50,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }) : null,
     bId ? prisma.buildingConfig.findUnique({
       where:  { id: bId },
-      select: { featureRent: true, featureServiceCharge: true, featureGas: true, onboardingComplete: true },
+      select: { featureRent: true, featureServiceCharge: true, featureGas: true, featureWater: true, featureGarbage: true, featureCommunitySecurity: true, onboardingComplete: true },
     }) : null,
     // Check if admin has an approved multi-property request
     userId ? prisma.multiPropertyRequest.findFirst({
@@ -107,9 +107,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     featureRent:              config?.featureRent              ?? true,
     featureServiceCharge:     config?.featureServiceCharge     ?? true,
     featureGas:               config?.featureGas               ?? true,
-    featureWater:             (config as any)?.featureWater             ?? false,
-    featureGarbage:           (config as any)?.featureGarbage           ?? false,
-    featureCommunitySecurity: (config as any)?.featureCommunitySecurity ?? false,
+    featureWater:             config?.featureWater             ?? false,
+    featureGarbage:           config?.featureGarbage           ?? false,
+    featureCommunitySecurity: config?.featureCommunitySecurity ?? false,
   }
 
   return (

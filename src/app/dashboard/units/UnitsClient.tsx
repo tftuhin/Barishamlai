@@ -35,8 +35,6 @@ const EMPTY_DUE: OpeningDue = { type: 'RENT', month: now.getMonth() + 1, year: n
 const EMPTY_FORM = { number: '', floor: '1', area: '', monthlyRent: '', ownerId: '', tenantId: '' }
 
 const EMPTY_EDIT = {
-  status: 'OCCUPIED' as 'OCCUPIED' | 'VACANT',
-  isOwnerOccupied: false,
   occupancyType: 'TENANT_OCCUPIED' as OccupancyType,
   serviceChargeType: 'STANDARD' as ServiceChargeType,
   skipRentModule: false,
@@ -95,8 +93,6 @@ export function UnitsClient({
   function openEdit(unit: Unit) {
     setEditUnit(unit)
     setEditForm({
-      status: unit.status,
-      isOwnerOccupied: unit.isOwnerOccupied,
       occupancyType: unit.occupancyType ?? 'TENANT_OCCUPIED',
       serviceChargeType: unit.serviceChargeType ?? 'STANDARD',
       skipRentModule: unit.skipRentModule ?? false,
@@ -166,16 +162,18 @@ export function UnitsClient({
       tenantEmail:       editForm.tenantEmail        || null,
     }
     if (role === 'ADMIN') {
-      payload.status             = editForm.status
-      payload.isOwnerOccupied    = editForm.isOwnerOccupied
+      const isOwner = editForm.occupancyType === 'OWNER_OCCUPIED'
+      const isVacant = editForm.occupancyType === 'VACANT' || editForm.occupancyType === 'MERGED'
       payload.occupancyType      = editForm.occupancyType
+      payload.isOwnerOccupied    = isOwner
+      payload.status             = isVacant ? 'VACANT' : 'OCCUPIED'
       payload.serviceChargeType  = editForm.serviceChargeType
       payload.skipRentModule     = editForm.skipRentModule
       payload.monthlyRent        = Number(editForm.monthlyRent)
       payload.floor              = Number(editForm.floor)
       payload.area               = editForm.area ? Number(editForm.area) : null
       payload.ownerId            = editForm.ownerId  || null
-      payload.tenantId           = editForm.isOwnerOccupied ? null : (editForm.tenantId || null)
+      payload.tenantId           = isOwner ? null : (editForm.tenantId || null)
       payload.customServiceCharge = editForm.customServiceCharge !== '' ? Number(editForm.customServiceCharge) : null
       payload.tenantMoveInDate   = editForm.tenantMoveInDate || null
     }
@@ -352,38 +350,42 @@ export function UnitsClient({
                 </div>
               </div>
 
-              {/* Occupancy badge */}
-              <div style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                {unit.occupancyType === 'OWNER_OCCUPIED' && (
-                  <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#E1F5EE', color: '#0F6E56', border: '1px solid #9FE1CB' }}>Owner Occupied</span>
-                )}
-                {unit.occupancyType === 'VACANT' && (
-                  <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1' }}>Vacant</span>
-                )}
-                {unit.occupancyType === 'MERGED' && (
-                  <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#FEF9C3', color: '#A16207', border: '1px solid #FDE68A' }}>Merged</span>
-                )}
-                {unit.serviceChargeType === 'SPECIAL' && (
-                  <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#F5F3FF', color: '#7C3AED', border: '1px solid #DDD6FE' }}>Special SC</span>
-                )}
-                {unit.skipRentModule && (
-                  <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#FFF7ED', color: '#9A3412', border: '1px solid #FED7AA' }}>No Rent</span>
-                )}
-              </div>
+              {/* Occupancy / SC type badges */}
+              {(unit.occupancyType !== 'TENANT_OCCUPIED' || unit.serviceChargeType === 'SPECIAL') && (
+                <div style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {unit.occupancyType === 'OWNER_OCCUPIED' && (
+                    <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#E1F5EE', color: '#0F6E56', border: '1px solid #9FE1CB' }}>Owner Occupied</span>
+                  )}
+                  {unit.occupancyType === 'VACANT' && (
+                    <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1' }}>Vacant</span>
+                  )}
+                  {unit.occupancyType === 'MERGED' && (
+                    <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#FEF9C3', color: '#A16207', border: '1px solid #FDE68A' }}>Merged</span>
+                  )}
+                  {unit.serviceChargeType === 'SPECIAL' && (
+                    <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#F5F3FF', color: '#7C3AED', border: '1px solid #DDD6FE' }}>Special SC</span>
+                  )}
+                </div>
+              )}
 
               {/* Rent + meta */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Floor {unit.floor}{unit.area ? ` · ${unit.area} sqft` : ''}</span>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                  {unit.isOwnerOccupied
+                  {unit.occupancyType === 'OWNER_OCCUPIED'
                     ? <span style={{ fontSize: '12px', color: '#0F6E56', fontWeight: 500 }}>No rent (owner resident)</span>
-                    : <span style={{ fontWeight: 600, color: '#15803d', fontSize: '14px' }}>{formatCurrency(unit.monthlyRent)}<span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>/mo</span></span>
+                    : unit.occupancyType === 'VACANT' || unit.occupancyType === 'MERGED'
+                      ? <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>—</span>
+                      : <span style={{ fontWeight: 600, color: '#15803d', fontSize: '14px' }}>{formatCurrency(unit.monthlyRent)}<span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>/mo</span></span>
                   }
                   {unit.customServiceCharge != null && (
                     <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 7px', borderRadius: '10px', background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0' }}>
                       SC: ৳{unit.customServiceCharge}/mo (custom)
                     </span>
                   )}
+                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', ...(unit.skipRentModule ? { background: '#FFF7ED', color: '#9A3412', border: '1px solid #FED7AA' } : { background: '#DCFCE7', color: '#14532D', border: '1px solid #BBF7D0' }) }}>
+                    Rent: {unit.skipRentModule ? 'Skipped' : 'Active'}
+                  </span>
                 </div>
               </div>
 
@@ -579,28 +581,20 @@ export function UnitsClient({
               <>
                 {inputSection('Unit Settings')}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <FormField label="Status">
-                    <select value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value as 'OCCUPIED' | 'VACANT' })} style={selectStyle}>
-                      <option value="OCCUPIED">Occupied</option>
-                      <option value="VACANT">Vacant</option>
-                    </select>
-                  </FormField>
                   <FormField label="Monthly Rent (৳)">
                     <input type="number" value={editForm.monthlyRent} onChange={e => setEditForm({ ...editForm, monthlyRent: e.target.value })} style={inputStyle} />
                   </FormField>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <FormField label="Floor">
                     <input type="number" value={editForm.floor} onChange={e => setEditForm({ ...editForm, floor: e.target.value })} style={inputStyle} min="1" />
                   </FormField>
-                  <FormField label="Area (sqft)">
-                    <input type="number" value={editForm.area} onChange={e => setEditForm({ ...editForm, area: e.target.value })} style={inputStyle} placeholder="Optional" />
-                  </FormField>
                 </div>
+                <FormField label="Area (sqft)">
+                  <input type="number" value={editForm.area} onChange={e => setEditForm({ ...editForm, area: e.target.value })} style={inputStyle} placeholder="Optional" />
+                </FormField>
                 {/* Custom service charge */}
                 <div style={{ padding: '10px 14px', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #BBF7D0', marginBottom: '4px' }}>
                   <div style={{ fontSize: '12px', fontWeight: 600, color: '#166534', marginBottom: '4px' }}>Custom Service Charge Rate</div>
-                  <div style={{ fontSize: '11px', color: '#15803d', marginBottom: '8px' }}>Leave blank to use the building default (occupied / vacant rate). Set a value to override for this flat only.</div>
+                  <div style={{ fontSize: '11px', color: '#15803d', marginBottom: '8px' }}>Leave blank to use the building default. Set a value to override for this flat only.</div>
                   <FormField label="Custom Rate (৳/month) — optional">
                     <input type="number" value={editForm.customServiceCharge} onChange={e => setEditForm({ ...editForm, customServiceCharge: e.target.value })} style={inputStyle} placeholder="e.g. 1500 — leave blank for default" min="0" />
                   </FormField>
@@ -611,20 +605,6 @@ export function UnitsClient({
                     </button>
                   )}
                 </div>
-                {/* Owner-occupied toggle */}
-                <div style={{ padding: '10px 14px', background: '#E1F5EE', borderRadius: '10px', border: '1px solid #9FE1CB', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#0F6E56' }}>Owner is Resident</div>
-                    <div style={{ fontSize: '11px', color: '#a78bfa', marginTop: '1px' }}>No rent charged — owner lives in this flat</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setEditForm(f => ({ ...f, isOwnerOccupied: !f.isOwnerOccupied, tenantId: !f.isOwnerOccupied ? '' : f.tenantId }))}
-                    style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', background: editForm.isOwnerOccupied ? '#0F6E56' : '#C8D8D4', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0, padding: 0 }}
-                  >
-                    <span style={{ position: 'absolute', top: '3px', left: editForm.isOwnerOccupied ? '23px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-                  </button>
-                </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <FormField label="Owner Account">
@@ -634,9 +614,9 @@ export function UnitsClient({
                     </select>
                   </FormField>
                   <FormField label="Tenant Account">
-                    <select value={editForm.tenantId} onChange={e => setEditForm({ ...editForm, tenantId: e.target.value })} style={selectStyle} disabled={editForm.isOwnerOccupied}>
-                      <option value="">{editForm.isOwnerOccupied ? 'N/A — Owner Occupied' : 'No tenant'}</option>
-                      {!editForm.isOwnerOccupied && tenants.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    <select value={editForm.tenantId} onChange={e => setEditForm({ ...editForm, tenantId: e.target.value })} style={selectStyle} disabled={editForm.occupancyType === 'OWNER_OCCUPIED'}>
+                      <option value="">{editForm.occupancyType === 'OWNER_OCCUPIED' ? 'N/A — Owner Occupied' : 'No tenant'}</option>
+                      {editForm.occupancyType !== 'OWNER_OCCUPIED' && tenants.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                     </select>
                   </FormField>
                 </div>
