@@ -352,7 +352,7 @@ export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved, 
   const [showCreate, setShowCreate]   = useState(false)
   const { t, lang } = useLang()
 
-  const cfg = moduleConfig ?? { featureRent: true, featureServiceCharge: true, featureGas: true }
+  const cfg: ModuleConfig = moduleConfig ?? { featureRent: true, featureServiceCharge: true, featureGas: true, featureWater: false, featureGarbage: false, featureCommunitySecurity: false }
 
   const filtered = navItems
     .filter(i => i.roles.includes(user.role))
