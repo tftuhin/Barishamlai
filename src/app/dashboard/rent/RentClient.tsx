@@ -43,8 +43,10 @@ export function RentClient({ units, rentBills, featureRent, currentMonth, curren
     return rentBills.find(b => b.unitId === unitId && b.month === month && b.year === year) ?? null
   }
 
-  // Billable units (occupied, not owner-occupied, with monthlyRent > 0)
-  const billableUnits = units.filter(u => u.status === 'OCCUPIED' && !u.isOwnerOccupied && u.monthlyRent > 0)
+  // Billable units: tenant-occupied, not skipped, with rent > 0
+  const billableUnits = units.filter(u =>
+    u.occupancyType === 'TENANT_OCCUPIED' && !u.skipRentModule && u.monthlyRent > 0
+  )
 
   const totalCollected  = rentBills.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0)
   const totalOutstanding = rentBills.filter(b => b.status !== 'PAID').reduce((s, b) => s + b.amount, 0)
@@ -155,15 +157,26 @@ export function RentClient({ units, rentBills, featureRent, currentMonth, curren
               {units.map((unit, i) => {
                 // OWNER: can only pay their own unit's rent
                 const canPayThis = isAdmin || (role === 'OWNER' && unit.ownerId === userId)
-                const isRentable = unit.status === 'OCCUPIED' && !unit.isOwnerOccupied && unit.monthlyRent > 0
+                const isRentable = unit.occupancyType === 'TENANT_OCCUPIED' && !unit.skipRentModule && unit.monthlyRent > 0
+
+                const rentTag = unit.skipRentModule
+                  ? { label: 'Skipped', bg: '#FFF7ED', color: '#9A3412', border: '#FED7AA' }
+                  : isRentable
+                    ? { label: 'Active', bg: '#DCFCE7', color: '#14532D', border: '#BBF7D0' }
+                    : null
 
                 return (
                   <tr key={unit.id} style={{ background: i % 2 === 0 ? '#fff' : 'var(--surface-subtle)' }}>
                     <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600, color: 'var(--brand)', borderBottom: '1px solid var(--border)', position: 'sticky', left: 0, background: i % 2 === 0 ? '#fff' : 'var(--surface-subtle)', zIndex: 1, whiteSpace: 'nowrap' }}>
                       {unit.number}
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400 }}>Floor {unit.floor}</div>
-                      <div style={{ fontSize: 10, color: '#15803d', fontWeight: 500 }}>৳{unit.monthlyRent}/mo</div>
+                      {isRentable && <div style={{ fontSize: 10, color: '#15803d', fontWeight: 500 }}>৳{unit.monthlyRent}/mo</div>}
                       {unit.tenant && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{unit.tenant.name}</div>}
+                      {rentTag && (
+                        <span style={{ display: 'inline-block', marginTop: 3, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '1px 6px', borderRadius: 10, background: rentTag.bg, color: rentTag.color, border: `1px solid ${rentTag.border}` }}>
+                          {rentTag.label}
+                        </span>
+                      )}
                     </td>
                     {months.map(({ month, year }) => {
                       const bill = getBill(unit.id, month, year)
@@ -172,7 +185,7 @@ export function RentClient({ units, rentBills, featureRent, currentMonth, curren
                         return (
                           <td key={`${year}-${month}`} style={{ padding: 8, textAlign: 'center', borderBottom: '1px solid var(--border)' }}>
                             <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                              {unit.isOwnerOccupied ? 'owner' : unit.status === 'VACANT' ? 'vacant' : '—'}
+                              {unit.skipRentModule ? 'skipped' : unit.occupancyType === 'OWNER_OCCUPIED' ? 'owner' : unit.occupancyType === 'VACANT' ? 'vacant' : unit.occupancyType === 'MERGED' ? 'merged' : '—'}
                             </div>
                           </td>
                         )
