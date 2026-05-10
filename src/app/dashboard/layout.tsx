@@ -104,9 +104,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const moduleConfig = {
-    featureRent:          config?.featureRent          ?? true,
-    featureServiceCharge: config?.featureServiceCharge ?? true,
-    featureGas:           config?.featureGas           ?? true,
+    featureRent:              config?.featureRent              ?? true,
+    featureServiceCharge:     config?.featureServiceCharge     ?? true,
+    featureGas:               config?.featureGas               ?? true,
+    featureWater:             (config as any)?.featureWater             ?? false,
+    featureGarbage:           (config as any)?.featureGarbage           ?? false,
+    featureCommunitySecurity: (config as any)?.featureCommunitySecurity ?? false,
   }
 
   return (

@@ -7,18 +7,21 @@ import { formatDate, getInitials } from '@/lib/utils'
 type Config = {
   featureRent: boolean; featureElectricity: boolean; featureGas: boolean
   featureLift: boolean; featureSecurityGuard: boolean; featureGarbage: boolean
-  featureServiceCharge: boolean
+  featureServiceCharge: boolean; featureWater: boolean; featureCommunitySecurity: boolean
   serviceChargeOccupied: number; serviceChargeVacant: number; gasUnitRate: number
+  garbageRate: number; communitySecurityRate: number
 }
 
 const FEATURES: { key: keyof Config; label: string; desc: string }[] = [
-  { key: 'featureRent',          label: 'Rent',               desc: 'Monthly rent billing for tenant-occupied units' },
-  { key: 'featureServiceCharge', label: 'Service Charge',     desc: 'Maintenance fee per flat (occupied / vacant rates)' },
-  { key: 'featureElectricity',   label: 'Electricity',        desc: 'Common-area electricity bill distribution' },
-  { key: 'featureGas',           label: 'Gas',                desc: 'Gas bill based on meter units & monthly rate' },
-  { key: 'featureLift',          label: 'Lift',               desc: 'Lift maintenance charge' },
-  { key: 'featureSecurityGuard', label: 'Security Guard',     desc: 'Security guard salary distribution' },
-  { key: 'featureGarbage',       label: 'Garbage Collection', desc: 'Garbage collection fee' },
+  { key: 'featureServiceCharge',     label: 'Service Charge',      desc: 'Maintenance fee per flat (occupied / vacant rates)' },
+  { key: 'featureRent',              label: 'Rent',                desc: 'Monthly rent billing for tenant-occupied units' },
+  { key: 'featureGas',               label: 'Gas',                 desc: 'Gas bill based on meter units & monthly rate' },
+  { key: 'featureWater',             label: 'Water',               desc: 'WASA water bill divided equally among occupied flats' },
+  { key: 'featureGarbage',           label: 'Garbage Collection',  desc: 'Fixed monthly garbage fee per occupied flat' },
+  { key: 'featureCommunitySecurity', label: 'Community Security',  desc: 'Fixed monthly community security fee per occupied flat' },
+  { key: 'featureElectricity',       label: 'Electricity',         desc: 'Common-area electricity bill distribution' },
+  { key: 'featureLift',              label: 'Lift',                desc: 'Lift maintenance charge' },
+  { key: 'featureSecurityGuard',     label: 'Security Guard',      desc: 'Security guard salary distribution' },
 ]
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -82,7 +85,9 @@ export function SettingsClient({
   const defaultConfig: Config = {
     featureRent: true, featureElectricity: true, featureGas: true,
     featureLift: false, featureSecurityGuard: false, featureGarbage: false,
-    featureServiceCharge: true, serviceChargeOccupied: 0, serviceChargeVacant: 0, gasUnitRate: 0,
+    featureServiceCharge: true, featureWater: false, featureCommunitySecurity: false,
+    serviceChargeOccupied: 0, serviceChargeVacant: 0, gasUnitRate: 0,
+    garbageRate: 0, communitySecurityRate: 0,
   }
   const [config, setConfig] = useState<Config>(initialConfig ?? defaultConfig)
   const [configSaving, setConfigSaving] = useState(false)
@@ -398,6 +403,21 @@ export function SettingsClient({
             <div style={{ padding: '1.25rem 1.5rem', maxWidth: '280px' }}>
               <FormField label="Rate per unit (৳)">
                 <input type="number" min="0" step="0.01" value={config.gasUnitRate} onChange={e => setConfig({ ...config, gasUnitRate: Number(e.target.value) })} style={inputStyle} placeholder="e.g. 12.50" />
+              </FormField>
+            </div>
+          </Card>
+
+          <Card>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--brand)', margin: 0 }}>Fixed Monthly Rates</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0' }}>Per-flat monthly rates for Garbage Collection and Community Security modules.</p>
+            </div>
+            <div style={{ padding: '1.25rem 1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <FormField label="Garbage rate (৳/flat/month)">
+                <input type="number" min="0" value={(config as any).garbageRate ?? 0} onChange={e => setConfig({ ...config, garbageRate: Number(e.target.value) } as Config)} style={inputStyle} placeholder="e.g. 200" />
+              </FormField>
+              <FormField label="Community Security rate (৳/flat/month)">
+                <input type="number" min="0" value={(config as any).communitySecurityRate ?? 0} onChange={e => setConfig({ ...config, communitySecurityRate: Number(e.target.value) } as Config)} style={inputStyle} placeholder="e.g. 500" />
               </FormField>
             </div>
           </Card>

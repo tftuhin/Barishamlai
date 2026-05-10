@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { formatCurrency, getMonthName, getBillTypeLabel } from '@/lib/utils'
 import { Card, StatCard, Badge } from '@/components/ui'
 import { FloorMapClient } from './FloorMapClient'
+import { DashboardFundCards } from './DashboardFundCards'
 import Link from 'next/link'
 
 async function getDashboardData(role: string, userId: string, buildingId: string | null) {
@@ -14,7 +15,7 @@ async function getDashboardData(role: string, userId: string, buildingId: string
   const bId = buildingId ?? undefined
 
   if (role === 'ADMIN') {
-    const [totalUnits, occupiedCount, vacantCount, bills, expenses, recentMessages, pendingCount, overdueCount, unitsWithBills, fundBalances, scAllBills, gasAllBills, scAllExp, gasAllExp, scPrevBills, gasPrevBills, scPrevExp, gasPrevExp, scThisBills, gasThisBills, scThisExp, gasThisExp] = await Promise.all([
+    const [totalUnits, occupiedCount, vacantCount, bills, expenses, recentMessages, pendingCount, overdueCount, unitsWithBills, config] = await Promise.all([
       prisma.unit.count({ where: { buildingId: bId } }),
       prisma.unit.count({ where: { status: 'OCCUPIED', buildingId: bId } }),
       prisma.unit.count({ where: { status: 'VACANT', buildingId: bId } }),
@@ -32,19 +33,7 @@ async function getDashboardData(role: string, userId: string, buildingId: string
           tenant: { select: { name: true } },
         },
       }),
-      prisma.fundBalance.findMany({ where: { buildingId: bId } }),
-      prisma.bill.aggregate({ _sum: { amount: true }, where: { buildingId: bId, type: 'SERVICE_CHARGE', status: 'PAID' } }),
-      prisma.bill.aggregate({ _sum: { amount: true }, where: { buildingId: bId, type: 'GAS', status: 'PAID' } }),
-      prisma.expense.aggregate({ _sum: { amount: true }, where: { buildingId: bId, incomeSource: 'SERVICE_CHARGE' } }),
-      prisma.expense.aggregate({ _sum: { amount: true }, where: { buildingId: bId, incomeSource: 'GAS' } }),
-      prisma.bill.aggregate({ _sum: { amount: true }, where: { buildingId: bId, type: 'SERVICE_CHARGE', status: 'PAID', OR: [{ year: { lt: year } }, { year, month: { lt: month } }] } }),
-      prisma.bill.aggregate({ _sum: { amount: true }, where: { buildingId: bId, type: 'GAS', status: 'PAID', OR: [{ year: { lt: year } }, { year, month: { lt: month } }] } }),
-      prisma.expense.aggregate({ _sum: { amount: true }, where: { buildingId: bId, incomeSource: 'SERVICE_CHARGE', OR: [{ year: { lt: year } }, { year, month: { lt: month } }] } }),
-      prisma.expense.aggregate({ _sum: { amount: true }, where: { buildingId: bId, incomeSource: 'GAS', OR: [{ year: { lt: year } }, { year, month: { lt: month } }] } }),
-      prisma.bill.aggregate({ _sum: { amount: true }, where: { buildingId: bId, type: 'SERVICE_CHARGE', status: 'PAID', month, year } }),
-      prisma.bill.aggregate({ _sum: { amount: true }, where: { buildingId: bId, type: 'GAS', status: 'PAID', month, year } }),
-      prisma.expense.aggregate({ _sum: { amount: true }, where: { buildingId: bId, incomeSource: 'SERVICE_CHARGE', month, year } }),
-      prisma.expense.aggregate({ _sum: { amount: true }, where: { buildingId: bId, incomeSource: 'GAS', month, year } }),
+      prisma.buildingConfig.findUnique({ where: { id: bId ?? 'none' } }),
     ])
     const collected = bills.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0)
     const totalDue = bills.reduce((s, b) => s + b.amount, 0)
@@ -61,15 +50,15 @@ async function getDashboardData(role: string, userId: string, buildingId: string
       createdAt: undefined,
       updatedAt: undefined,
     }))
-    const scOpeningBalance = (fundBalances.find(f => f.fundType === 'SERVICE_CHARGE')?.amount || 0) + (scPrevBills._sum.amount || 0) - (scPrevExp._sum.amount || 0)
-    const gasOpeningBalance = (fundBalances.find(f => f.fundType === 'GAS')?.amount || 0) + (gasPrevBills._sum.amount || 0) - (gasPrevExp._sum.amount || 0)
-    const scCurrentBalance = (fundBalances.find(f => f.fundType === 'SERVICE_CHARGE')?.amount || 0) + (scAllBills._sum.amount || 0) - (scAllExp._sum.amount || 0)
-    const gasCurrentBalance = (fundBalances.find(f => f.fundType === 'GAS')?.amount || 0) + (gasAllBills._sum.amount || 0) - (gasAllExp._sum.amount || 0)
-    const scThisCollection = scThisBills._sum.amount || 0
-    const gasThisCollection = gasThisBills._sum.amount || 0
-    const scThisExpenses = scThisExp._sum.amount || 0
-    const gasThisExpenses = gasThisExp._sum.amount || 0
-    return { role, totalUnits, occupiedCount, vacantCount, bills, collected, totalDue, totalExpenses, recentMessages, pendingCount, overdueCount, month, year, unitsForMap, fundData: { sc: { opening: scOpeningBalance, collection: scThisCollection, expenses: scThisExpenses, current: scCurrentBalance }, gas: { opening: gasOpeningBalance, collection: gasThisCollection, expenses: gasThisExpenses, current: gasCurrentBalance } } }
+    const enabledModules = {
+      featureServiceCharge:     config?.featureServiceCharge     ?? true,
+      featureGas:               config?.featureGas               ?? true,
+      featureWater:             (config as any)?.featureWater             ?? false,
+      featureGarbage:           (config as any)?.featureGarbage           ?? false,
+      featureCommunitySecurity: (config as any)?.featureCommunitySecurity ?? false,
+      featureRent:              config?.featureRent              ?? true,
+    }
+    return { role, totalUnits, occupiedCount, vacantCount, bills, collected, totalDue, totalExpenses, recentMessages, pendingCount, overdueCount, month, year, unitsForMap, enabledModules }
   }
 
   if (role === 'OWNER') {
@@ -125,51 +114,12 @@ export default async function DashboardPage() {
             <StatCard label="Total Expenses" value={formatCurrency((data as any).totalExpenses)} sub="This month" color="#dc2626" icon="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
           </div>
 
-          {/* Row 1.5: Fund Summary Cards */}
-          <div className="resp-grid-2" style={{ marginBottom: '1.75rem' }}>
-            <Card style={{ padding: '1.25rem 1.5rem' }}>
-              <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 12px' }}>Service Charge Fund</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '10px' }}>
-                <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Opening Balance</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1d4ed8' }}>{formatCurrency((data as any).fundData.sc.opening)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>This Month Collection</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#15803d' }}>{formatCurrency((data as any).fundData.sc.collection)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>This Month Expenses</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#dc2626' }}>{formatCurrency((data as any).fundData.sc.expenses)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Current Balance</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: (data as any).fundData.sc.current >= 0 ? '#15803d' : '#dc2626' }}>{formatCurrency((data as any).fundData.sc.current)}</div>
-                </div>
-              </div>
-            </Card>
-            <Card style={{ padding: '1.25rem 1.5rem' }}>
-              <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 12px' }}>Gas Fund</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '10px' }}>
-                <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Opening Balance</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#854d0e' }}>{formatCurrency((data as any).fundData.gas.opening)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>This Month Collection</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#15803d' }}>{formatCurrency((data as any).fundData.gas.collection)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>This Month Expenses</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#dc2626' }}>{formatCurrency((data as any).fundData.gas.expenses)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Current Balance</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: (data as any).fundData.gas.current >= 0 ? '#15803d' : '#dc2626' }}>{formatCurrency((data as any).fundData.gas.current)}</div>
-                </div>
-              </div>
-            </Card>
-          </div>
+          {/* Fund Summary Cards — all enabled modules with month/year selector */}
+          <DashboardFundCards
+            initialMonth={data.month}
+            initialYear={data.year}
+            enabledModules={(data as any).enabledModules}
+          />
 
           {/* Row 2: Occupied vs Vacant */}
           <div className="resp-grid-2" style={{ marginBottom: '1.75rem' }}>

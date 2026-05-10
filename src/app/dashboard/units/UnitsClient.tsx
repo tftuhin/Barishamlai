@@ -7,12 +7,16 @@ import { formatCurrency } from '@/lib/utils'
 
 const FREE_UNIT_LIMIT = 5
 
+type OccupancyType = 'OWNER_OCCUPIED' | 'TENANT_OCCUPIED' | 'VACANT' | 'MERGED'
+type ServiceChargeType = 'STANDARD' | 'SPECIAL'
+
 type Unit = {
   id: string; number: string; floor: number; area: number | null; monthlyRent: number
   status: 'OCCUPIED' | 'VACANT'; isOwnerOccupied: boolean
   customServiceCharge: number | null
-  ownerContactName: string | null; ownerPhone: string | null
-  tenantContactName: string | null; tenantPhone: string | null; tenantNid: string | null
+  ownerContactName: string | null; ownerPhone: string | null; ownerEmail: string | null
+  tenantContactName: string | null; tenantPhone: string | null; tenantNid: string | null; tenantEmail: string | null; tenantMoveInDate: string | null
+  occupancyType: OccupancyType; serviceChargeType: ServiceChargeType; skipRentModule: boolean
   ownerId: string | null; tenantId: string | null
   owner: { id: string; name: string } | null
   tenant: { id: string; name: string } | null
@@ -33,11 +37,14 @@ const EMPTY_FORM = { number: '', floor: '1', area: '', monthlyRent: '', ownerId:
 const EMPTY_EDIT = {
   status: 'OCCUPIED' as 'OCCUPIED' | 'VACANT',
   isOwnerOccupied: false,
+  occupancyType: 'TENANT_OCCUPIED' as OccupancyType,
+  serviceChargeType: 'STANDARD' as ServiceChargeType,
+  skipRentModule: false,
   monthlyRent: '', floor: '', area: '',
   customServiceCharge: '',
   ownerId: '', tenantId: '',
-  ownerContactName: '', ownerPhone: '',
-  tenantContactName: '', tenantPhone: '', tenantNid: '',
+  ownerContactName: '', ownerPhone: '', ownerEmail: '',
+  tenantContactName: '', tenantPhone: '', tenantNid: '', tenantEmail: '', tenantMoveInDate: '',
 }
 
 function StatusPill({ status }: { status: 'OCCUPIED' | 'VACANT' }) {
@@ -90,6 +97,9 @@ export function UnitsClient({
     setEditForm({
       status: unit.status,
       isOwnerOccupied: unit.isOwnerOccupied,
+      occupancyType: unit.occupancyType ?? 'TENANT_OCCUPIED',
+      serviceChargeType: unit.serviceChargeType ?? 'STANDARD',
+      skipRentModule: unit.skipRentModule ?? false,
       monthlyRent: String(unit.monthlyRent),
       floor: String(unit.floor),
       area: unit.area ? String(unit.area) : '',
@@ -98,9 +108,12 @@ export function UnitsClient({
       tenantId: unit.tenantId ?? '',
       ownerContactName: unit.ownerContactName ?? '',
       ownerPhone: unit.ownerPhone ?? '',
+      ownerEmail: unit.ownerEmail ?? '',
       tenantContactName: unit.tenantContactName ?? '',
       tenantPhone: unit.tenantPhone ?? '',
       tenantNid: unit.tenantNid ?? '',
+      tenantEmail: unit.tenantEmail ?? '',
+      tenantMoveInDate: unit.tenantMoveInDate ? unit.tenantMoveInDate.slice(0, 10) : '',
     })
     setEditError('')
   }
@@ -146,19 +159,25 @@ export function UnitsClient({
     const payload: Record<string, unknown> = {
       ownerContactName:  editForm.ownerContactName  || null,
       ownerPhone:        editForm.ownerPhone         || null,
+      ownerEmail:        editForm.ownerEmail         || null,
       tenantContactName: editForm.tenantContactName  || null,
       tenantPhone:       editForm.tenantPhone        || null,
       tenantNid:         editForm.tenantNid          || null,
+      tenantEmail:       editForm.tenantEmail        || null,
     }
     if (role === 'ADMIN') {
-      payload.status          = editForm.status
-      payload.isOwnerOccupied = editForm.isOwnerOccupied
-      payload.monthlyRent     = Number(editForm.monthlyRent)
-      payload.floor           = Number(editForm.floor)
-      payload.area            = editForm.area ? Number(editForm.area) : null
-      payload.ownerId             = editForm.ownerId  || null
-      payload.tenantId            = editForm.isOwnerOccupied ? null : (editForm.tenantId || null)
+      payload.status             = editForm.status
+      payload.isOwnerOccupied    = editForm.isOwnerOccupied
+      payload.occupancyType      = editForm.occupancyType
+      payload.serviceChargeType  = editForm.serviceChargeType
+      payload.skipRentModule     = editForm.skipRentModule
+      payload.monthlyRent        = Number(editForm.monthlyRent)
+      payload.floor              = Number(editForm.floor)
+      payload.area               = editForm.area ? Number(editForm.area) : null
+      payload.ownerId            = editForm.ownerId  || null
+      payload.tenantId           = editForm.isOwnerOccupied ? null : (editForm.tenantId || null)
       payload.customServiceCharge = editForm.customServiceCharge !== '' ? Number(editForm.customServiceCharge) : null
+      payload.tenantMoveInDate   = editForm.tenantMoveInDate || null
     }
 
     const res = await fetch(`/api/units/${editUnit.id}`, {
@@ -333,14 +352,24 @@ export function UnitsClient({
                 </div>
               </div>
 
-              {/* Owner-occupied badge */}
-              {unit.isOwnerOccupied && (
-                <div style={{ marginBottom: '8px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#E1F5EE', color: '#0F6E56', border: '1px solid #9FE1CB' }}>
-                    Owner Occupied — No Rent
-                  </span>
-                </div>
-              )}
+              {/* Occupancy badge */}
+              <div style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {unit.occupancyType === 'OWNER_OCCUPIED' && (
+                  <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#E1F5EE', color: '#0F6E56', border: '1px solid #9FE1CB' }}>Owner Occupied</span>
+                )}
+                {unit.occupancyType === 'VACANT' && (
+                  <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1' }}>Vacant</span>
+                )}
+                {unit.occupancyType === 'MERGED' && (
+                  <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#FEF9C3', color: '#A16207', border: '1px solid #FDE68A' }}>Merged</span>
+                )}
+                {unit.serviceChargeType === 'SPECIAL' && (
+                  <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#F5F3FF', color: '#7C3AED', border: '1px solid #DDD6FE' }}>Special SC</span>
+                )}
+                {unit.skipRentModule && (
+                  <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#FFF7ED', color: '#9A3412', border: '1px solid #FED7AA' }}>No Rent</span>
+                )}
+              </div>
 
               {/* Rent + meta */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -611,6 +640,35 @@ export function UnitsClient({
                     </select>
                   </FormField>
                 </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <FormField label="Occupancy Type">
+                    <select value={editForm.occupancyType} onChange={e => setEditForm({ ...editForm, occupancyType: e.target.value as OccupancyType })} style={selectStyle}>
+                      <option value="TENANT_OCCUPIED">Tenant Occupied</option>
+                      <option value="OWNER_OCCUPIED">Owner Occupied</option>
+                      <option value="VACANT">Vacant</option>
+                      <option value="MERGED">Merged</option>
+                    </select>
+                  </FormField>
+                  <FormField label="Service Charge Type">
+                    <select value={editForm.serviceChargeType} onChange={e => setEditForm({ ...editForm, serviceChargeType: e.target.value as ServiceChargeType })} style={selectStyle}>
+                      <option value="STANDARD">Standard</option>
+                      <option value="SPECIAL">Special</option>
+                    </select>
+                  </FormField>
+                </div>
+                <div style={{ padding: '10px 14px', background: '#FFF7ED', borderRadius: '10px', border: '1px solid #FED7AA', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#9A3412' }}>Skip Rent Module</div>
+                    <div style={{ fontSize: '11px', color: '#C2410C', marginTop: '1px' }}>Exclude this unit from rent billing entirely</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditForm(f => ({ ...f, skipRentModule: !f.skipRentModule }))}
+                    style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', background: editForm.skipRentModule ? '#EA580C' : '#C8D8D4', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0, padding: 0 }}
+                  >
+                    <span style={{ position: 'absolute', top: '3px', left: editForm.skipRentModule ? '23px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                  </button>
+                </div>
               </>
             )}
 
@@ -624,6 +682,9 @@ export function UnitsClient({
                 <input value={editForm.ownerPhone} onChange={e => setEditForm({ ...editForm, ownerPhone: e.target.value })} style={inputStyle} placeholder="+880-1700-000000" />
               </FormField>
             </div>
+            <FormField label="Owner Email">
+              <input type="email" value={editForm.ownerEmail} onChange={e => setEditForm({ ...editForm, ownerEmail: e.target.value })} style={inputStyle} placeholder="owner@example.com" />
+            </FormField>
 
             {/* Tenant contact — both roles */}
             {inputSection('Tenant Contact Details')}
@@ -636,6 +697,14 @@ export function UnitsClient({
               </FormField>
               <FormField label="NID Number">
                 <input value={editForm.tenantNid} onChange={e => setEditForm({ ...editForm, tenantNid: e.target.value })} style={inputStyle} placeholder="National ID" />
+              </FormField>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <FormField label="Tenant Email">
+                <input type="email" value={editForm.tenantEmail} onChange={e => setEditForm({ ...editForm, tenantEmail: e.target.value })} style={inputStyle} placeholder="tenant@example.com" />
+              </FormField>
+              <FormField label="Move-in Date">
+                <input type="date" value={editForm.tenantMoveInDate} onChange={e => setEditForm({ ...editForm, tenantMoveInDate: e.target.value })} style={inputStyle} />
               </FormField>
             </div>
 

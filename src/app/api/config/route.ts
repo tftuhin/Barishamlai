@@ -3,17 +3,21 @@ import { prisma } from '@/lib/prisma'
 import { ok, Err, requireAuth, requireAdmin, requireViewer } from '@/lib/api'
 
 const DEFAULT_CONFIG = {
-  featureRent:           true,
-  featureElectricity:    true,
-  featureGas:            true,
-  featureLift:           false,
-  featureSecurityGuard:  false,
-  featureGarbage:        false,
-  featureServiceCharge:  true,
-  serviceChargeOccupied: 0,
-  serviceChargeVacant:   0,
-  gasUnitRate:           0,
-  onboardingComplete:    false,
+  featureRent:              true,
+  featureElectricity:       true,
+  featureGas:               true,
+  featureLift:              false,
+  featureSecurityGuard:     false,
+  featureGarbage:           false,
+  featureServiceCharge:     true,
+  featureWater:             false,
+  featureCommunitySecurity: false,
+  serviceChargeOccupied:    0,
+  serviceChargeVacant:      0,
+  gasUnitRate:              0,
+  garbageRate:              0,
+  communitySecurityRate:    0,
+  onboardingComplete:       false,
 }
 
 export async function GET() {
@@ -40,16 +44,20 @@ export async function PUT(req: NextRequest) {
     const bId  = session.user.buildingId!
 
     const data: Record<string, unknown> = {
-      featureRent:           Boolean(body.featureRent),
-      featureElectricity:    Boolean(body.featureElectricity),
-      featureGas:            Boolean(body.featureGas),
-      featureLift:           Boolean(body.featureLift),
-      featureSecurityGuard:  Boolean(body.featureSecurityGuard),
-      featureGarbage:        Boolean(body.featureGarbage),
-      featureServiceCharge:  Boolean(body.featureServiceCharge),
-      serviceChargeOccupied: Math.max(0, Number(body.serviceChargeOccupied) || 0),
-      serviceChargeVacant:   Math.max(0, Number(body.serviceChargeVacant)   || 0),
-      gasUnitRate:           Math.max(0, Number(body.gasUnitRate)           || 0),
+      featureRent:              Boolean(body.featureRent),
+      featureElectricity:       Boolean(body.featureElectricity),
+      featureGas:               Boolean(body.featureGas),
+      featureLift:              Boolean(body.featureLift),
+      featureSecurityGuard:     Boolean(body.featureSecurityGuard),
+      featureGarbage:           Boolean(body.featureGarbage),
+      featureServiceCharge:     Boolean(body.featureServiceCharge),
+      featureWater:             Boolean(body.featureWater),
+      featureCommunitySecurity: Boolean(body.featureCommunitySecurity),
+      serviceChargeOccupied:    Math.max(0, Number(body.serviceChargeOccupied)    || 0),
+      serviceChargeVacant:      Math.max(0, Number(body.serviceChargeVacant)      || 0),
+      gasUnitRate:              Math.max(0, Number(body.gasUnitRate)              || 0),
+      garbageRate:              Math.max(0, Number(body.garbageRate)              || 0),
+      communitySecurityRate:    Math.max(0, Number(body.communitySecurityRate)    || 0),
     }
     // Only set onboardingComplete if explicitly passed
     if (body.onboardingComplete !== undefined) {

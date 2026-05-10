@@ -24,6 +24,8 @@ enum BillType {
   GAS
   WATER
   ELECTRICITY
+  GARBAGE
+  COMMUNITY_SECURITY
 }
 
 enum PaymentStatus {
@@ -35,6 +37,18 @@ enum PaymentStatus {
 enum UnitStatus {
   OCCUPIED
   VACANT
+}
+
+enum OccupancyType {
+  OWNER_OCCUPIED
+  TENANT_OCCUPIED
+  VACANT
+  MERGED
+}
+
+enum ServiceChargeType {
+  STANDARD
+  SPECIAL
 }
 
 enum ExpenseCategory {
@@ -49,9 +63,13 @@ enum ExpenseCategory {
 
 // Which income bucket this expense is charged against
 enum ExpenseSource {
-  GAS            // deducted from gas fund
-  SERVICE_CHARGE // deducted from service charge / building maintenance fund
-  GENERAL        // general / not attributed to a specific fund
+  GAS
+  SERVICE_CHARGE
+  WATER
+  GARBAGE
+  COMMUNITY_SECURITY
+  RENT
+  GENERAL
 }
 
 // Granular categories for module-specific expenses
@@ -64,14 +82,26 @@ enum ServiceExpenseCategory {
   COMMON_ELECTRICITY
   GENERATOR
   SC_MAINTENANCE
+  DIESEL
+  SMALL_REPAIR
   // Gas module expenses
   GAS_CYLINDER
+  // Water module expenses
+  WATER_BILL_PAYMENT
+  // Garbage module expenses
+  GARBAGE_PAYMENT
+  // Community security expenses
+  COMMUNITY_SECURITY_PAYMENT
 }
 
 // Fund types for opening balance tracking
 enum FundType {
   SERVICE_CHARGE
   GAS
+  WATER
+  GARBAGE
+  COMMUNITY_SECURITY
+  RENT
 }
 
 enum JoinRequestStatus {
@@ -138,6 +168,7 @@ model Building {
   unitOpeningBalances  UnitOpeningBalance[]
   userBuildings        UserBuilding[]
   multiPropertyRequests MultiPropertyRequest[]
+  monthlySetups        MonthlySetup[]
 }
 
 // ── Users ──────────────────────────────────────────────────────
@@ -183,6 +214,13 @@ model Unit {
   tenantContactName String?
   tenantPhone       String?
   tenantNid         String?
+
+  occupancyType       OccupancyType     @default(TENANT_OCCUPIED)
+  serviceChargeType   ServiceChargeType @default(STANDARD)
+  skipRentModule      Boolean           @default(false)
+  ownerEmail          String?
+  tenantEmail         String?
+  tenantMoveInDate    DateTime?
 
   buildingId String?
   building   Building? @relation(fields: [buildingId], references: [id])
@@ -264,20 +302,50 @@ model Expense {
 
 // ── BuildingConfig ─────────────────────────────────────────────
 model BuildingConfig {
-  id                   String   @id           // equals buildingId
-  building             Building @relation(fields: [id], references: [id])
-  featureRent          Boolean  @default(true)
-  featureElectricity   Boolean  @default(true)
-  featureGas           Boolean  @default(true)
-  featureLift          Boolean  @default(false)
-  featureSecurityGuard Boolean  @default(false)
-  featureGarbage       Boolean  @default(false)
-  featureServiceCharge Boolean  @default(true)
-  serviceChargeOccupied Float   @default(0)
-  serviceChargeVacant  Float    @default(0)
-  gasUnitRate          Float    @default(0)
-  onboardingComplete   Boolean  @default(false)
-  updatedAt            DateTime @updatedAt
+  id                        String   @id           // equals buildingId
+  building                  Building @relation(fields: [id], references: [id])
+  featureRent               Boolean  @default(true)
+  featureElectricity        Boolean  @default(true)
+  featureGas                Boolean  @default(true)
+  featureLift               Boolean  @default(false)
+  featureSecurityGuard      Boolean  @default(false)
+  featureGarbage            Boolean  @default(false)
+  featureServiceCharge      Boolean  @default(true)
+  featureWater              Boolean  @default(false)
+  featureCommunitySecurity  Boolean  @default(false)
+  serviceChargeOccupied     Float    @default(0)
+  serviceChargeVacant       Float    @default(0)
+  gasUnitRate               Float    @default(0)
+  garbageRate               Float    @default(0)   // fixed rate per unit per month
+  communitySecurityRate     Float    @default(0)   // fixed rate per unit per month
+  onboardingComplete        Boolean  @default(false)
+  updatedAt                 DateTime @updatedAt
+}
+
+// ── Monthly Module Setup ───────────────────────────────────────
+// Stores per-month admin-confirmed values for water billing and
+// SC occupancy confirmation. One row per building per month/year.
+model MonthlySetup {
+  id                    String   @id @default(cuid())
+  buildingId            String
+  building              Building @relation(fields: [buildingId], references: [id])
+  month                 Int
+  year                  Int
+  // Water module
+  waterBillTotal        Float?   // total WASA bill for this month
+  waterOccupied         Int?     // confirmed occupied flat count for water division
+  waterBillsGenerated   Boolean  @default(false)
+  // Service charge module
+  scOccupancyConfirmed  Boolean  @default(false)
+  scBillsGenerated      Boolean  @default(false)
+  // Garbage module
+  garbageBillsGenerated Boolean  @default(false)
+  // Community security module
+  csBillsGenerated      Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([buildingId, month, year])
 }
 
 // ── Messages ───────────────────────────────────────────────────

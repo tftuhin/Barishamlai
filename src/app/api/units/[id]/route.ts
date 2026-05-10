@@ -27,14 +27,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (body.tenantPhone       !== undefined) data.tenantPhone       = body.tenantPhone       ?? null
     if (body.tenantNid         !== undefined) data.tenantNid         = body.tenantNid         ?? null
 
+    if (body.ownerEmail        !== undefined) data.ownerEmail        = body.ownerEmail        ?? null
+    if (body.tenantEmail       !== undefined) data.tenantEmail       = body.tenantEmail       ?? null
+
     if (role === 'ADMIN') {
-      if (body.status          !== undefined) data.status          = body.status
-      if (body.monthlyRent     !== undefined) data.monthlyRent     = Number(body.monthlyRent)
-      if (body.floor           !== undefined) data.floor           = Number(body.floor)
-      if (body.area            !== undefined) data.area            = body.area ? Number(body.area) : null
-      if (body.ownerId         !== undefined) data.ownerId         = body.ownerId  || null
-      if (body.tenantId        !== undefined) data.tenantId        = body.tenantId || null
-      if (body.isOwnerOccupied !== undefined) data.isOwnerOccupied = Boolean(body.isOwnerOccupied)
+      if (body.status             !== undefined) data.status             = body.status
+      if (body.monthlyRent        !== undefined) data.monthlyRent        = Number(body.monthlyRent)
+      if (body.floor              !== undefined) data.floor              = Number(body.floor)
+      if (body.area               !== undefined) data.area               = body.area ? Number(body.area) : null
+      if (body.ownerId            !== undefined) data.ownerId            = body.ownerId  || null
+      if (body.tenantId           !== undefined) data.tenantId           = body.tenantId || null
+      if (body.isOwnerOccupied    !== undefined) data.isOwnerOccupied    = Boolean(body.isOwnerOccupied)
+      if (body.occupancyType      !== undefined) data.occupancyType      = body.occupancyType
+      if (body.serviceChargeType  !== undefined) data.serviceChargeType  = body.serviceChargeType
+      if (body.skipRentModule     !== undefined) data.skipRentModule     = Boolean(body.skipRentModule)
+      if (body.tenantMoveInDate   !== undefined) data.tenantMoveInDate   = body.tenantMoveInDate ? new Date(body.tenantMoveInDate as string) : null
       if (body.isOwnerOccupied) {
         data.tenantId = null
         data.status   = 'OCCUPIED'
