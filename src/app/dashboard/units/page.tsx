@@ -26,9 +26,14 @@ export default async function UnitsPage() {
 
   const isPremium = building?.plan === 'PREMIUM' && building.premiumUntil && building.premiumUntil > new Date()
 
+  const serializedUnits = units.map(u => ({
+    ...u,
+    tenantMoveInDate: u.tenantMoveInDate ? u.tenantMoveInDate.toISOString() : null,
+  }))
+
   return (
     <UnitsClient
-      units={units}
+      units={serializedUnits}
       users={users}
       role={session.user.role}
       currentUserId={session.user.id}
