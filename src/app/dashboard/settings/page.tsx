@@ -10,7 +10,7 @@ export default async function SettingsPage() {
 
   const bId = session.user.buildingId ?? undefined
 
-  const [users, joinRequests, invitations, config] = await Promise.all([
+  const [users, joinRequests, invitations, config, units, fundBalances] = await Promise.all([
     prisma.user.findMany({
       where: { buildingId: bId },
       select: { id: true, name: true, email: true, phone: true, role: true, createdAt: true },
@@ -29,6 +29,12 @@ export default async function SettingsPage() {
       try { return await (prisma as any).buildingConfig.findUnique({ where: { id: bId ?? 'main' } }) }
       catch { return null }
     })(),
+    prisma.unit.findMany({
+      where: { buildingId: bId },
+      select: { id: true, number: true, floor: true },
+      orderBy: [{ floor: 'asc' }, { number: 'asc' }],
+    }),
+    prisma.fundBalance.findMany({ where: { buildingId: bId ?? '' } }),
   ])
 
   return (
@@ -40,6 +46,8 @@ export default async function SettingsPage() {
       joinRequests={joinRequests}
       invitations={invitations}
       config={config}
+      units={units}
+      fundBalances={fundBalances.map(b => ({ fundType: b.fundType, amount: Number(b.amount) }))}
     />
   )
 }

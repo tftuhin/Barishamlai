@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, PageHeader, Button, Modal, FormField, inputStyle, selectStyle, RoleBadge, EmptyState } from '@/components/ui'
 import { formatDate, getInitials } from '@/lib/utils'
+import { MigrationTab } from './MigrationTab'
 
 type Config = {
   featureRent: boolean; featureElectricity: boolean; featureGas: boolean
@@ -53,6 +54,8 @@ export function SettingsClient({
   joinRequests: initialJoinRequests,
   invitations: initialInvitations,
   config: initialConfig = null,
+  units = [],
+  fundBalances = [],
 }: {
   users: any[]
   currentUserId: string
@@ -61,9 +64,11 @@ export function SettingsClient({
   joinRequests: any[]
   invitations: any[]
   config?: Config | null
+  units?: { id: string; number: string; floor: number }[]
+  fundBalances?: { fundType: string; amount: number }[]
 }) {
   const router = useRouter()
-  const [tab, setTab] = useState<'users' | 'access' | 'config'>('users')
+  const [tab, setTab] = useState<'users' | 'access' | 'config' | 'migration'>('users')
 
   // ── Users ──
   const [showAdd, setShowAdd] = useState(false)
@@ -177,7 +182,7 @@ export function SettingsClient({
         action={
           tab === 'users'  ? <Button onClick={() => setShowAdd(true)}>+ Add User</Button> :
           tab === 'access' ? <Button onClick={() => setShowInvite(true)}>+ Invite by Email</Button> :
-          undefined
+          null
         }
       />
 
@@ -193,6 +198,7 @@ export function SettingsClient({
           )}
         </button>
         <button style={tabStyle('config')} onClick={() => setTab('config')}>Configuration</button>
+        <button style={tabStyle('migration')} onClick={() => setTab('migration')}>Data Migration</button>
       </div>
 
       {/* ════ USERS TAB ════ */}
@@ -427,6 +433,15 @@ export function SettingsClient({
             {configMsg && <span style={{ fontSize: '13px', color: configMsg.ok ? '#15803d' : '#dc2626', fontWeight: 500 }}>{configMsg.ok ? '✓ ' : '✗ '}{configMsg.text}</span>}
           </div>
         </div>
+      )}
+
+      {/* ════ DATA MIGRATION TAB ════ */}
+      {tab === 'migration' && (
+        <MigrationTab
+          units={units}
+          fundBalances={fundBalances}
+          enabledModules={(config ?? {}) as unknown as Record<string, boolean>}
+        />
       )}
 
       {/* ── Add User Modal ── */}
