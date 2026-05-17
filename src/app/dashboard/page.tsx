@@ -62,10 +62,12 @@ async function getDashboardData(role: string, userId: string, buildingId: string
   }
 
   if (role === 'OWNER') {
-    const unit = await prisma.unit.findFirst({ where: { ownerId: userId, buildingId: bId }, include: { tenant: true } })
-    const bills = unit ? await prisma.bill.findMany({ where: { unitId: unit.id }, orderBy: { createdAt: 'desc' }, take: 10 }) : []
-    const receipts = unit ? await prisma.receipt.findMany({ where: { unitId: unit.id }, orderBy: { createdAt: 'desc' }, take: 5, include: { bill: true, recipient: true } }) : []
-    return { role, unit, bills, receipts, month, year }
+    const ownerUnits = await prisma.unit.findMany({ where: { ownerId: userId, buildingId: bId }, include: { tenant: true } })
+    const unitIds = ownerUnits.map(u => u.id)
+    const bills = unitIds.length > 0 ? await prisma.bill.findMany({ where: { unitId: { in: unitIds } }, orderBy: { createdAt: 'desc' }, take: 10 }) : []
+    const receipts = unitIds.length > 0 ? await prisma.receipt.findMany({ where: { unitId: { in: unitIds } }, orderBy: { createdAt: 'desc' }, take: 5, include: { bill: true, recipient: true } }) : []
+    const unit = ownerUnits[0] ?? null
+    return { role, unit, units: ownerUnits, bills, receipts, month, year }
   }
 
   const unit = await prisma.unit.findFirst({ where: { tenantId: userId, buildingId: bId }, include: { owner: true } })

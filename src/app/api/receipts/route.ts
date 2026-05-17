@@ -19,10 +19,11 @@ export async function GET() {
         orderBy: { createdAt: 'desc' },
       })
     } else if (session.user.role === 'OWNER') {
-      const unit = await prisma.unit.findFirst({ where: { ownerId: session.user.id, buildingId: bId } })
-      receipts = unit
+      const ownerUnits = await prisma.unit.findMany({ where: { ownerId: session.user.id, buildingId: bId } })
+      const unitIds = ownerUnits.map(u => u.id)
+      receipts = unitIds.length > 0
         ? await prisma.receipt.findMany({
-            where: { unitId: unit.id },
+            where: { unitId: { in: unitIds } },
             include: { bill: true, unit: true, issuedBy: true, recipient: true },
             orderBy: { createdAt: 'desc' },
           })

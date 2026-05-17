@@ -221,8 +221,7 @@ export function UnitsClient({
     ? units.filter(u => u.ownerId === currentUserId)
     : units
 
-  // For add modal: only show unassigned users
-  const unassignedOwners  = owners.filter(u => !units.some(un => un.ownerId  === u.id))
+  // Tenants can only be assigned to one unit; owners can be assigned to multiple
   const unassignedTenants = tenants.filter(u => !units.some(un => un.tenantId === u.id))
 
   const inputSection = (label: string) => (
@@ -487,7 +486,7 @@ export function UnitsClient({
         <FormField label="Assign Owner">
           <select value={addForm.ownerId} onChange={e => setAddForm({ ...addForm, ownerId: e.target.value })} style={selectStyle}>
             <option value="">No owner yet</option>
-            {unassignedOwners.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            {owners.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
         </FormField>
         <FormField label="Assign Tenant">

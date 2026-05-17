@@ -35,15 +35,16 @@ export default async function ReceiptsPage() {
       orderBy: { createdAt: 'desc' },
     })
   } else if (session.user.role === 'OWNER') {
-    const unit = await prisma.unit.findFirst({ where: { ownerId: session.user.id, buildingId: bId } })
-    if (unit) {
+    const ownerUnits = await prisma.unit.findMany({ where: { ownerId: session.user.id, buildingId: bId } })
+    if (ownerUnits.length > 0) {
+      const unitIds = ownerUnits.map(u => u.id)
       receipts = await prisma.receipt.findMany({
-        where: { unitId: unit.id },
+        where: { unitId: { in: unitIds } },
         include: { bill: true, unit: true, issuedBy: true, recipient: true },
         orderBy: { createdAt: 'desc' },
       })
       paidBills = await prisma.bill.findMany({
-        where: { unitId: unit.id, status: 'PAID', receipt: null },
+        where: { unitId: { in: unitIds }, status: 'PAID', receipt: null },
         include: { unit: { include: { tenant: true, owner: true } } },
       })
     }

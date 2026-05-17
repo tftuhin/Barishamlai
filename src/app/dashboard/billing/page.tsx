@@ -20,10 +20,11 @@ export default async function BillingPage() {
     })
     units = await prisma.unit.findMany({ where: { buildingId: bId }, include: { tenant: true, owner: true }, orderBy: { number: 'asc' } })
   } else if (session.user.role === 'OWNER') {
-    const unit = await prisma.unit.findFirst({ where: { ownerId: session.user.id, buildingId: bId } })
-    if (unit) {
+    const ownerUnits = await prisma.unit.findMany({ where: { ownerId: session.user.id, buildingId: bId } })
+    if (ownerUnits.length > 0) {
+      const unitIds = ownerUnits.map(u => u.id)
       bills = await prisma.bill.findMany({
-        where: { unitId: unit.id },
+        where: { unitId: { in: unitIds } },
         include: { unit: { include: { tenant: true, owner: true } } },
         orderBy: [{ year: 'desc' }, { month: 'desc' }],
       })
