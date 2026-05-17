@@ -37,11 +37,12 @@ const EMPTY_FORM = { number: '', floor: '1', area: '', monthlyRent: '', ownerId:
 
 const EMPTY_EDIT = {
   occupancyType: 'TENANT_OCCUPIED' as OccupancyType,
+  isMerged: false,
+  mergedWithUnitId: '',
   skipRentModule: false,
   monthlyRent: '', floor: '', area: '',
   customServiceChargeEnabled: false,
   customServiceCharge: '',
-  mergedWithUnitId: '',
   ownerId: '', tenantId: '',
   ownerContactName: '', ownerPhone: '', ownerEmail: '',
   tenantContactName: '', tenantPhone: '', tenantNid: '', tenantEmail: '', tenantMoveInDate: '',
@@ -94,8 +95,10 @@ export function UnitsClient({
 
   function openEdit(unit: Unit) {
     setEditUnit(unit)
+    const isMerged = unit.occupancyType === 'MERGED'
     setEditForm({
-      occupancyType: unit.occupancyType ?? 'TENANT_OCCUPIED',
+      occupancyType: isMerged ? 'VACANT' : (unit.occupancyType ?? 'TENANT_OCCUPIED'),
+      isMerged,
       skipRentModule: unit.occupancyType === 'OWNER_OCCUPIED' ? true : (unit.skipRentModule ?? false),
       monthlyRent: String(unit.monthlyRent),
       floor: String(unit.floor),
@@ -165,9 +168,10 @@ export function UnitsClient({
       tenantEmail:       editForm.tenantEmail        || null,
     }
     if (role === 'ADMIN') {
-      const isOwner  = editForm.occupancyType === 'OWNER_OCCUPIED'
-      const isVacant = editForm.occupancyType === 'VACANT' || editForm.occupancyType === 'MERGED'
-      payload.occupancyType       = editForm.occupancyType
+      const finalOccupancy = editForm.isMerged ? 'MERGED' : editForm.occupancyType
+      const isOwner  = finalOccupancy === 'OWNER_OCCUPIED'
+      const isVacant = finalOccupancy === 'VACANT' || finalOccupancy === 'MERGED'
+      payload.occupancyType       = finalOccupancy
       payload.isOwnerOccupied     = isOwner
       payload.status              = isVacant ? 'VACANT' : 'OCCUPIED'
       payload.skipRentModule      = isOwner ? true : editForm.skipRentModule
@@ -178,7 +182,7 @@ export function UnitsClient({
       payload.tenantId            = isOwner ? null : (editForm.tenantId || null)
       payload.customServiceCharge = editForm.customServiceChargeEnabled && editForm.customServiceCharge !== ''
         ? Number(editForm.customServiceCharge) : null
-      payload.mergedWithUnitId    = editForm.occupancyType === 'MERGED' ? (editForm.mergedWithUnitId || null) : null
+      payload.mergedWithUnitId    = editForm.isMerged ? (editForm.mergedWithUnitId || null) : null
       payload.tenantMoveInDate    = editForm.tenantMoveInDate || null
     }
 
@@ -639,28 +643,42 @@ export function UnitsClient({
                         ...f,
                         occupancyType: ot,
                         skipRentModule: ot === 'OWNER_OCCUPIED' ? true : f.skipRentModule,
-                        mergedWithUnitId: ot !== 'MERGED' ? '' : f.mergedWithUnitId,
                       }))
                     }}
                     style={selectStyle}>
                     <option value="TENANT_OCCUPIED">Tenant Occupied</option>
                     <option value="OWNER_OCCUPIED">Owner Occupied</option>
                     <option value="VACANT">Vacant</option>
-                    <option value="MERGED">Merged with another flat</option>
                   </select>
                 </FormField>
 
-                {/* Merged-with flat selector — only shown when MERGED */}
-                {editForm.occupancyType === 'MERGED' && (
-                  <FormField label="Merged Into Flat">
-                    <select value={editForm.mergedWithUnitId} onChange={e => setEditForm(f => ({ ...f, mergedWithUnitId: e.target.value }))} style={selectStyle}>
-                      <option value="">Select flat…</option>
-                      {units
-                        .filter(u => u.id !== editUnit?.id && u.occupancyType !== 'MERGED')
-                        .map(u => <option key={u.id} value={u.id}>Flat {u.number} (Floor {u.floor})</option>)}
-                    </select>
-                  </FormField>
-                )}
+                {/* Merged flat — standalone toggle + flat selector */}
+                <div style={{ padding: '10px 14px', background: editForm.isMerged ? '#FEF9C3' : 'var(--surface-subtle)', borderRadius: '10px', border: `1px solid ${editForm.isMerged ? '#FDE68A' : 'var(--border)'}`, transition: 'all 0.2s' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editForm.isMerged ? '10px' : 0 }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: editForm.isMerged ? '#A16207' : 'var(--text-secondary)' }}>Merged with another flat</div>
+                      <div style={{ fontSize: '11px', color: editForm.isMerged ? '#CA8A04' : 'var(--text-muted)', marginTop: '2px' }}>
+                        {editForm.isMerged ? 'This flat is combined — charges merged into the selected flat' : 'This flat bills separately'}
+                      </div>
+                    </div>
+                    <button type="button"
+                      onClick={() => setEditForm(f => ({ ...f, isMerged: !f.isMerged, mergedWithUnitId: '' }))}
+                      style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', background: editForm.isMerged ? '#CA8A04' : '#C8D8D4', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0, padding: 0 }}
+                    >
+                      <span style={{ position: 'absolute', top: '3px', left: editForm.isMerged ? '23px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                    </button>
+                  </div>
+                  {editForm.isMerged && (
+                    <FormField label="Merged Into Flat">
+                      <select value={editForm.mergedWithUnitId} onChange={e => setEditForm(f => ({ ...f, mergedWithUnitId: e.target.value }))} style={selectStyle}>
+                        <option value="">Select flat…</option>
+                        {units
+                          .filter(u => u.id !== editUnit?.id && u.occupancyType !== 'MERGED')
+                          .map(u => <option key={u.id} value={u.id}>Flat {u.number} (Floor {u.floor})</option>)}
+                      </select>
+                    </FormField>
+                  )}
+                </div>
 
                 <div style={{ padding: '10px 14px', background: editForm.occupancyType === 'OWNER_OCCUPIED' ? '#EFF6FF' : '#FFF7ED', borderRadius: '10px', border: `1px solid ${editForm.occupancyType === 'OWNER_OCCUPIED' ? '#BFDBFE' : '#FED7AA'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <div>
