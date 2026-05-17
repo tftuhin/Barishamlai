@@ -33,7 +33,11 @@ export async function POST(req: NextRequest) {
     const [units, config] = await Promise.all([
       prisma.unit.findMany({
         where: { buildingId: bId },
-        include: { tenant: { select: { id: true, email: true, name: true } }, owner: { select: { id: true, email: true, name: true } } },
+        include: {
+          tenant: { select: { id: true, email: true, name: true } },
+          owner:  { select: { id: true, email: true, name: true } },
+          mergedUnits: { select: { id: true, customServiceCharge: true, status: true } },
+        },
         orderBy: [{ floor: 'asc' }, { number: 'asc' }],
       }),
       prisma.buildingConfig.findUnique({ where: { id: bId } }),
@@ -53,11 +57,17 @@ export async function POST(req: NextRequest) {
         }
         amount = unit.monthlyRent
       } else if (billType === 'SERVICE_CHARGE') {
+        // Merged units are absorbed into their primary — skip them individually
+        if ((unit as any).occupancyType === 'MERGED') { skipped++; continue }
         const occupied = config?.serviceChargeOccupied ?? 0
         const vacant   = config?.serviceChargeVacant   ?? 0
-        amount = unit.customServiceCharge != null
+        const baseAmount = unit.customServiceCharge != null
           ? unit.customServiceCharge
           : (unit.status === 'VACANT' ? vacant : occupied)
+        // Add the charge of any flats merged into this one
+        const mergedExtra = ((unit as any).mergedUnits as { customServiceCharge: number | null; status: string }[])
+          .reduce((sum, mu) => sum + (mu.customServiceCharge != null ? mu.customServiceCharge : occupied), 0)
+        amount = baseAmount + mergedExtra
         if (amount <= 0) { skipped++; continue }
       } else if (billType === 'GAS') {
         // Gas bills require per-unit meter readings; can't auto-generate without them

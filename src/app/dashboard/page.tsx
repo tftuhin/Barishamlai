@@ -31,6 +31,7 @@ async function getDashboardData(role: string, userId: string, buildingId: string
           bills: { orderBy: [{ year: 'desc' }, { month: 'desc' }] },
           owner: { select: { name: true } },
           tenant: { select: { name: true } },
+          mergedWith: { select: { id: true, number: true } },
         },
       }),
       prisma.buildingConfig.findUnique({ where: { id: bId ?? 'none' } }),
@@ -40,6 +41,9 @@ async function getDashboardData(role: string, userId: string, buildingId: string
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)
     const unitsForMap = unitsWithBills.map(u => ({
       ...u,
+      occupancyType: u.occupancyType,
+      mergedWithUnitId: u.mergedWithUnitId,
+      mergedWith: u.mergedWith,
       bills: u.bills.map(b => ({
         ...b,
         dueDate: b.dueDate.toISOString(),

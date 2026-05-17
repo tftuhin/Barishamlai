@@ -21,6 +21,9 @@ type UnitData = {
   floor: number
   area: number | null
   monthlyRent: number
+  occupancyType?: string
+  mergedWithUnitId?: string | null
+  mergedWith?: { id: string; number: string } | null
   owner: { name: string } | null
   tenant: { name: string } | null
   bills: Bill[]
@@ -37,6 +40,26 @@ export function FloorMapClient({ units }: { units: UnitData[] }) {
     const letter = unit.number.replace(/^\d+/, '')
     if (!grid[unit.floor]) grid[unit.floor] = {}
     grid[unit.floor][letter] = unit
+  }
+
+  // Build a set of unit IDs that are "absorbed" by an adjacent primary
+  // so we can skip their cell and apply colspan to the primary
+  const absorbedByAdjacentPrimary = new Set<string>()
+  const primaryColspan: Record<string, number> = {} // unitId -> colspan count
+
+  for (const unit of units) {
+    if (unit.occupancyType !== 'MERGED' || !unit.mergedWithUnitId) continue
+    const primary = units.find(u => u.id === unit.mergedWithUnitId)
+    if (!primary || primary.floor !== unit.floor) continue
+    const mergedLetter  = unit.number.replace(/^\d+/, '')
+    const primaryLetter = primary.number.replace(/^\d+/, '')
+    const mi = letters.indexOf(mergedLetter)
+    const pi = letters.indexOf(primaryLetter)
+    // Adjacent means they're next to each other (either direction)
+    if (Math.abs(mi - pi) === 1) {
+      absorbedByAdjacentPrimary.add(unit.id)
+      primaryColspan[primary.id] = (primaryColspan[primary.id] ?? 1) + 1
+    }
   }
 
   const hasDue = (unit: UnitData) => unit.bills.some(b => b.status === 'PENDING' || b.status === 'OVERDUE')
@@ -83,6 +106,10 @@ export function FloorMapClient({ units }: { units: UnitData[] }) {
                   </td>
                   {letters.map(letter => {
                     const unit = grid[floor]?.[letter]
+
+                    // Skip cells absorbed by an adjacent primary (primary spans their column)
+                    if (unit && absorbedByAdjacentPrimary.has(unit.id)) return null
+
                     if (!unit) {
                       return (
                         <td key={letter} style={{ padding: '4px' }}>
@@ -90,9 +117,36 @@ export function FloorMapClient({ units }: { units: UnitData[] }) {
                         </td>
                       )
                     }
-                    const due = hasDue(unit)
+
+                    const isMerged   = unit.occupancyType === 'MERGED'
+                    const colspan    = primaryColspan[unit.id] ?? 1
+                    const due        = hasDue(unit)
+
+                    // Non-adjacent merged flat: amber cell with "→ X" label
+                    if (isMerged && !absorbedByAdjacentPrimary.has(unit.id)) {
+                      return (
+                        <td key={letter} style={{ padding: '4px' }}>
+                          <button
+                            onClick={() => setSelected(unit)}
+                            style={{
+                              width: '100%', height: '40px', borderRadius: '8px', border: '1px dashed #D97706',
+                              background: '#FEF9C3', color: '#92400E', fontWeight: 600, fontSize: '11px',
+                              cursor: 'pointer', transition: 'filter 0.15s', fontFamily: 'var(--font-body)',
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1.2,
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(0.94)')}
+                            onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
+                          >
+                            <span>{unit.number}</span>
+                            {unit.mergedWith && <span style={{ fontSize: '9px', opacity: 0.8 }}>→ {unit.mergedWith.number}</span>}
+                          </button>
+                        </td>
+                      )
+                    }
+
+                    // Primary cell (possibly spanning merged neighbour)
                     return (
-                      <td key={letter} style={{ padding: '4px' }}>
+                      <td key={letter} colSpan={colspan} style={{ padding: '4px' }}>
                         <button
                           onClick={() => setSelected(unit)}
                           style={{
@@ -100,11 +154,13 @@ export function FloorMapClient({ units }: { units: UnitData[] }) {
                             background: due ? '#EF4444' : '#10B981',
                             color: '#fff', fontWeight: 600, fontSize: '13px', letterSpacing: '0.02em',
                             cursor: 'pointer', transition: 'filter 0.15s', fontFamily: 'var(--font-body)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                           }}
                           onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(0.88)')}
                           onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
                         >
                           {unit.number}
+                          {colspan > 1 && <span style={{ fontSize: '10px', opacity: 0.85, fontWeight: 400 }}>+ merged</span>}
                         </button>
                       </td>
                     )

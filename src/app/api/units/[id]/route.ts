@@ -42,6 +42,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       if (body.serviceChargeType  !== undefined) data.serviceChargeType  = body.serviceChargeType
       if (body.skipRentModule     !== undefined) data.skipRentModule     = Boolean(body.skipRentModule)
       if (body.tenantMoveInDate   !== undefined) data.tenantMoveInDate   = body.tenantMoveInDate ? new Date(body.tenantMoveInDate as string) : null
+      if (body.mergedWithUnitId   !== undefined) data.mergedWithUnitId   = body.mergedWithUnitId || null
       if (body.isOwnerOccupied) {
         data.tenantId = null
         data.status   = 'OCCUPIED'
@@ -53,7 +54,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const updated = await prisma.unit.update({
       where: { id: params.id },
       data,
-      include: { owner: true, tenant: true },
+      include: { owner: true, tenant: true, mergedWith: { select: { id: true, number: true } } },
     })
     return ok(updated)
   } catch {

@@ -8,7 +8,6 @@ import { formatCurrency } from '@/lib/utils'
 const FREE_UNIT_LIMIT = 5
 
 type OccupancyType = 'OWNER_OCCUPIED' | 'TENANT_OCCUPIED' | 'VACANT' | 'MERGED'
-type ServiceChargeType = 'STANDARD' | 'SPECIAL'
 
 type Unit = {
   id: string; number: string; floor: number; area: number | null; monthlyRent: number
@@ -16,8 +15,10 @@ type Unit = {
   customServiceCharge: number | null
   ownerContactName: string | null; ownerPhone: string | null; ownerEmail: string | null
   tenantContactName: string | null; tenantPhone: string | null; tenantNid: string | null; tenantEmail: string | null; tenantMoveInDate: string | null
-  occupancyType: OccupancyType; serviceChargeType: ServiceChargeType; skipRentModule: boolean
+  occupancyType: OccupancyType; skipRentModule: boolean
   ownerId: string | null; tenantId: string | null
+  mergedWithUnitId: string | null
+  mergedWith: { id: string; number: string } | null
   owner: { id: string; name: string } | null
   tenant: { id: string; name: string } | null
 }
@@ -36,10 +37,11 @@ const EMPTY_FORM = { number: '', floor: '1', area: '', monthlyRent: '', ownerId:
 
 const EMPTY_EDIT = {
   occupancyType: 'TENANT_OCCUPIED' as OccupancyType,
-  serviceChargeType: 'STANDARD' as ServiceChargeType,
   skipRentModule: false,
   monthlyRent: '', floor: '', area: '',
+  customServiceChargeEnabled: false,
   customServiceCharge: '',
+  mergedWithUnitId: '',
   ownerId: '', tenantId: '',
   ownerContactName: '', ownerPhone: '', ownerEmail: '',
   tenantContactName: '', tenantPhone: '', tenantNid: '', tenantEmail: '', tenantMoveInDate: '',
@@ -94,12 +96,13 @@ export function UnitsClient({
     setEditUnit(unit)
     setEditForm({
       occupancyType: unit.occupancyType ?? 'TENANT_OCCUPIED',
-      serviceChargeType: unit.serviceChargeType ?? 'STANDARD',
-      skipRentModule: unit.skipRentModule ?? false,
+      skipRentModule: unit.occupancyType === 'OWNER_OCCUPIED' ? true : (unit.skipRentModule ?? false),
       monthlyRent: String(unit.monthlyRent),
       floor: String(unit.floor),
       area: unit.area ? String(unit.area) : '',
+      customServiceChargeEnabled: unit.customServiceCharge != null,
       customServiceCharge: unit.customServiceCharge != null ? String(unit.customServiceCharge) : '',
+      mergedWithUnitId: unit.mergedWithUnitId ?? '',
       ownerId: unit.ownerId ?? '',
       tenantId: unit.tenantId ?? '',
       ownerContactName: unit.ownerContactName ?? '',
@@ -162,20 +165,21 @@ export function UnitsClient({
       tenantEmail:       editForm.tenantEmail        || null,
     }
     if (role === 'ADMIN') {
-      const isOwner = editForm.occupancyType === 'OWNER_OCCUPIED'
+      const isOwner  = editForm.occupancyType === 'OWNER_OCCUPIED'
       const isVacant = editForm.occupancyType === 'VACANT' || editForm.occupancyType === 'MERGED'
-      payload.occupancyType      = editForm.occupancyType
-      payload.isOwnerOccupied    = isOwner
-      payload.status             = isVacant ? 'VACANT' : 'OCCUPIED'
-      payload.serviceChargeType  = editForm.serviceChargeType
-      payload.skipRentModule     = editForm.skipRentModule
-      payload.monthlyRent        = Number(editForm.monthlyRent)
-      payload.floor              = Number(editForm.floor)
-      payload.area               = editForm.area ? Number(editForm.area) : null
-      payload.ownerId            = editForm.ownerId  || null
-      payload.tenantId           = isOwner ? null : (editForm.tenantId || null)
-      payload.customServiceCharge = editForm.customServiceCharge !== '' ? Number(editForm.customServiceCharge) : null
-      payload.tenantMoveInDate   = editForm.tenantMoveInDate || null
+      payload.occupancyType       = editForm.occupancyType
+      payload.isOwnerOccupied     = isOwner
+      payload.status              = isVacant ? 'VACANT' : 'OCCUPIED'
+      payload.skipRentModule      = isOwner ? true : editForm.skipRentModule
+      payload.monthlyRent         = Number(editForm.monthlyRent)
+      payload.floor               = Number(editForm.floor)
+      payload.area                = editForm.area ? Number(editForm.area) : null
+      payload.ownerId             = editForm.ownerId  || null
+      payload.tenantId            = isOwner ? null : (editForm.tenantId || null)
+      payload.customServiceCharge = editForm.customServiceChargeEnabled && editForm.customServiceCharge !== ''
+        ? Number(editForm.customServiceCharge) : null
+      payload.mergedWithUnitId    = editForm.occupancyType === 'MERGED' ? (editForm.mergedWithUnitId || null) : null
+      payload.tenantMoveInDate    = editForm.tenantMoveInDate || null
     }
 
     const res = await fetch(`/api/units/${editUnit.id}`, {
@@ -349,8 +353,8 @@ export function UnitsClient({
                 </div>
               </div>
 
-              {/* Occupancy / SC type badges */}
-              {(unit.occupancyType !== 'TENANT_OCCUPIED' || unit.serviceChargeType === 'SPECIAL') && (
+              {/* Occupancy badges */}
+              {unit.occupancyType !== 'TENANT_OCCUPIED' && (
                 <div style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {unit.occupancyType === 'OWNER_OCCUPIED' && (
                     <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#E1F5EE', color: '#0F6E56', border: '1px solid #9FE1CB' }}>Owner Occupied</span>
@@ -359,10 +363,9 @@ export function UnitsClient({
                     <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1' }}>Vacant</span>
                   )}
                   {unit.occupancyType === 'MERGED' && (
-                    <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#FEF9C3', color: '#A16207', border: '1px solid #FDE68A' }}>Merged</span>
-                  )}
-                  {unit.serviceChargeType === 'SPECIAL' && (
-                    <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#F5F3FF', color: '#7C3AED', border: '1px solid #DDD6FE' }}>Special SC</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#FEF9C3', color: '#A16207', border: '1px solid #FDE68A' }}>
+                      Merged{unit.mergedWith ? ` → ${unit.mergedWith.number}` : ''}
+                    </span>
                   )}
                 </div>
               )}
@@ -590,18 +593,26 @@ export function UnitsClient({
                 <FormField label="Area (sqft)">
                   <input type="number" value={editForm.area} onChange={e => setEditForm({ ...editForm, area: e.target.value })} style={inputStyle} placeholder="Optional" />
                 </FormField>
-                {/* Custom service charge */}
-                <div style={{ padding: '10px 14px', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #BBF7D0', marginBottom: '4px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#166534', marginBottom: '4px' }}>Custom Service Charge Rate</div>
-                  <div style={{ fontSize: '11px', color: '#15803d', marginBottom: '8px' }}>Leave blank to use the building default. Set a value to override for this flat only.</div>
-                  <FormField label="Custom Rate (৳/month) — optional">
-                    <input type="number" value={editForm.customServiceCharge} onChange={e => setEditForm({ ...editForm, customServiceCharge: e.target.value })} style={inputStyle} placeholder="e.g. 1500 — leave blank for default" min="0" />
-                  </FormField>
-                  {editForm.customServiceCharge !== '' && (
-                    <button type="button" onClick={() => setEditForm({ ...editForm, customServiceCharge: '' })}
-                      style={{ fontSize: '11px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0', marginTop: '2px' }}>
-                      ✕ Remove custom rate — revert to default
+                {/* Custom service charge — toggle + conditional input */}
+                <div style={{ padding: '10px 14px', background: editForm.customServiceChargeEnabled ? '#F0FDF4' : 'var(--surface-subtle)', borderRadius: '10px', border: `1px solid ${editForm.customServiceChargeEnabled ? '#BBF7D0' : 'var(--border)'}`, marginBottom: '4px', transition: 'all 0.2s' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editForm.customServiceChargeEnabled ? '10px' : 0 }}>
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: editForm.customServiceChargeEnabled ? '#166534' : 'var(--text-secondary)' }}>Custom Service Charge Rate</div>
+                      <div style={{ fontSize: '11px', color: editForm.customServiceChargeEnabled ? '#15803d' : 'var(--text-muted)', marginTop: '2px' }}>
+                        {editForm.customServiceChargeEnabled ? 'Custom rate will be applied for this flat' : 'Standard building rate applies'}
+                      </div>
+                    </div>
+                    <button type="button"
+                      onClick={() => setEditForm(f => ({ ...f, customServiceChargeEnabled: !f.customServiceChargeEnabled, customServiceCharge: f.customServiceChargeEnabled ? '' : f.customServiceCharge }))}
+                      style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', background: editForm.customServiceChargeEnabled ? '#166534' : '#C8D8D4', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0, padding: 0 }}
+                    >
+                      <span style={{ position: 'absolute', top: '3px', left: editForm.customServiceChargeEnabled ? '23px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
                     </button>
+                  </div>
+                  {editForm.customServiceChargeEnabled && (
+                    <FormField label="Custom Rate (৳/month)">
+                      <input type="number" value={editForm.customServiceCharge} onChange={e => setEditForm(f => ({ ...f, customServiceCharge: e.target.value }))} style={inputStyle} placeholder="e.g. 1500" min="0" autoFocus />
+                    </FormField>
                   )}
                 </div>
 
@@ -619,31 +630,50 @@ export function UnitsClient({
                     </select>
                   </FormField>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <FormField label="Occupancy Type">
-                    <select value={editForm.occupancyType} onChange={e => setEditForm({ ...editForm, occupancyType: e.target.value as OccupancyType })} style={selectStyle}>
-                      <option value="TENANT_OCCUPIED">Tenant Occupied</option>
-                      <option value="OWNER_OCCUPIED">Owner Occupied</option>
-                      <option value="VACANT">Vacant</option>
-                      <option value="MERGED">Merged</option>
+
+                <FormField label="Occupancy Type">
+                  <select value={editForm.occupancyType}
+                    onChange={e => {
+                      const ot = e.target.value as OccupancyType
+                      setEditForm(f => ({
+                        ...f,
+                        occupancyType: ot,
+                        skipRentModule: ot === 'OWNER_OCCUPIED' ? true : f.skipRentModule,
+                        mergedWithUnitId: ot !== 'MERGED' ? '' : f.mergedWithUnitId,
+                      }))
+                    }}
+                    style={selectStyle}>
+                    <option value="TENANT_OCCUPIED">Tenant Occupied</option>
+                    <option value="OWNER_OCCUPIED">Owner Occupied</option>
+                    <option value="VACANT">Vacant</option>
+                    <option value="MERGED">Merged with another flat</option>
+                  </select>
+                </FormField>
+
+                {/* Merged-with flat selector — only shown when MERGED */}
+                {editForm.occupancyType === 'MERGED' && (
+                  <FormField label="Merged Into Flat">
+                    <select value={editForm.mergedWithUnitId} onChange={e => setEditForm(f => ({ ...f, mergedWithUnitId: e.target.value }))} style={selectStyle}>
+                      <option value="">Select flat…</option>
+                      {units
+                        .filter(u => u.id !== editUnit?.id && u.occupancyType !== 'MERGED')
+                        .map(u => <option key={u.id} value={u.id}>Flat {u.number} (Floor {u.floor})</option>)}
                     </select>
                   </FormField>
-                  <FormField label="Service Charge Type">
-                    <select value={editForm.serviceChargeType} onChange={e => setEditForm({ ...editForm, serviceChargeType: e.target.value as ServiceChargeType })} style={selectStyle}>
-                      <option value="STANDARD">Standard</option>
-                      <option value="SPECIAL">Special</option>
-                    </select>
-                  </FormField>
-                </div>
-                <div style={{ padding: '10px 14px', background: '#FFF7ED', borderRadius: '10px', border: '1px solid #FED7AA', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                )}
+
+                <div style={{ padding: '10px 14px', background: editForm.occupancyType === 'OWNER_OCCUPIED' ? '#EFF6FF' : '#FFF7ED', borderRadius: '10px', border: `1px solid ${editForm.occupancyType === 'OWNER_OCCUPIED' ? '#BFDBFE' : '#FED7AA'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#9A3412' }}>Skip Rent Module</div>
-                    <div style={{ fontSize: '11px', color: '#C2410C', marginTop: '1px' }}>Exclude this unit from rent billing entirely</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: editForm.occupancyType === 'OWNER_OCCUPIED' ? '#1E40AF' : '#9A3412' }}>Skip Rent Module</div>
+                    <div style={{ fontSize: '11px', color: editForm.occupancyType === 'OWNER_OCCUPIED' ? '#3B82F6' : '#C2410C', marginTop: '1px' }}>
+                      {editForm.occupancyType === 'OWNER_OCCUPIED' ? 'Auto-skipped — owner occupied' : 'Exclude this unit from rent billing'}
+                    </div>
                   </div>
                   <button
                     type="button"
+                    disabled={editForm.occupancyType === 'OWNER_OCCUPIED'}
                     onClick={() => setEditForm(f => ({ ...f, skipRentModule: !f.skipRentModule }))}
-                    style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', background: editForm.skipRentModule ? '#EA580C' : '#C8D8D4', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0, padding: 0 }}
+                    style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', background: editForm.skipRentModule ? '#EA580C' : '#C8D8D4', position: 'relative', cursor: editForm.occupancyType === 'OWNER_OCCUPIED' ? 'not-allowed' : 'pointer', transition: 'background 0.2s', flexShrink: 0, padding: 0, opacity: editForm.occupancyType === 'OWNER_OCCUPIED' ? 0.6 : 1 }}
                   >
                     <span style={{ position: 'absolute', top: '3px', left: editForm.skipRentModule ? '23px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
                   </button>

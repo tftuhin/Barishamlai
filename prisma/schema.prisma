@@ -230,6 +230,10 @@ model Unit {
   owner    User?   @relation("UnitOwner",  fields: [ownerId],  references: [id])
   tenant   User?   @relation("UnitTenant", fields: [tenantId], references: [id])
 
+  mergedWithUnitId String?
+  mergedWith       Unit?   @relation("MergedUnits", fields: [mergedWithUnitId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  mergedUnits      Unit[]  @relation("MergedUnits")
+
   bills           Bill[]
   receipts        Receipt[]
   openingBalances UnitOpeningBalance[]
