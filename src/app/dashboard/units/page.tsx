@@ -13,7 +13,12 @@ export default async function UnitsPage() {
   const [units, users, building] = await Promise.all([
     prisma.unit.findMany({
       where: { buildingId: bId },
-      include: { owner: true, tenant: true, mergedWith: { select: { id: true, number: true } } },
+      include: {
+        owner: true,
+        tenant: true,
+        mergedWith:  { select: { id: true, number: true } },
+        mergedUnits: { select: { id: true, number: true, floor: true } },
+      },
       orderBy: [{ floor: 'asc' }, { number: 'asc' }],
     }),
     prisma.user.findMany({

@@ -19,6 +19,7 @@ type Unit = {
   ownerId: string | null; tenantId: string | null
   mergedWithUnitId: string | null
   mergedWith: { id: string; number: string } | null
+  mergedUnits: { id: string; number: string; floor: number }[]
   owner: { id: string; name: string } | null
   tenant: { id: string; name: string } | null
 }
@@ -225,9 +226,11 @@ export function UnitsClient({
     router.refresh()
   }
 
-  const visibleUnits = role === 'OWNER'
+  // Merged units are shown inside the primary flat's card — hide them as standalone cards
+  const visibleUnits = (role === 'OWNER'
     ? units.filter(u => u.ownerId === currentUserId)
     : units
+  ).filter(u => u.occupancyType !== 'MERGED')
 
   // Tenants can only be assigned to one unit; owners can be assigned to multiple
   const unassignedTenants = tenants.filter(u => !units.some(un => un.tenantId === u.id))
@@ -366,11 +369,16 @@ export function UnitsClient({
                   {unit.occupancyType === 'VACANT' && (
                     <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1' }}>Vacant</span>
                   )}
-                  {unit.occupancyType === 'MERGED' && (
-                    <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#FEF9C3', color: '#A16207', border: '1px solid #FDE68A' }}>
-                      Merged{unit.mergedWith ? ` → ${unit.mergedWith.number}` : ''}
+                </div>
+              )}
+              {/* Merged-into badge — shown on primary when another flat is merged into this one */}
+              {unit.mergedUnits.length > 0 && (
+                <div style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {unit.mergedUnits.map(mu => (
+                    <span key={mu.id} style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#FEF9C3', color: '#A16207', border: '1px solid #FDE68A' }}>
+                      Merged with Flat {mu.number}
                     </span>
-                  )}
+                  ))}
                 </div>
               )}
 
@@ -427,6 +435,40 @@ export function UnitsClient({
                   </div>
                 ) : (
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Vacant — no tenant</div>
+                )}
+
+                {/* Merged flats section — shows each absorbed flat with edit button */}
+                {unit.mergedUnits.length > 0 && (
+                  <>
+                    <div style={{ marginTop: '4px', borderTop: '1px dashed var(--border)', paddingTop: '8px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: '#A16207', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Merged Flat{unit.mergedUnits.length > 1 ? 's' : ''}</div>
+                      {unit.mergedUnits.map(mu => {
+                        const mergedUnit = units.find(u => u.id === mu.id)
+                        return (
+                          <div key={mu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#FEFCE8', borderRadius: '8px', border: '1px solid #FDE68A', marginBottom: '4px' }}>
+                            <div>
+                              <span style={{ fontSize: '13px', fontWeight: 600, color: '#A16207' }}>Flat {mu.number}</span>
+                              <span style={{ fontSize: '11px', color: '#CA8A04', marginLeft: '6px' }}>Floor {mu.floor}</span>
+                              {mergedUnit?.tenant && (
+                                <div style={{ fontSize: '11px', color: '#78350F', marginTop: '1px' }}>{mergedUnit.tenant.name}</div>
+                              )}
+                              {mergedUnit?.ownerContactName && (
+                                <div style={{ fontSize: '11px', color: '#78350F', marginTop: '1px' }}>{mergedUnit.ownerContactName}</div>
+                              )}
+                            </div>
+                            {role === 'ADMIN' && mergedUnit && (
+                              <button
+                                onClick={() => openEdit(mergedUnit)}
+                                style={{ background: 'none', border: '1px solid #FDE68A', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', fontSize: '11px', color: '#A16207', fontWeight: 500 }}
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
                 )}
               </div>
             </Card>
