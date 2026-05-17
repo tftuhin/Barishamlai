@@ -54,7 +54,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const updated = await prisma.unit.update({
       where: { id: params.id },
       data,
-      include: { owner: true, tenant: true, mergedWith: { select: { id: true, number: true } } },
+      include: {
+        owner: true,
+        tenant: true,
+        mergedWith:  { select: { id: true, number: true } },
+        mergedUnits: { select: { id: true, number: true, floor: true } },
+      },
     })
     return ok(updated)
   } catch {

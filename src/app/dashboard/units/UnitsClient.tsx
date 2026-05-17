@@ -372,7 +372,7 @@ export function UnitsClient({
                 </div>
               )}
               {/* Merged-into badge — shown on primary when another flat is merged into this one */}
-              {unit.mergedUnits.length > 0 && (
+              {(unit.mergedUnits ?? []).length > 0 && (
                 <div style={{ marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {unit.mergedUnits.map(mu => (
                     <span key={mu.id} style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: '20px', background: '#FEF9C3', color: '#A16207', border: '1px solid #FDE68A' }}>
@@ -438,11 +438,11 @@ export function UnitsClient({
                 )}
 
                 {/* Merged flats section — shows each absorbed flat with edit button */}
-                {unit.mergedUnits.length > 0 && (
+                {(unit.mergedUnits ?? []).length > 0 && (
                   <>
                     <div style={{ marginTop: '4px', borderTop: '1px dashed var(--border)', paddingTop: '8px' }}>
-                      <div style={{ fontSize: '10px', fontWeight: 700, color: '#A16207', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Merged Flat{unit.mergedUnits.length > 1 ? 's' : ''}</div>
-                      {unit.mergedUnits.map(mu => {
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: '#A16207', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Merged Flat{(unit.mergedUnits ?? []).length > 1 ? 's' : ''}</div>
+                      {(unit.mergedUnits ?? []).map(mu => {
                         const mergedUnit = units.find(u => u.id === mu.id)
                         return (
                           <div key={mu.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#FEFCE8', borderRadius: '8px', border: '1px solid #FDE68A', marginBottom: '4px' }}>
