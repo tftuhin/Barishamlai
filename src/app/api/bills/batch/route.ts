@@ -10,6 +10,8 @@ interface BillInput {
   month: number
   year: number
   dueDate: string
+  status?: 'PENDING' | 'PAID'
+  paidAt?: string | null
   meterReading?: number | null
   note?: string | null
 }
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest) {
     const errors: string[] = []
 
     for (const b of bills as BillInput[]) {
-      const { unitId, type, amount, month, year, dueDate, meterReading, note } = b
+      const { unitId, type, amount, month, year, dueDate, status, paidAt, meterReading, note } = b
       if (!unitId || !type || !amount || !month || !year || !dueDate) {
         skipped++
         continue
@@ -48,6 +50,7 @@ export async function POST(req: NextRequest) {
         skipped++
         continue
       }
+      const billStatus = status === 'PAID' ? 'PAID' : 'PENDING'
       try {
         await prisma.bill.create({
           data: {
@@ -57,7 +60,8 @@ export async function POST(req: NextRequest) {
             month:        Number(month),
             year:         Number(year),
             dueDate:      new Date(dueDate),
-            status:       'PENDING',
+            status:       billStatus,
+            paidAt:       billStatus === 'PAID' ? (paidAt ? new Date(paidAt) : new Date(dueDate)) : null,
             meterReading: meterReading != null ? Number(meterReading) : null,
             note:         note ?? null,
             buildingId,
