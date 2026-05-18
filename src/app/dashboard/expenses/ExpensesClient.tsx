@@ -20,7 +20,7 @@ export function ExpensesClient({ expenses, isReadOnly }: { expenses: any[]; isRe
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const now = new Date()
-  const [form, setForm] = useState({ title:'', amount:'', category:'MAINTENANCE', incomeSource:'GENERAL', date: now.toISOString().split('T')[0], description:'', month: String(now.getMonth()+1), year: String(now.getFullYear()) })
+  const [form, setForm] = useState({ title:'', amount:'', category:'MAINTENANCE', incomeSource:'GENERAL', date: now.toISOString().split('T')[0], description:'' })
 
   const total = expenses.reduce((s,e) => s+e.amount, 0)
   const thisMonth = expenses.filter(e => { const d = new Date(e.date); return d.getMonth()+1 === now.getMonth()+1 && d.getFullYear() === now.getFullYear() }).reduce((s,e) => s+e.amount, 0)
@@ -28,9 +28,10 @@ export function ExpensesClient({ expenses, isReadOnly }: { expenses: any[]; isRe
 
   async function submit() {
     setError(''); setSaving(true)
+    const d = new Date(form.date)
     const res = await fetch('/api/expenses', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ ...form, amount: Number(form.amount), month: Number(form.month), year: Number(form.year) })
+      body: JSON.stringify({ ...form, amount: Number(form.amount), month: d.getMonth() + 1, year: d.getFullYear() })
     })
     if (res.ok) { setShowAdd(false); router.refresh() }
     else { const d = await res.json(); setError(d.error || 'Failed') }
@@ -120,7 +121,7 @@ export function ExpensesClient({ expenses, isReadOnly }: { expenses: any[]; isRe
         </FormField>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
           <FormField label="Amount (৳)"><input type="number" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})} style={inputStyle} placeholder="0" /></FormField>
-          <FormField label="Date"><input type="date" value={form.date} onChange={e=>{const d=new Date(e.target.value);setForm({...form,date:e.target.value,month:String(d.getMonth()+1),year:String(d.getFullYear())})}} style={inputStyle} /></FormField>
+          <FormField label="Date"><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={inputStyle} /></FormField>
         </div>
         <FormField label="Description (optional)"><input value={form.description} onChange={e=>setForm({...form,description:e.target.value})} style={inputStyle} /></FormField>
         {error && <p style={{ color:'#dc2626', fontSize:'13px' }}>{error}</p>}

@@ -48,10 +48,11 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
   const [savingExp, setSavingExp] = useState(false)
   const [expError, setExpError] = useState('')
   const now = new Date()
-  const [expForm, setExpForm] = useState({ title: '', amount: '', serviceCategory: 'SECURITY_GUARD_SALARY', date: now.toISOString().split('T')[0], description: '', month: String(currentMonth), year: String(currentYear) })
+  const [expForm, setExpForm] = useState({ title: '', amount: '', serviceCategory: 'SECURITY_GUARD_SALARY', date: now.toISOString().split('T')[0], description: '' })
 
   async function submitExpense() {
     setExpError(''); setSavingExp(true)
+    const d = new Date(expForm.date)
     const res = await fetch('/api/expenses', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -62,8 +63,8 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
         incomeSource: 'SERVICE_CHARGE',
         date: expForm.date,
         description: expForm.description,
-        month: Number(expForm.month),
-        year: Number(expForm.year),
+        month: d.getMonth() + 1,
+        year: d.getFullYear(),
       }),
     })
     if (res.ok) { setShowAddExp(false); router.refresh() }
@@ -260,10 +261,7 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
         </FormField>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <FormField label="Amount (৳)"><input type="number" value={expForm.amount} onChange={e => setExpForm({ ...expForm, amount: e.target.value })} style={inputStyle} placeholder="0" /></FormField>
-          <FormField label="Date"><input type="date" value={expForm.date} onChange={e => {
-          const d = new Date(e.target.value)
-          setExpForm({ ...expForm, date: e.target.value, month: String(d.getMonth() + 1), year: String(d.getFullYear()) })
-        }} style={inputStyle} /></FormField>
+          <FormField label="Date"><input type="date" value={expForm.date} onChange={e => setExpForm({ ...expForm, date: e.target.value })} style={inputStyle} /></FormField>
         </div>
         <FormField label="Description (optional)"><input value={expForm.description} onChange={e => setExpForm({ ...expForm, description: e.target.value })} style={inputStyle} /></FormField>
         {expError && <p style={{ color: '#dc2626', fontSize: 13 }}>{expError}</p>}

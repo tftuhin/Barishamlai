@@ -24,6 +24,7 @@ type UnitData = {
   occupancyType?: string
   mergedWithUnitId?: string | null
   mergedWith?: { id: string; number: string } | null
+  mergedUnits?: { id: string; number: string }[]
   owner: { name: string } | null
   tenant: { name: string } | null
   bills: Bill[]
@@ -32,7 +33,7 @@ type UnitData = {
 export function FloorMapClient({ units }: { units: UnitData[] }) {
   const [selected, setSelected] = useState<UnitData | null>(null)
 
-  const floors = Array.from(new Set(units.map(u => u.floor))).sort((a, b) => a - b)
+  const floors  = Array.from(new Set(units.map(u => u.floor))).sort((a, b) => a - b)
   const letters = Array.from(new Set(units.map(u => u.number.replace(/^\d+/, '')))).sort()
 
   const grid: Record<number, Record<string, UnitData>> = {}
@@ -42,27 +43,8 @@ export function FloorMapClient({ units }: { units: UnitData[] }) {
     grid[unit.floor][letter] = unit
   }
 
-  // Build a set of unit IDs that are "absorbed" by an adjacent primary
-  // so we can skip their cell and apply colspan to the primary
-  const absorbedByAdjacentPrimary = new Set<string>()
-  const primaryColspan: Record<string, number> = {} // unitId -> colspan count
-
-  for (const unit of units) {
-    if (unit.occupancyType !== 'MERGED' || !unit.mergedWithUnitId) continue
-    const primary = units.find(u => u.id === unit.mergedWithUnitId)
-    if (!primary || primary.floor !== unit.floor) continue
-    const mergedLetter  = unit.number.replace(/^\d+/, '')
-    const primaryLetter = primary.number.replace(/^\d+/, '')
-    const mi = letters.indexOf(mergedLetter)
-    const pi = letters.indexOf(primaryLetter)
-    // Adjacent means they're next to each other (either direction)
-    if (Math.abs(mi - pi) === 1) {
-      absorbedByAdjacentPrimary.add(unit.id)
-      primaryColspan[primary.id] = (primaryColspan[primary.id] ?? 1) + 1
-    }
-  }
-
-  const hasDue = (unit: UnitData) => unit.bills.some(b => b.status === 'PENDING' || b.status === 'OVERDUE')
+  const hasDue = (unit: UnitData) =>
+    unit.bills.some(b => b.status === 'PENDING' || b.status === 'OVERDUE')
 
   return (
     <>
@@ -80,6 +62,10 @@ export function FloorMapClient({ units }: { units: UnitData[] }) {
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#EF4444', display: 'inline-block', flexShrink: 0 }} />
               Has dues
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#F59E0B', display: 'inline-block', flexShrink: 0 }} />
+              Merged
             </span>
           </div>
         </div>
@@ -107,60 +93,66 @@ export function FloorMapClient({ units }: { units: UnitData[] }) {
                   {letters.map(letter => {
                     const unit = grid[floor]?.[letter]
 
-                    // Skip cells absorbed by an adjacent primary (primary spans their column)
-                    if (unit && absorbedByAdjacentPrimary.has(unit.id)) return null
-
                     if (!unit) {
                       return (
                         <td key={letter} style={{ padding: '4px' }}>
-                          <div style={{ height: '40px', borderRadius: '8px', background: 'var(--surface-subtle)', border: '1px dashed var(--border-strong)' }} />
+                          <div style={{ height: '44px', borderRadius: '8px', background: 'var(--surface-subtle)', border: '1px dashed var(--border-strong)' }} />
                         </td>
                       )
                     }
 
-                    const isMerged   = unit.occupancyType === 'MERGED'
-                    const colspan    = primaryColspan[unit.id] ?? 1
-                    const due        = hasDue(unit)
+                    const isMerged     = unit.occupancyType === 'MERGED'
+                    const hasMergedIn  = (unit.mergedUnits?.length ?? 0) > 0
+                    const due          = hasDue(unit)
 
-                    // Non-adjacent merged flat: amber cell with "→ X" label
-                    if (isMerged && !absorbedByAdjacentPrimary.has(unit.id)) {
+                    if (isMerged) {
                       return (
                         <td key={letter} style={{ padding: '4px' }}>
                           <button
                             onClick={() => setSelected(unit)}
                             style={{
-                              width: '100%', height: '40px', borderRadius: '8px', border: '1px dashed #D97706',
-                              background: '#FEF9C3', color: '#92400E', fontWeight: 600, fontSize: '11px',
-                              cursor: 'pointer', transition: 'filter 0.15s', fontFamily: 'var(--font-body)',
-                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1.2,
+                              width: '100%', height: '44px', borderRadius: '8px',
+                              border: '2px dashed #D97706',
+                              background: '#FEF9C3', color: '#92400E',
+                              fontWeight: 600, fontSize: '11px',
+                              cursor: 'pointer', transition: 'filter 0.15s',
+                              fontFamily: 'var(--font-body)',
+                              display: 'flex', flexDirection: 'column',
+                              alignItems: 'center', justifyContent: 'center', lineHeight: 1.3,
                             }}
                             onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(0.94)')}
                             onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
                           >
                             <span>{unit.number}</span>
-                            {unit.mergedWith && <span style={{ fontSize: '9px', opacity: 0.8 }}>→ {unit.mergedWith.number}</span>}
+                            {unit.mergedWith && (
+                              <span style={{ fontSize: '9px', opacity: 0.75 }}>→ {unit.mergedWith.number}</span>
+                            )}
                           </button>
                         </td>
                       )
                     }
 
-                    // Primary cell (possibly spanning merged neighbour)
                     return (
-                      <td key={letter} colSpan={colspan} style={{ padding: '4px' }}>
+                      <td key={letter} style={{ padding: '4px' }}>
                         <button
                           onClick={() => setSelected(unit)}
                           style={{
-                            width: '100%', height: '40px', borderRadius: '8px', border: 'none',
+                            width: '100%', height: '44px', borderRadius: '8px', border: 'none',
                             background: due ? '#EF4444' : '#10B981',
-                            color: '#fff', fontWeight: 600, fontSize: '13px', letterSpacing: '0.02em',
+                            color: '#fff', fontWeight: 600, fontSize: '12px', letterSpacing: '0.02em',
                             cursor: 'pointer', transition: 'filter 0.15s', fontFamily: 'var(--font-body)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                            display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center', lineHeight: 1.3,
                           }}
                           onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(0.88)')}
                           onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
                         >
-                          {unit.number}
-                          {colspan > 1 && <span style={{ fontSize: '10px', opacity: 0.85, fontWeight: 400 }}>+ merged</span>}
+                          <span>{unit.number}</span>
+                          {hasMergedIn && (
+                            <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 400 }}>
+                              +{unit.mergedUnits!.map(m => m.number).join(', ')}
+                            </span>
+                          )}
                         </button>
                       </td>
                     )
@@ -180,6 +172,39 @@ export function FloorMapClient({ units }: { units: UnitData[] }) {
       >
         {selected && (
           <div>
+            {/* Merge notice — merged unit */}
+            {selected.occupancyType === 'MERGED' && selected.mergedWith && (
+              <div style={{
+                marginBottom: '1rem', padding: '10px 14px', borderRadius: '8px',
+                background: '#FFFBEB', border: '1px solid #FDE68A',
+                display: 'flex', alignItems: 'center', gap: '8px',
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, color: '#D97706' }}>
+                  <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span style={{ fontSize: '13px', color: '#92400E' }}>
+                  This flat is merged with <strong>Flat {selected.mergedWith.number}</strong>. Bills and records are managed under Flat {selected.mergedWith.number}.
+                </span>
+              </div>
+            )}
+
+            {/* Merge notice — primary with merged-in units */}
+            {(selected.mergedUnits?.length ?? 0) > 0 && (
+              <div style={{
+                marginBottom: '1rem', padding: '10px 14px', borderRadius: '8px',
+                background: '#F0FDF4', border: '1px solid #BBF7D0',
+                display: 'flex', alignItems: 'center', gap: '8px',
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, color: '#15803D' }}>
+                  <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span style={{ fontSize: '13px', color: '#14532D' }}>
+                  {selected.mergedUnits!.map(m => <strong key={m.id}>Flat {m.number}</strong>).reduce<React.ReactNode[]>((acc, el, i) => i === 0 ? [el] : [...acc, ', ', el], [])}{' '}
+                  {selected.mergedUnits!.length === 1 ? 'is' : 'are'} merged with this flat.
+                </span>
+              </div>
+            )}
+
             {/* Unit meta */}
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px',
@@ -244,10 +269,10 @@ export function FloorMapClient({ units }: { units: UnitData[] }) {
 
             {/* Summary totals */}
             {selected.bills.length > 0 && (() => {
-              const paid = selected.bills.filter(b => b.status === 'PAID')
+              const paid        = selected.bills.filter(b => b.status === 'PAID')
               const outstanding = selected.bills.filter(b => b.status !== 'PAID')
-              const paidTotal = paid.reduce((s, b) => s + b.amount, 0)
-              const dueTotal = outstanding.reduce((s, b) => s + b.amount, 0)
+              const paidTotal   = paid.reduce((s, b) => s + b.amount, 0)
+              const dueTotal    = outstanding.reduce((s, b) => s + b.amount, 0)
               return (
                 <div style={{ display: 'flex', gap: '10px', marginTop: '1rem', flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: '120px', padding: '10px 14px', borderRadius: '8px', background: '#DCFCE7', border: '1px solid #BBF7D0' }}>

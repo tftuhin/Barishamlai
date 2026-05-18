@@ -32,6 +32,7 @@ async function getDashboardData(role: string, userId: string, buildingId: string
           owner: { select: { name: true } },
           tenant: { select: { name: true } },
           mergedWith: { select: { id: true, number: true } },
+          mergedUnits: { select: { id: true, number: true } },
         },
       }),
       prisma.buildingConfig.findUnique({ where: { id: bId ?? 'none' } }),
@@ -44,6 +45,7 @@ async function getDashboardData(role: string, userId: string, buildingId: string
       occupancyType: u.occupancyType,
       mergedWithUnitId: u.mergedWithUnitId,
       mergedWith: u.mergedWith,
+      mergedUnits: u.mergedUnits,
       bills: u.bills.map(b => ({
         ...b,
         dueDate: b.dueDate.toISOString(),
