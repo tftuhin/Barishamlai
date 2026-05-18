@@ -15,13 +15,16 @@ export async function GET(req: NextRequest) {
 
   const bId = session.user.buildingId!
 
+  const startOfMonth = new Date(year, month - 1, 1)
+  const endOfMonth   = new Date(year, month, 0, 23, 59, 59, 999)
+
   const [bills, expenses, units] = await Promise.all([
     prisma.bill.findMany({
       where: { month, year, buildingId: bId },
       include: { unit: { include: { tenant: true } } },
       orderBy: { unit: { number: 'asc' } },
     }),
-    prisma.expense.findMany({ where: { month, year, buildingId: bId }, orderBy: { date: 'asc' } }),
+    prisma.expense.findMany({ where: { date: { gte: startOfMonth, lte: endOfMonth }, buildingId: bId }, orderBy: { date: 'asc' } }),
     prisma.unit.findMany({ where: { buildingId: bId }, orderBy: { number: 'asc' } }),
   ])
 
