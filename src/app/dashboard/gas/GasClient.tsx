@@ -48,6 +48,12 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
     return gasBills.find(b => b.unitId === unitId && b.month === month && b.year === year) ?? null
   }
 
+  async function deleteBill(billId: string) {
+    if (!confirm('Delete this bill?')) return
+    await fetch(`/api/bills/${billId}`, { method: 'DELETE' })
+    router.refresh()
+  }
+
   // Find most recent gas bill before target month for a unit
   function getPrevReading(unitId: string, targetMonth: number, targetYear: number): number | null {
     const prev = gasBills
@@ -356,6 +362,9 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
                               <div style={{ fontSize: '10px', color: isPaid ? '#166534' : '#991b1b', marginTop: '1px', fontWeight: 500 }}>
                                 {isPaid ? 'PAID' : bill.status}
                               </div>
+                              {!isReadOnly && (
+                                <button onClick={() => deleteBill(bill.id)} style={{ marginTop: '3px', background: 'none', border: 'none', cursor: 'pointer', color: isPaid ? '#166534' : '#991b1b', opacity: 0.5, padding: '0 2px', fontSize: '10px', lineHeight: 1 }} title="Delete bill">✕</button>
+                              )}
                             </div>
                           </td>
                         )

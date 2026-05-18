@@ -63,6 +63,12 @@ export function RentClient({ units, rentBills, featureRent, currentMonth, curren
     setLoading(null)
   }
 
+  async function deleteBill(billId: string) {
+    if (!confirm('Delete this bill?')) return
+    await fetch(`/api/bills/${billId}`, { method: 'DELETE' })
+    router.refresh()
+  }
+
   async function initiateRentBills() {
     if (!initDueDate) { setInitError('Please select a due date'); return }
     setInitiating(true); setInitError(''); setInitResult(null)
@@ -213,6 +219,9 @@ export function RentClient({ units, rentBills, featureRent, currentMonth, curren
                               >
                                 {loading === bill.id ? '…' : 'Mark Paid'}
                               </button>
+                            )}
+                            {isAdmin && (
+                              <button onClick={() => deleteBill(bill.id)} style={{ marginTop: 3, background: 'none', border: 'none', cursor: 'pointer', color: isPaid ? '#166534' : '#991b1b', opacity: 0.5, padding: '0 2px', fontSize: 10, lineHeight: 1 }} title="Delete bill">✕</button>
                             )}
                           </div>
                         </td>

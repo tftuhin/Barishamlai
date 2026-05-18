@@ -35,6 +35,12 @@ export function GarbageClient({ units, garbageBills, garbageExpenses, fundBalanc
     return garbageBills.find(b => b.unitId === unitId && b.month === month && b.year === year) ?? null
   }
 
+  async function deleteBill(billId: string) {
+    if (!confirm('Delete this bill?')) return
+    await fetch(`/api/bills/${billId}`, { method: 'DELETE' })
+    router.refresh()
+  }
+
   // Bill generation
   const [genMonth, setGenMonth]     = useState(String(currentMonth))
   const [genYear, setGenYear]       = useState(String(currentYear))
@@ -218,6 +224,9 @@ export function GarbageClient({ units, garbageBills, garbageExpenses, fundBalanc
                           <div style={{ fontSize: 10, color: isPaid ? '#166534' : '#991b1b', marginTop: 1, fontWeight: 500 }}>
                             {isPaid ? 'PAID' : bill.status}
                           </div>
+                          {!isReadOnly && (
+                            <button onClick={() => deleteBill(bill.id)} style={{ marginTop: 3, background: 'none', border: 'none', cursor: 'pointer', color: isPaid ? '#166534' : '#991b1b', opacity: 0.5, padding: '0 2px', fontSize: 10, lineHeight: 1 }} title="Delete bill">✕</button>
+                          )}
                         </div>
                       </td>
                     )

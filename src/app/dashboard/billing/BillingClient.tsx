@@ -56,6 +56,12 @@ export function BillingClient({ bills, units, role, userId, currentMonth, curren
     setLoading(null)
   }
 
+  async function deleteBill(billId: string) {
+    if (!confirm('Delete this bill?')) return
+    await fetch(`/api/bills/${billId}`, { method: 'DELETE' })
+    router.refresh()
+  }
+
   async function submitBill() {
     setError(''); setSaving(true)
     const res = await fetch('/api/bills', {
@@ -154,11 +160,16 @@ export function BillingClient({ bills, units, role, userId, currentMonth, curren
                     <td><Badge status={bill.status} /></td>
                     <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{bill.paidAt ? formatDate(bill.paidAt) : '—'}</td>
                     {(role === 'ADMIN' || role === 'OWNER') && (
-                      <td>
+                      <td style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         {canMarkPaid(bill) && (
                           <Button size="sm" onClick={() => markPaid(bill.id)} disabled={loading === bill.id}>
                             {loading === bill.id ? '...' : 'Mark Paid'}
                           </Button>
+                        )}
+                        {role === 'ADMIN' && (
+                          <button onClick={() => deleteBill(bill.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', borderRadius: 4 }} title="Delete bill">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </button>
                         )}
                       </td>
                     )}

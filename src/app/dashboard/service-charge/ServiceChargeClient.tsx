@@ -81,6 +81,12 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
     return bills.find(b => b.unitId === unitId && b.month === month && b.year === year) ?? null
   }
 
+  async function deleteBill(billId: string) {
+    if (!confirm('Delete this bill?')) return
+    await fetch(`/api/bills/${billId}`, { method: 'DELETE' })
+    router.refresh()
+  }
+
   // Preview for the selected month
   // Per-unit custom rate overrides the building-level standard
   const preview = units.map(u => {
@@ -188,6 +194,9 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
                         <div style={{ borderRadius: '8px', padding: '6px 4px', background: isPaid ? '#dcfce7' : '#fee2e2', border: `1px solid ${isPaid ? '#86efac' : '#fca5a5'}` }}>
                           <div style={{ fontSize: '12px', fontWeight: 600, color: isPaid ? '#15803d' : '#dc2626' }}>{formatCurrency(bill.amount)}</div>
                           <div style={{ fontSize: '10px', color: isPaid ? '#166534' : '#991b1b', marginTop: '1px', fontWeight: 500 }}>{isPaid ? 'PAID' : bill.status}</div>
+                          {!isReadOnly && (
+                            <button onClick={() => deleteBill(bill.id)} style={{ marginTop: '3px', background: 'none', border: 'none', cursor: 'pointer', color: isPaid ? '#166534' : '#991b1b', opacity: 0.5, padding: '0 2px', fontSize: '10px', lineHeight: 1 }} title="Delete bill">✕</button>
+                          )}
                         </div>
                       </td>
                     )
