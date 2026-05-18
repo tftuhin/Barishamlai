@@ -176,6 +176,7 @@ export function FloorMapClient({ units }: { units: UnitData[] }) {
         open={!!selected}
         onClose={() => setSelected(null)}
         title={`Flat ${selected?.number} — Transactions`}
+        maxWidth="860px"
       >
         {selected && (
           <div>

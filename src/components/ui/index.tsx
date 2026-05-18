@@ -168,7 +168,7 @@ export function EmptyState({ title, description, action }: { title: string; desc
   )
 }
 
-export function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+export function Modal({ open, onClose, title, children, maxWidth }: { open: boolean; onClose: () => void; title: string; children: ReactNode; maxWidth?: string }) {
   return (
     <AnimatePresence>
       {open && (
@@ -189,7 +189,7 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.93, y: 20 }}
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-            style={{ position: 'relative', background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '520px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}
+            style={{ position: 'relative', background: '#fff', borderRadius: '16px', width: '100%', maxWidth: maxWidth ?? '520px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--brand)', margin: 0 }}>{title}</h2>
