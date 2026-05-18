@@ -431,7 +431,10 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
               </div>
               <div>
                 <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Date</label>
-                <input type="date" value={expForm.date} onChange={e => setExpForm({ ...expForm, date: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                <input type="date" value={expForm.date} onChange={e => {
+                  const d = new Date(e.target.value)
+                  setExpForm({ ...expForm, date: e.target.value, month: String(d.getMonth() + 1), year: String(d.getFullYear()) })
+                }} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
               </div>
             </div>
             <div style={{ marginBottom: '1rem' }}>

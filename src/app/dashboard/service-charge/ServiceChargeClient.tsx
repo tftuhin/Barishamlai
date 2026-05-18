@@ -260,7 +260,10 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
         </FormField>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <FormField label="Amount (৳)"><input type="number" value={expForm.amount} onChange={e => setExpForm({ ...expForm, amount: e.target.value })} style={inputStyle} placeholder="0" /></FormField>
-          <FormField label="Date"><input type="date" value={expForm.date} onChange={e => setExpForm({ ...expForm, date: e.target.value })} style={inputStyle} /></FormField>
+          <FormField label="Date"><input type="date" value={expForm.date} onChange={e => {
+          const d = new Date(e.target.value)
+          setExpForm({ ...expForm, date: e.target.value, month: String(d.getMonth() + 1), year: String(d.getFullYear()) })
+        }} style={inputStyle} /></FormField>
         </div>
         <FormField label="Description (optional)"><input value={expForm.description} onChange={e => setExpForm({ ...expForm, description: e.target.value })} style={inputStyle} /></FormField>
         {expError && <p style={{ color: '#dc2626', fontSize: 13 }}>{expError}</p>}
