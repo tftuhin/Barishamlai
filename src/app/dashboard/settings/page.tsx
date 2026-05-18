@@ -10,6 +10,8 @@ export default async function SettingsPage() {
 
   const bId = session.user.buildingId ?? undefined
 
+  const building = await prisma.building.findUnique({ where: { id: bId ?? '' }, select: { name: true, address: true } })
+
   const [users, joinRequests, invitations, config, units, fundBalances] = await Promise.all([
     prisma.user.findMany({
       where: { buildingId: bId },
@@ -42,7 +44,8 @@ export default async function SettingsPage() {
       users={users}
       currentUserId={session.user.id}
       buildingId={bId ?? ''}
-      buildingName={session.user.buildingName ?? ''}
+      buildingName={building?.name ?? session.user.buildingName ?? ''}
+      buildingAddress={building?.address ?? ''}
       joinRequests={joinRequests}
       invitations={invitations}
       config={config}

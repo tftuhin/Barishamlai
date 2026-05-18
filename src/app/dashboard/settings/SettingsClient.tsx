@@ -50,7 +50,7 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
 }
 
 export function SettingsClient({
-  users, currentUserId, buildingId, buildingName,
+  users, currentUserId, buildingId, buildingName, buildingAddress = '',
   joinRequests: initialJoinRequests,
   invitations: initialInvitations,
   config: initialConfig = null,
@@ -61,6 +61,7 @@ export function SettingsClient({
   currentUserId: string
   buildingId: string
   buildingName: string
+  buildingAddress?: string
   joinRequests: any[]
   invitations: any[]
   config?: Config | null
@@ -98,6 +99,12 @@ export function SettingsClient({
   const [configSaving, setConfigSaving] = useState(false)
   const [configMsg, setConfigMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
+  // ── Building Info ──
+  const [bldgName, setBldgName] = useState(buildingName)
+  const [bldgAddress, setBldgAddress] = useState(buildingAddress)
+  const [bldgSaving, setBldgSaving] = useState(false)
+  const [bldgMsg, setBldgMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
   async function submitUser() {
     setError(''); setSaving(true)
     const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
@@ -123,6 +130,18 @@ export function SettingsClient({
     if (res.ok) { setConfig(await res.json()); setConfigMsg({ ok: true, text: 'Configuration saved.' }) }
     else { setConfigMsg({ ok: false, text: 'Failed to save. Please try again.' }) }
     setConfigSaving(false)
+  }
+
+  async function saveBuilding() {
+    if (!bldgName.trim()) { setBldgMsg({ ok: false, text: 'Building name cannot be empty.' }); return }
+    setBldgSaving(true); setBldgMsg(null)
+    const res = await fetch('/api/building', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: bldgName.trim(), address: bldgAddress.trim() || null }),
+    })
+    if (res.ok) { setBldgMsg({ ok: true, text: 'Building info updated.' }); router.refresh() }
+    else { setBldgMsg({ ok: false, text: 'Failed to save. Please try again.' }) }
+    setBldgSaving(false)
   }
 
   async function handleJoinRequest(id: string, status: 'APPROVED' | 'REJECTED') {
@@ -368,6 +387,26 @@ export function SettingsClient({
       {/* ════ CONFIGURATION TAB ════ */}
       {tab === 'config' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Building Info */}
+          <Card>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--brand)', margin: 0 }}>Building Information</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0' }}>Update the building name and address shown across the app.</p>
+            </div>
+            <div style={{ padding: '1.25rem 1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <FormField label="Building Name">
+                <input value={bldgName} onChange={e => setBldgName(e.target.value)} style={inputStyle} placeholder="e.g. Sunshine Heights" />
+              </FormField>
+              <FormField label="Address">
+                <input value={bldgAddress} onChange={e => setBldgAddress(e.target.value)} style={inputStyle} placeholder="e.g. 12 Main Road, Dhaka" />
+              </FormField>
+            </div>
+            <div style={{ padding: '0 1.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <Button onClick={saveBuilding} disabled={bldgSaving}>{bldgSaving ? 'Saving...' : 'Save Building Info'}</Button>
+              {bldgMsg && <span style={{ fontSize: '13px', color: bldgMsg.ok ? '#15803d' : '#dc2626', fontWeight: 500 }}>{bldgMsg.ok ? '✓ ' : '✗ '}{bldgMsg.text}</span>}
+            </div>
+          </Card>
+
           <Card>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--brand)', margin: 0 }}>Billing Features</h3>
