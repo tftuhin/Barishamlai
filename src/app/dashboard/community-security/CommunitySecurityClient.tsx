@@ -125,6 +125,11 @@ export function CommunitySecurityClient({ units, csBills, csExpenses, fundBalanc
     router.refresh()
   }
 
+  async function markPaid(billId: string) {
+    await fetch(`/api/bills/${billId}/pay`, { method: 'PATCH' })
+    router.refresh()
+  }
+
   const inputSt: React.CSSProperties = {
     width: '100%', padding: '8px 12px', borderRadius: 8,
     border: '1px solid var(--border)', background: 'transparent',
@@ -222,6 +227,9 @@ export function CommunitySecurityClient({ units, csBills, csExpenses, fundBalanc
                           <div style={{ fontSize: 10, color: isPaid ? '#166534' : '#991b1b', marginTop: 1, fontWeight: 500 }}>
                             {isPaid ? 'PAID' : bill.status}
                           </div>
+                          {!isPaid && !isReadOnly && (
+                            <button onClick={() => markPaid(bill.id)} style={{ marginTop: 3, padding: '1px 5px', fontSize: '9px', fontWeight: 600, borderRadius: 3, border: 'none', background: '#15803d', color: '#fff', cursor: 'pointer', display: 'block', width: '100%' }} title="Mark as paid">✓ Paid</button>
+                          )}
                           {isPaid && !isReadOnly && (
                             <button onClick={() => revertBill(bill.id)} style={{ marginTop: 3, padding: '1px 5px', fontSize: '9px', fontWeight: 600, borderRadius: 3, border: '1px solid #166534', background: 'transparent', color: '#166534', cursor: 'pointer', display: 'block', width: '100%' }} title="Mark as due">→ Due</button>
                           )}

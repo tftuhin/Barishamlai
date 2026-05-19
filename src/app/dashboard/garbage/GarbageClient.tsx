@@ -46,6 +46,11 @@ export function GarbageClient({ units, garbageBills, garbageExpenses, fundBalanc
     router.refresh()
   }
 
+  async function markPaid(billId: string) {
+    await fetch(`/api/bills/${billId}/pay`, { method: 'PATCH' })
+    router.refresh()
+  }
+
   // Bill generation
   const [genMonth, setGenMonth]     = useState(String(currentMonth))
   const [genYear, setGenYear]       = useState(String(currentYear))
@@ -231,6 +236,9 @@ export function GarbageClient({ units, garbageBills, garbageExpenses, fundBalanc
                           </div>
                           {!isReadOnly && (
                             <>
+                              {!isPaid && (
+                                <button onClick={() => markPaid(bill.id)} style={{ marginTop: 3, padding: '1px 5px', fontSize: '9px', fontWeight: 600, borderRadius: 3, border: 'none', background: '#15803d', color: '#fff', cursor: 'pointer', display: 'block', width: '100%' }} title="Mark as paid">✓ Paid</button>
+                              )}
                               {isPaid && (
                                 <button onClick={() => revertBill(bill.id)} style={{ marginTop: 3, padding: '1px 5px', fontSize: '9px', fontWeight: 600, borderRadius: 3, border: '1px solid #166534', background: 'transparent', color: '#166534', cursor: 'pointer', display: 'block', width: '100%' }} title="Mark as due">→ Due</button>
                               )}

@@ -131,6 +131,11 @@ export function WaterClient({ units, waterBills, waterExpenses, fundBalance, mon
     router.refresh()
   }
 
+  async function markPaid(billId: string) {
+    await fetch(`/api/bills/${billId}/pay`, { method: 'PATCH' })
+    router.refresh()
+  }
+
   const totalPaid     = waterBills.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0)
   const totalDue      = waterBills.filter(b => b.status !== 'PAID').reduce((s, b) => s + b.amount, 0)
   const totalExpenses = waterExpenses.reduce((s, e) => s + e.amount, 0)
@@ -312,6 +317,9 @@ export function WaterClient({ units, waterBills, waterExpenses, fundBalance, mon
                           </div>
                           {!isReadOnly && (
                             <>
+                              {!isPaid && (
+                                <button onClick={() => markPaid(bill.id)} style={{ marginTop: 3, padding: '1px 5px', fontSize: '9px', fontWeight: 600, borderRadius: 3, border: 'none', background: '#15803d', color: '#fff', cursor: 'pointer', display: 'block', width: '100%' }} title="Mark as paid">✓ Paid</button>
+                              )}
                               {isPaid && (
                                 <button onClick={() => revertBill(bill.id)} style={{ marginTop: 3, padding: '1px 5px', fontSize: '9px', fontWeight: 600, borderRadius: 3, border: '1px solid #166534', background: 'transparent', color: '#166534', cursor: 'pointer', display: 'block', width: '100%' }} title="Mark as due">→ Due</button>
                               )}
