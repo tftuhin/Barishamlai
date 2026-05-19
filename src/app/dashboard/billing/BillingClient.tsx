@@ -56,6 +56,13 @@ export function BillingClient({ bills, units, role, userId, currentMonth, curren
     setLoading(null)
   }
 
+  async function revertBill(billId: string) {
+    setLoading(billId)
+    await fetch(`/api/bills/${billId}/pay`, { method: 'DELETE' })
+    router.refresh()
+    setLoading(null)
+  }
+
   async function deleteBill(billId: string) {
     if (!confirm('Delete this bill?')) return
     await fetch(`/api/bills/${billId}`, { method: 'DELETE' })
@@ -164,6 +171,11 @@ export function BillingClient({ bills, units, role, userId, currentMonth, curren
                         {canMarkPaid(bill) && (
                           <Button size="sm" onClick={() => markPaid(bill.id)} disabled={loading === bill.id}>
                             {loading === bill.id ? '...' : 'Mark Paid'}
+                          </Button>
+                        )}
+                        {role === 'ADMIN' && bill.status === 'PAID' && (
+                          <Button size="sm" variant="secondary" onClick={() => revertBill(bill.id)} disabled={loading === bill.id}>
+                            {loading === bill.id ? '...' : 'Mark Due'}
                           </Button>
                         )}
                         {role === 'ADMIN' && (

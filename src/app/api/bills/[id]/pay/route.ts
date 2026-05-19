@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { ok, Err, requireAuth } from '@/lib/api'
+import { ok, Err, requireAuth, requireAdmin } from '@/lib/api'
 import { sendEmail, emailBase, amountBox, detailTable } from '@/lib/email'
 import { getBillTypeLabel, getMonthName } from '@/lib/utils'
 
@@ -112,5 +112,28 @@ export async function PATCH(_req: NextRequest, { params }: { params: { id: strin
     return ok(updated)
   } catch {
     return Err.internal('Failed to update bill')
+  }
+}
+
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const [session, e] = await requireAdmin()
+  if (e) return e
+
+  try {
+    const bill = await prisma.bill.findUnique({
+      where: { id: params.id },
+      select: { buildingId: true, status: true },
+    })
+    if (!bill) return Err.notFound('Bill not found')
+    if (bill.buildingId !== session.user.buildingId) return Err.forbidden()
+    if (bill.status !== 'PAID') return Err.badRequest('Bill is not paid')
+
+    const updated = await prisma.bill.update({
+      where: { id: params.id },
+      data: { status: 'PENDING', paidAt: null },
+    })
+    return ok(updated)
+  } catch {
+    return Err.internal('Failed to revert bill')
   }
 }

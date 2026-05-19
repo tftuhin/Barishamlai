@@ -84,12 +84,11 @@ export function CommunitySecurityClient({ units, csBills, csExpenses, fundBalanc
     amount: '',
     date: now.toISOString().split('T')[0],
     description: '',
-    month: String(currentMonth),
-    year: String(currentYear),
   })
 
   async function submitExpense() {
     setExpError(''); setSavingExp(true)
+    const d = new Date(expForm.date)
     const res = await fetch('/api/expenses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -101,8 +100,8 @@ export function CommunitySecurityClient({ units, csBills, csExpenses, fundBalanc
         incomeSource: 'COMMUNITY_SECURITY',
         date: expForm.date,
         description: expForm.description,
-        month: Number(expForm.month),
-        year: Number(expForm.year),
+        month: d.getMonth() + 1,
+        year: d.getFullYear(),
       }),
     })
     if (res.ok) {
@@ -118,6 +117,11 @@ export function CommunitySecurityClient({ units, csBills, csExpenses, fundBalanc
   async function deleteExpense(id: string) {
     if (!confirm('Delete this expense?')) return
     await fetch(`/api/expenses/${id}`, { method: 'DELETE' })
+    router.refresh()
+  }
+
+  async function revertBill(billId: string) {
+    await fetch(`/api/bills/${billId}/pay`, { method: 'DELETE' })
     router.refresh()
   }
 
@@ -218,6 +222,9 @@ export function CommunitySecurityClient({ units, csBills, csExpenses, fundBalanc
                           <div style={{ fontSize: 10, color: isPaid ? '#166534' : '#991b1b', marginTop: 1, fontWeight: 500 }}>
                             {isPaid ? 'PAID' : bill.status}
                           </div>
+                          {isPaid && !isReadOnly && (
+                            <button onClick={() => revertBill(bill.id)} style={{ marginTop: 3, padding: '1px 5px', fontSize: '9px', fontWeight: 600, borderRadius: 3, border: '1px solid #166534', background: 'transparent', color: '#166534', cursor: 'pointer', display: 'block', width: '100%' }} title="Mark as due">→ Due</button>
+                          )}
                         </div>
                       </td>
                     )
@@ -326,18 +333,6 @@ export function CommunitySecurityClient({ units, csBills, csExpenses, fundBalanc
               <div>
                 <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Date</label>
                 <input type="date" value={expForm.date} onChange={e => setExpForm({ ...expForm, date: e.target.value })} style={inputSt} />
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div>
-                <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Month</label>
-                <select value={expForm.month} onChange={e => setExpForm({ ...expForm, month: e.target.value })} style={{ ...inputSt, padding: '8px 10px' }}>
-                  {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Year</label>
-                <input type="number" value={expForm.year} onChange={e => setExpForm({ ...expForm, year: e.target.value })} style={inputSt} min="2020" max="2035" />
               </div>
             </div>
             <div style={{ marginBottom: '1rem' }}>

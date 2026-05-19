@@ -88,6 +88,11 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
     router.refresh()
   }
 
+  async function revertBill(billId: string) {
+    await fetch(`/api/bills/${billId}/pay`, { method: 'DELETE' })
+    router.refresh()
+  }
+
   // Preview for the selected month
   // Per-unit custom rate overrides the building-level standard
   const preview = units.map(u => {
@@ -196,7 +201,12 @@ export function ServiceChargeClient({ units, bills, scExpenses, fundBalance, ser
                           <div style={{ fontSize: '12px', fontWeight: 600, color: isPaid ? '#15803d' : '#dc2626' }}>{formatCurrency(bill.amount)}</div>
                           <div style={{ fontSize: '10px', color: isPaid ? '#166534' : '#991b1b', marginTop: '1px', fontWeight: 500 }}>{isPaid ? 'PAID' : bill.status}</div>
                           {!isReadOnly && (
-                            <button onClick={() => deleteBill(bill.id)} style={{ marginTop: '3px', background: 'none', border: 'none', cursor: 'pointer', color: isPaid ? '#166534' : '#991b1b', opacity: 0.5, padding: '0 2px', fontSize: '10px', lineHeight: 1 }} title="Delete bill">✕</button>
+                            <>
+                              {isPaid && (
+                                <button onClick={() => revertBill(bill.id)} style={{ marginTop: '3px', padding: '1px 5px', fontSize: '9px', fontWeight: 600, borderRadius: 3, border: '1px solid #166534', background: 'transparent', color: '#166534', cursor: 'pointer', display: 'block', width: '100%' }} title="Mark as due">→ Due</button>
+                              )}
+                              <button onClick={() => deleteBill(bill.id)} style={{ marginTop: '3px', background: 'none', border: 'none', cursor: 'pointer', color: isPaid ? '#166534' : '#991b1b', opacity: 0.5, padding: '0 2px', fontSize: '10px', lineHeight: 1 }} title="Delete bill">✕</button>
+                            </>
                           )}
                         </div>
                       </td>

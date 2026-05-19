@@ -54,6 +54,11 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
     router.refresh()
   }
 
+  async function revertBill(billId: string) {
+    await fetch(`/api/bills/${billId}/pay`, { method: 'DELETE' })
+    router.refresh()
+  }
+
   // Find most recent gas bill before target month for a unit
   function getPrevReading(unitId: string, targetMonth: number, targetYear: number): number | null {
     const prev = gasBills
@@ -364,7 +369,12 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
                                 {isPaid ? 'PAID' : bill.status}
                               </div>
                               {!isReadOnly && (
-                                <button onClick={() => deleteBill(bill.id)} style={{ marginTop: '3px', background: 'none', border: 'none', cursor: 'pointer', color: isPaid ? '#166534' : '#991b1b', opacity: 0.5, padding: '0 2px', fontSize: '10px', lineHeight: 1 }} title="Delete bill">✕</button>
+                                <>
+                                  {isPaid && (
+                                    <button onClick={() => revertBill(bill.id)} style={{ marginTop: '3px', padding: '1px 5px', fontSize: '9px', fontWeight: 600, borderRadius: 3, border: '1px solid #166534', background: 'transparent', color: '#166534', cursor: 'pointer', display: 'block', width: '100%' }} title="Mark as due">→ Due</button>
+                                  )}
+                                  <button onClick={() => deleteBill(bill.id)} style={{ marginTop: '3px', background: 'none', border: 'none', cursor: 'pointer', color: isPaid ? '#166634' : '#991b1b', opacity: 0.5, padding: '0 2px', fontSize: '10px', lineHeight: 1 }} title="Delete bill">✕</button>
+                                </>
                               )}
                             </div>
                           </td>

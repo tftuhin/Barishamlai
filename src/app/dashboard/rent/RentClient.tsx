@@ -63,6 +63,13 @@ export function RentClient({ units, rentBills, featureRent, currentMonth, curren
     setLoading(null)
   }
 
+  async function revertBill(billId: string) {
+    setLoading(billId)
+    await fetch(`/api/bills/${billId}/pay`, { method: 'DELETE' })
+    router.refresh()
+    setLoading(null)
+  }
+
   async function deleteBill(billId: string) {
     if (!confirm('Delete this bill?')) return
     await fetch(`/api/bills/${billId}`, { method: 'DELETE' })
@@ -218,6 +225,16 @@ export function RentClient({ units, rentBills, featureRent, currentMonth, curren
                                 style={{ marginTop: 4, padding: '2px 8px', fontSize: 10, fontWeight: 600, borderRadius: 4, border: 'none', background: '#15803d', color: '#fff', cursor: 'pointer', opacity: loading === bill.id ? 0.6 : 1 }}
                               >
                                 {loading === bill.id ? '…' : 'Mark Paid'}
+                              </button>
+                            )}
+                            {isAdmin && isPaid && (
+                              <button
+                                onClick={() => revertBill(bill.id)}
+                                disabled={loading === bill.id}
+                                style={{ marginTop: 4, padding: '2px 8px', fontSize: 10, fontWeight: 600, borderRadius: 4, border: '1px solid #166534', background: 'transparent', color: '#166534', cursor: 'pointer', opacity: loading === bill.id ? 0.6 : 1 }}
+                                title="Mark as due"
+                              >
+                                {loading === bill.id ? '…' : '→ Due'}
                               </button>
                             )}
                             {isAdmin && (
