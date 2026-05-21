@@ -6,16 +6,6 @@ import { formatCurrency, getMonthName } from '@/lib/utils'
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => ({ val: i + 1, label: getMonthName(i + 1) }))
 
-function getLastMonths(n = 12) {
-  const out = []
-  const now = new Date()
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    out.push({ month: d.getMonth() + 1, year: d.getFullYear() })
-  }
-  return out
-}
-
 type BatchRow = {
   unitId: string
   unitNumber: string
@@ -31,7 +21,11 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
   gasUnitRate: number; currentMonth: number; currentYear: number; isReadOnly?: boolean
 }) {
   const router = useRouter()
-  const months = getLastMonths(12)
+
+  const billYears = Array.from(new Set(gasBills.map((b: any) => b.year as number))).sort()
+  const yearOptions = Array.from(new Set([...billYears, currentYear, currentYear + 1])).sort()
+  const [selectedYear, setSelectedYear] = useState(currentYear)
+  const months = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, year: selectedYear }))
 
   // Matrix view state
   const [view, setView] = useState<'matrix' | 'batch'>('matrix')
@@ -322,6 +316,17 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
       {/* ── MATRIX VIEW ── */}
       {view === 'matrix' && (
         <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1rem' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Year:</span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {yearOptions.map(y => (
+                <button key={y} onClick={() => setSelectedYear(y)} style={{ padding: '4px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid', background: selectedYear === y ? 'var(--brand)' : 'transparent', color: selectedYear === y ? '#fff' : 'var(--text-secondary)', borderColor: selectedYear === y ? 'var(--brand)' : 'var(--border)' }}>
+                  {y}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div style={{ display: 'flex', gap: '16px', marginBottom: '1rem', flexWrap: 'wrap' }}>
             {[
               { color: '#dcfce7', border: '#86efac', label: 'Paid' },
