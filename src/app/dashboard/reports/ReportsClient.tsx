@@ -1,8 +1,17 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Card, PageHeader, Button, StatCard } from '@/components/ui'
 import { formatCurrency, getMonthName, getBillTypeLabel } from '@/lib/utils'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+
+const COLLECTION_FUNDS = [
+  { type: 'SERVICE_CHARGE',    label: 'Service Charge',    color: '#1d4ed8' },
+  { type: 'RENT',              label: 'Rent',              color: '#dc2626' },
+  { type: 'GAS',               label: 'Gas',               color: '#d97706' },
+  { type: 'WATER',             label: 'Water',             color: '#0284c7' },
+  { type: 'GARBAGE',           label: 'Garbage',           color: '#16a34a' },
+  { type: 'COMMUNITY_SECURITY',label: 'Community Security',color: '#9333ea' },
+]
 
 const COLORS = ['#1e3a5f','#c9a84c','#10b981','#f59e0b','#3b82f6','#8b5cf6']
 
@@ -34,11 +43,13 @@ function FundCard({ label, collected, expenses, color }: { label: string; collec
 export function ReportsClient({ bills, expenses, totalUnits, currentMonth, currentYear, fundBalances, unitOpeningBalances }: {
   bills: any[]; expenses: any[]; totalUnits: number; currentMonth: number; currentYear: number; fundBalances: any[]; unitOpeningBalances: any[]
 }) {
-  const [reportType, setReportType] = useState<'summary' | 'monthly' | 'annual'>('summary')
+  const [reportType, setReportType] = useState<'summary' | 'monthly' | 'annual' | 'collection'>('summary')
   const [selMonth, setSelMonth] = useState(currentMonth)
   const [selYear, setSelYear] = useState(currentYear)
   const [selFund, setSelFund] = useState<'SERVICE_CHARGE' | 'GAS'>('SERVICE_CHARGE')
   const [generating, setGenerating] = useState(false)
+  const [collFundType, setCollFundType] = useState('SERVICE_CHARGE')
+  const printRef = useRef<HTMLDivElement>(null)
 
   const monthBills    = bills
     .filter(b => b.month === selMonth && b.year === selYear)
@@ -104,6 +115,29 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
     }))
     .sort((a, b) => a.unit.localeCompare(b.unit, undefined, { numeric: true }))
 
+  function printSheet() {
+    const content = printRef.current
+    if (!content) return
+    const win = window.open('', '_blank', 'width=950,height=750')
+    if (!win) return
+    win.document.write(`<!DOCTYPE html><html><head><title>Collection Sheet</title><style>
+      body { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; color: #111; }
+      h2 { margin: 0 0 4px; font-size: 18px; }
+      .subtitle { color: #555; margin: 0 0 16px; font-size: 12px; }
+      table { width: 100%; border-collapse: collapse; }
+      th { background: #f1f5f9; padding: 8px 10px; text-align: left; font-size: 11px; border: 1px solid #cbd5e1; }
+      td { padding: 8px 10px; border: 1px solid #e2e8f0; font-size: 12px; }
+      tr:nth-child(even) td { background: #f8fafc; }
+      .paid { color: #15803d; font-weight: 700; }
+      .pending { color: #9a3412; font-weight: 700; }
+      tfoot td { font-weight: 700; background: #f1f5f9; border-top: 2px solid #94a3b8; }
+      @media print { body { margin: 10mm; } }
+    </style></head><body>${content.innerHTML}</body></html>`)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print() }, 300)
+  }
+
   async function downloadPDF() {
     setGenerating(true)
     window.open(`/api/reports/monthly?month=${selMonth}&year=${selYear}`, '_blank')
@@ -141,9 +175,10 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
       {/* Report type tabs */}
       <div style={{ display: 'flex', gap: 12, marginBottom: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
         {[
-          { key: 'summary', label: 'Summary' },
-          { key: 'monthly', label: 'Monthly Report' },
-          { key: 'annual', label: 'Annual Report' },
+          { key: 'summary',    label: 'Summary' },
+          { key: 'monthly',    label: 'Monthly Report' },
+          { key: 'annual',     label: 'Annual Report' },
+          { key: 'collection', label: 'Collection Sheet' },
         ].map(t => (
           <button key={t.key} onClick={() => setReportType(t.key as any)} style={{
             padding: '10px 20px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
@@ -406,6 +441,142 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
               </table>
             </Card>
           )}
+          </>
+        )
+      })()}
+
+      {/* ── COLLECTION SHEET ── */}
+      {reportType === 'collection' && (() => {
+        const activeFund = COLLECTION_FUNDS.find(f => f.type === collFundType) ?? COLLECTION_FUNDS[0]
+        const sheetBills = bills
+          .filter(b => b.type === collFundType && b.month === selMonth && b.year === selYear)
+          .slice()
+          .sort((a, b) => {
+            const na = parseInt(a.unit?.number ?? '0') || 0
+            const nb = parseInt(b.unit?.number ?? '0') || 0
+            return na !== nb ? na - nb : (a.unit?.number ?? '').localeCompare(b.unit?.number ?? '')
+          })
+
+        const sheetTotal = sheetBills.reduce((s, b) => s + b.amount, 0)
+        const sheetPaid  = sheetBills.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0)
+        const sheetDue   = sheetTotal - sheetPaid
+
+        const STATUS_PILL: Record<string, React.CSSProperties> = {
+          PAID:    { background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' },
+          PENDING: { background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' },
+          OVERDUE: { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' },
+        }
+
+        return (
+          <>
+            <p style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', color: 'var(--text-secondary)', margin: '0 0 1.25rem' }}>
+              {getMonthName(selMonth)} {selYear} — {activeFund.label}
+            </p>
+
+            {/* Fund tabs */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: '1.5rem' }}>
+              {COLLECTION_FUNDS.map(f => (
+                <button key={f.type} onClick={() => setCollFundType(f.type)} style={{
+                  padding: '8px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', border: 'none',
+                  borderRadius: 8, transition: 'all 0.15s',
+                  background: collFundType === f.type ? f.color : 'var(--surface-subtle)',
+                  color: collFundType === f.type ? '#fff' : 'var(--text-secondary)',
+                }}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {sheetBills.length === 0 ? (
+              <Card style={{ padding: '2rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>
+                No {activeFund.label} bills found for {getMonthName(selMonth)} {selYear}.
+              </Card>
+            ) : (
+              <>
+                {/* Summary */}
+                <div style={{ display: 'flex', gap: 16, marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Total Billed',  value: sheetTotal, color: '#1e40af' },
+                    { label: 'Collected',     value: sheetPaid,  color: '#15803d' },
+                    { label: 'Outstanding',   value: sheetDue,   color: sheetDue > 0 ? '#dc2626' : '#15803d' },
+                  ].map(s => (
+                    <Card key={s.label} style={{ padding: '10px 18px', minWidth: 140 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>{s.label}</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 700, color: s.color }}>{formatCurrency(s.value)}</div>
+                    </Card>
+                  ))}
+                  <button onClick={printSheet} style={{
+                    padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)',
+                    background: 'transparent', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 6, alignSelf: 'center',
+                  }}>
+                    🖨 Print Sheet
+                  </button>
+                </div>
+
+                {/* Printable table */}
+                <Card>
+                  <div ref={printRef}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+                      <h2 style={{ margin: '0 0 2px', fontSize: 16, fontWeight: 700 }}>
+                        {activeFund.label} — Cash Collection Sheet
+                      </h2>
+                      <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+                        {getMonthName(selMonth)} {selYear} &nbsp;|&nbsp; Generated {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ background: 'var(--surface-subtle)' }}>
+                            {['#', 'Flat', 'Floor', 'Owner', 'Occupant', 'Amount (৳)', 'Status', 'Signature'].map(h => (
+                              <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, fontSize: 11, borderBottom: '2px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sheetBills.map((bill, idx) => {
+                            const unit = bill.unit ?? {}
+                            const ownerName = unit.owner?.name ?? '—'
+                            const tenant = unit.tenant?.name
+                            const ownerName2 = unit.owner?.name
+                            const occupant = tenant ?? (ownerName2 ? ownerName2 : '')
+                            const pill = STATUS_PILL[bill.status] ?? STATUS_PILL.PENDING
+                            return (
+                              <tr key={bill.id} style={{ background: idx % 2 === 0 ? '#fff' : 'var(--surface-subtle)' }}>
+                                <td style={{ padding: '9px 12px', color: 'var(--text-muted)', fontSize: 12 }}>{idx + 1}</td>
+                                <td style={{ padding: '9px 12px', fontWeight: 600 }}>Flat {unit.number ?? '—'}</td>
+                                <td style={{ padding: '9px 12px', color: 'var(--text-secondary)' }}>Floor {unit.floor ?? '—'}</td>
+                                <td style={{ padding: '9px 12px' }}>{ownerName}</td>
+                                <td style={{ padding: '9px 12px', color: occupant ? 'inherit' : 'var(--text-muted)', fontStyle: occupant ? 'normal' : 'italic' }}>
+                                  {occupant || 'Vacant'}
+                                </td>
+                                <td style={{ padding: '9px 12px', fontWeight: 700 }}>{formatCurrency(bill.amount)}</td>
+                                <td style={{ padding: '9px 12px' }}>
+                                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, ...pill }}>
+                                    {bill.status}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '9px 12px', minWidth: 120, borderLeft: '1px dashed var(--border)' }}>&nbsp;</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr style={{ background: 'var(--surface-subtle)', fontWeight: 700 }}>
+                            <td colSpan={5} style={{ padding: '9px 12px', fontSize: 13, borderTop: '2px solid var(--border)' }}>
+                              Total ({sheetBills.length} flat{sheetBills.length !== 1 ? 's' : ''})
+                            </td>
+                            <td style={{ padding: '9px 12px', fontSize: 13, borderTop: '2px solid var(--border)' }}>{formatCurrency(sheetTotal)}</td>
+                            <td colSpan={2} style={{ padding: '9px 12px', borderTop: '2px solid var(--border)' }}></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                </Card>
+              </>
+            )}
           </>
         )
       })()}

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, FormField, inputStyle, selectStyle } from '@/components/ui'
 import { formatCurrency, getMonthName } from '@/lib/utils'
 
@@ -34,10 +34,6 @@ type BillRow = {
 }
 type ExistingBill = { id: string; month: number; year: number; type: string; amount: number; status: string }
 type EditForm = { month: string; year: string; billType: string; amount: string; status: string }
-type CollectionBill = {
-  id: string; amount: number; status: string
-  unit: { number: string; floor: number; tenant?: { name: string } | null; owner?: { name: string } | null }
-}
 
 const now = new Date()
 const THIS_YEAR = String(now.getFullYear())
@@ -193,47 +189,6 @@ export function MigrationTab({
     setSubmitting(false)
   }
 
-  // ── Collection Sheet ──────────────────────────────────────────────────────
-  const [sheetModule, setSheetModule]     = useState<ModuleInfo>(activeModules[0] ?? ALL_MODULES[0])
-  const [sheetMonth, setSheetMonth]       = useState(String(now.getMonth() + 1))
-  const [sheetYear, setSheetYear]         = useState(THIS_YEAR)
-  const [sheetBills, setSheetBills]       = useState<CollectionBill[] | null>(null)
-  const [sheetLoading, setSheetLoading]   = useState(false)
-  const printRef                          = useRef<HTMLDivElement>(null)
-
-  async function generateSheet() {
-    setSheetLoading(true); setSheetBills(null)
-    try {
-      const res = await fetch(`/api/bills?type=${sheetModule.fundType}&month=${sheetMonth}&year=${sheetYear}`)
-      if (res.ok) setSheetBills(await res.json())
-    } finally {
-      setSheetLoading(false)
-    }
-  }
-
-  function printSheet() {
-    const content = printRef.current
-    if (!content) return
-    const win = window.open('', '_blank', 'width=900,height=700')
-    if (!win) return
-    win.document.write(`<!DOCTYPE html><html><head><title>Collection Sheet</title><style>
-      body { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; color: #111; }
-      h2 { margin: 0 0 4px; font-size: 18px; }
-      .subtitle { color: #555; margin: 0 0 16px; font-size: 12px; }
-      table { width: 100%; border-collapse: collapse; }
-      th { background: #f1f5f9; padding: 8px 10px; text-align: left; font-size: 11px; border: 1px solid #cbd5e1; }
-      td { padding: 8px 10px; border: 1px solid #e2e8f0; font-size: 12px; }
-      tr:nth-child(even) td { background: #f8fafc; }
-      .paid { color: #15803d; font-weight: 700; }
-      .pending { color: #9a3412; font-weight: 700; }
-      .sig { width: 120px; min-height: 32px; }
-      @media print { body { margin: 10mm; } }
-    </style></head><body>${content.innerHTML}</body></html>`)
-    win.document.close()
-    win.focus()
-    setTimeout(() => { win.print() }, 300)
-  }
-
   const currentFund = fundBalances[activeModule.fundType] ?? 0
   const modTabSt = (m: ModuleInfo, active: ModuleInfo): React.CSSProperties => ({
     padding: '8px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', border: 'none',
@@ -243,10 +198,6 @@ export function MigrationTab({
   })
 
   const selectedUnit = units.find(u => u.id === selectedUnitId)
-
-  const sheetTotal = sheetBills?.reduce((s, b) => s + b.amount, 0) ?? 0
-  const sheetPaid  = sheetBills?.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0) ?? 0
-  const sheetDue   = sheetTotal - sheetPaid
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -524,129 +475,6 @@ export function MigrationTab({
         </div>
       </Card>
 
-      {/* ── Collection Sheet ── */}
-      <Card>
-        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Collection Sheet</h3>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>Generate a printable cash-collection sheet for any fund and month.</p>
-        </div>
-
-        {/* Fund tabs */}
-        <div style={{ padding: '1rem 1.5rem', display: 'flex', flexWrap: 'wrap', gap: 8, borderBottom: '1px solid var(--border)' }}>
-          {activeModules.map(m => (
-            <button key={m.key} style={modTabSt(m, sheetModule)} onClick={() => { setSheetModule(m); setSheetBills(null) }}>{m.label}</button>
-          ))}
-        </div>
-
-        {/* Month / Year selectors */}
-        <div style={{ padding: '1rem 1.5rem', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end', borderBottom: '1px solid var(--border)' }}>
-          <div>
-            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Month</label>
-            <select value={sheetMonth} onChange={e => { setSheetMonth(e.target.value); setSheetBills(null) }} style={{ ...selectStyle, minWidth: 120 }}>
-              {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Year</label>
-            <input type="number" value={sheetYear} onChange={e => { setSheetYear(e.target.value); setSheetBills(null) }} style={{ ...inputStyle, width: 90 }} min="2000" max="2100" />
-          </div>
-          <button
-            onClick={generateSheet}
-            disabled={sheetLoading}
-            style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: sheetModule.color, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: sheetLoading ? 0.6 : 1 }}
-          >
-            {sheetLoading ? 'Loading…' : 'Generate Sheet'}
-          </button>
-          {sheetBills && sheetBills.length > 0 && (
-            <button
-              onClick={printSheet}
-              style={{ padding: '8px 20px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-            >
-              🖨 Print
-            </button>
-          )}
-        </div>
-
-        {/* Sheet preview */}
-        {sheetBills !== null && (
-          <div style={{ padding: '1rem 1.5rem' }}>
-            {sheetBills.length === 0 ? (
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '8px 0' }}>No bills found for {sheetModule.label} — {getMonthName(Number(sheetMonth))} {sheetYear}.</div>
-            ) : (
-              <>
-                {/* Summary row */}
-                <div style={{ display: 'flex', gap: 24, marginBottom: 14, flexWrap: 'wrap' }}>
-                  {[
-                    { label: 'Total Billed', value: sheetTotal, color: '#1e40af' },
-                    { label: 'Collected',    value: sheetPaid,  color: '#15803d' },
-                    { label: 'Outstanding',  value: sheetDue,   color: sheetDue > 0 ? '#dc2626' : '#15803d' },
-                  ].map(s => (
-                    <div key={s.label} style={{ background: 'var(--surface-subtle)', borderRadius: 8, padding: '8px 16px', minWidth: 130 }}>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>{s.label}</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: s.color }}>{formatCurrency(s.value)}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Printable area */}
-                <div ref={printRef}>
-                  <h2 style={{ margin: '0 0 2px', fontSize: 16, fontWeight: 700 }}>
-                    {sheetModule.label} — Collection Sheet
-                  </h2>
-                  <p style={{ margin: '0 0 12px', fontSize: 12, color: '#555' }}>
-                    {getMonthName(Number(sheetMonth))} {sheetYear} &nbsp;|&nbsp; Generated {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </p>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <thead>
-                        <tr style={{ background: 'var(--surface-subtle)' }}>
-                          {['#', 'Flat', 'Floor', 'Occupant', 'Amount (৳)', 'Status', 'Signature'].map(h => (
-                            <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, fontSize: 11, borderBottom: '2px solid var(--border)', borderTop: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sheetBills
-                          .slice()
-                          .sort((a, b) => {
-                            const fa = parseInt(a.unit.number) || 0, fb = parseInt(b.unit.number) || 0
-                            return fa !== fb ? fa - fb : a.unit.number.localeCompare(b.unit.number)
-                          })
-                          .map((bill, idx) => {
-                            const occupant = bill.unit.tenant?.name ?? bill.unit.owner?.name ?? '—'
-                            const sc = STATUS_COLORS[bill.status] ?? STATUS_COLORS.PENDING
-                            return (
-                              <tr key={bill.id} style={{ background: idx % 2 === 0 ? '#fff' : 'var(--surface-subtle)' }}>
-                                <td style={{ padding: '8px 10px', color: 'var(--text-muted)', fontSize: 12 }}>{idx + 1}</td>
-                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>Flat {bill.unit.number}</td>
-                                <td style={{ padding: '8px 10px', color: 'var(--text-secondary)' }}>Floor {bill.unit.floor}</td>
-                                <td style={{ padding: '8px 10px' }}>{occupant}</td>
-                                <td style={{ padding: '8px 10px', fontWeight: 700 }}>{formatCurrency(bill.amount)}</td>
-                                <td style={{ padding: '8px 10px' }}>
-                                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
-                                    {bill.status}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '8px 10px', minWidth: 120, borderLeft: '1px dashed #cbd5e1' }}>&nbsp;</td>
-                              </tr>
-                            )
-                          })}
-                      </tbody>
-                      <tfoot>
-                        <tr style={{ background: 'var(--surface-subtle)', fontWeight: 700 }}>
-                          <td colSpan={4} style={{ padding: '8px 10px', fontSize: 13, borderTop: '2px solid var(--border)' }}>Total</td>
-                          <td style={{ padding: '8px 10px', fontSize: 13, borderTop: '2px solid var(--border)' }}>{formatCurrency(sheetTotal)}</td>
-                          <td colSpan={2} style={{ padding: '8px 10px', borderTop: '2px solid var(--border)' }}></td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </Card>
     </div>
   )
 }
