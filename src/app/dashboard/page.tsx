@@ -14,7 +14,7 @@ async function getDashboardData(role: string, userId: string, buildingId: string
   const year = now.getFullYear()
   const bId = buildingId ?? undefined
 
-  if (role === 'ADMIN') {
+  if (role === 'ADMIN' || role === 'PRESIDENT' || role === 'SECRETARY') {
     const [totalUnits, occupiedCount, vacantCount, bills, expenses, recentMessages, pendingCount, overdueCount, unitsWithBills, config] = await Promise.all([
       prisma.unit.count({ where: { buildingId: bId } }),
       prisma.unit.count({ where: { status: 'OCCUPIED', buildingId: bId } }),
@@ -111,8 +111,8 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* ADMIN VIEW */}
-      {data.role === 'ADMIN' && (
+      {/* ADMIN / VIEWER VIEW */}
+      {(data.role === 'ADMIN' || data.role === 'PRESIDENT' || data.role === 'SECRETARY') && (
         <>
           {/* Row 1: 4 main stats */}
           <div className="resp-grid-4" style={{ marginBottom: '1rem' }}>
