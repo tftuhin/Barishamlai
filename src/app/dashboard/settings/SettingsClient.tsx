@@ -41,6 +41,14 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   )
 }
 
+const ALL_ROLES = [
+  { value: 'ADMIN',     label: 'Admin' },
+  { value: 'PRESIDENT', label: 'President' },
+  { value: 'SECRETARY', label: 'Secretary' },
+  { value: 'OWNER',     label: 'Flat Owner' },
+  { value: 'TENANT',    label: 'Tenant' },
+]
+
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   PENDING:  { bg: '#fef9c3', color: '#854d0e' },
   APPROVED: { bg: '#dcfce7', color: '#15803d' },
@@ -77,6 +85,12 @@ export function SettingsClient({
   const [error, setError] = useState('')
   const [form, setForm] = useState({ name: '', email: '', phone: '', role: 'TENANT', password: '' })
 
+  // ── Edit user ──
+  const [editingUser, setEditingUser] = useState<any | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', phone: '', role: '' })
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+
   // ── Access ──
   const [joinRequests, setJoinRequests] = useState<any[]>(initialJoinRequests)
   const [invitations, setInvitations] = useState<any[]>(initialInvitations)
@@ -111,6 +125,24 @@ export function SettingsClient({
     if (res.ok) { setShowAdd(false); setForm({ name: '', email: '', phone: '', role: 'TENANT', password: '' }); router.refresh() }
     else { const d = await res.json(); setError(d.error || 'Failed to create user') }
     setSaving(false)
+  }
+
+  function openEditUser(u: any) {
+    setEditingUser(u)
+    setEditForm({ name: u.name, phone: u.phone ?? '', role: u.role })
+    setEditError('')
+  }
+
+  async function saveEditUser() {
+    if (!editingUser) return
+    setEditSaving(true); setEditError('')
+    const res = await fetch(`/api/users/${editingUser.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editForm.name, phone: editForm.phone, role: editForm.role }),
+    })
+    if (res.ok) { setEditingUser(null); router.refresh() }
+    else { const d = await res.json(); setEditError(d.error || 'Failed to save') }
+    setEditSaving(false)
   }
 
   async function deleteUser(id: string, name: string) {
@@ -223,11 +255,13 @@ export function SettingsClient({
       {/* ════ USERS TAB ════ */}
       {tab === 'users' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1rem', marginBottom: '1.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '1rem', marginBottom: '1.75rem' }}>
             {[
-              { label: 'Admins',  count: byRole('ADMIN').length,  color: '#1d4ed8', bg: '#eff6ff' },
-              { label: 'Owners',  count: byRole('OWNER').length,  color: '#15803d', bg: '#f0fdf4' },
-              { label: 'Tenants', count: byRole('TENANT').length, color: '#a16207', bg: '#fefce8' },
+              { label: 'Admins',      count: byRole('ADMIN').length,     color: '#1d4ed8', bg: '#eff6ff' },
+              { label: 'Presidents',  count: byRole('PRESIDENT').length,  color: '#7c3aed', bg: '#f5f3ff' },
+              { label: 'Secretaries', count: byRole('SECRETARY').length,  color: '#0369a1', bg: '#e0f2fe' },
+              { label: 'Owners',      count: byRole('OWNER').length,      color: '#15803d', bg: '#f0fdf4' },
+              { label: 'Tenants',     count: byRole('TENANT').length,     color: '#a16207', bg: '#fefce8' },
             ].map(s => (
               <Card key={s.label} style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 700, color: s.color, flexShrink: 0 }}>{s.count}</div>
@@ -262,11 +296,16 @@ export function SettingsClient({
                       <td><RoleBadge role={u.role} /></td>
                       <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{formatDate(u.createdAt)}</td>
                       <td>
-                        {u.id !== currentUserId && (
-                          <button onClick={() => deleteUser(u.id, u.name)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', borderRadius: '4px', display: 'flex' }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <button onClick={() => openEditUser(u)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand)', padding: '4px', borderRadius: '4px', display: 'flex' }} title="Edit user">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           </button>
-                        )}
+                          {u.id !== currentUserId && (
+                            <button onClick={() => deleteUser(u.id, u.name)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', borderRadius: '4px', display: 'flex' }} title="Delete user">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -490,9 +529,7 @@ export function SettingsClient({
         <FormField label="Phone (optional)"><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} style={inputStyle} placeholder="+880-1700-000000" /></FormField>
         <FormField label="Role">
           <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} style={selectStyle}>
-            <option value="TENANT">Tenant</option>
-            <option value="OWNER">Flat Owner</option>
-            <option value="ADMIN">Admin</option>
+            {ALL_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
         </FormField>
         <FormField label="Temporary Password"><input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} style={inputStyle} placeholder="Min 6 characters" /></FormField>
@@ -500,6 +537,26 @@ export function SettingsClient({
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <Button variant="secondary" onClick={() => setShowAdd(false)}>Cancel</Button>
           <Button onClick={submitUser} disabled={saving || !form.name || !form.email || !form.password}>{saving ? 'Creating...' : 'Create User'}</Button>
+        </div>
+      </Modal>
+
+      {/* ── Edit User Modal ── */}
+      <Modal open={!!editingUser} onClose={() => setEditingUser(null)} title="Edit User">
+        <FormField label="Full Name">
+          <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} style={inputStyle} placeholder="Full name" />
+        </FormField>
+        <FormField label="Phone (optional)">
+          <input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} style={inputStyle} placeholder="+880-1700-000000" />
+        </FormField>
+        <FormField label="Role">
+          <select value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })} style={selectStyle}>
+            {ALL_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
+        </FormField>
+        {editError && <p style={{ color: '#dc2626', fontSize: '13px', marginBottom: '0.75rem' }}>{editError}</p>}
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <Button variant="secondary" onClick={() => setEditingUser(null)}>Cancel</Button>
+          <Button onClick={saveEditUser} disabled={editSaving || !editForm.name}>{editSaving ? 'Saving...' : 'Save Changes'}</Button>
         </div>
       </Modal>
 
@@ -513,8 +570,7 @@ export function SettingsClient({
         </FormField>
         <FormField label="Role">
           <select value={inviteForm.role} onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })} style={selectStyle}>
-            <option value="TENANT">Tenant</option>
-            <option value="OWNER">Flat Owner</option>
+            {ALL_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
         </FormField>
         {inviteError && <p style={{ color: '#dc2626', fontSize: '13px', marginBottom: '0.75rem' }}>{inviteError}</p>}
