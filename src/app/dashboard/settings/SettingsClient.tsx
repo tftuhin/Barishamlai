@@ -136,13 +136,21 @@ export function SettingsClient({
   async function saveEditUser() {
     if (!editingUser) return
     setEditSaving(true); setEditError('')
-    const res = await fetch(`/api/users/${editingUser.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editForm.name, phone: editForm.phone, role: editForm.role }),
-    })
-    if (res.ok) { setEditingUser(null); router.refresh() }
-    else { const d = await res.json(); setEditError(d.error || 'Failed to save') }
-    setEditSaving(false)
+    try {
+      const res = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editForm.name, phone: editForm.phone, role: editForm.role }),
+      })
+      if (res.ok) { setEditingUser(null); router.refresh() }
+      else {
+        const d = await res.json().catch(() => ({}))
+        setEditError(d.error || 'Failed to save')
+      }
+    } catch {
+      setEditError('Network error. Please try again.')
+    } finally {
+      setEditSaving(false)
+    }
   }
 
   async function deleteUser(id: string, name: string) {
