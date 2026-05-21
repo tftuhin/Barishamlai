@@ -45,6 +45,9 @@ export async function GET(req: NextRequest) {
     }),
   ])
 
+  // Sort bills by flat number numerically (Prisma sorts lexicographically)
+  bills.sort((a, b) => a.unit.number.localeCompare(b.unit.number, undefined, { numeric: true }))
+
   // ── Closing balance calculation ────────────────────────────
   const fundBalanceTotal   = fundBalances.reduce((s, f) => s + Number(f.amount), 0)
   const priorCollectedSum  = priorBills.reduce((s, b) => s + Number(b.amount), 0)
