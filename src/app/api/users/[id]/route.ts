@@ -15,11 +15,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const body = await req.json()
     if (body.role && !VALID_ROLES.includes(body.role)) return Err.badRequest('Invalid role')
+    if (body.email !== undefined && body.email !== '') {
+      const conflict = await prisma.user.findFirst({ where: { email: body.email, id: { not: params.id } } })
+      if (conflict) return Err.conflict('Email already in use by another account')
+    }
 
     const updated = await prisma.user.update({
       where: { id: params.id },
       data: {
         ...(body.name  !== undefined && { name:  body.name  }),
+        ...(body.email !== undefined && body.email !== '' && { email: body.email }),
         ...(body.phone !== undefined && { phone: body.phone || null }),
         ...(body.role  !== undefined && { role:  body.role  }),
       },

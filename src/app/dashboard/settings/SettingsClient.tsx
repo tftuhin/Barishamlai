@@ -87,7 +87,7 @@ export function SettingsClient({
 
   // ── Edit user ──
   const [editingUser, setEditingUser] = useState<any | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', phone: '', role: '' })
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', role: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
 
@@ -129,7 +129,7 @@ export function SettingsClient({
 
   function openEditUser(u: any) {
     setEditingUser(u)
-    setEditForm({ name: u.name, phone: u.phone ?? '', role: u.role })
+    setEditForm({ name: u.name, email: u.email ?? '', phone: u.phone ?? '', role: u.role })
     setEditError('')
   }
 
@@ -139,7 +139,7 @@ export function SettingsClient({
     try {
       const res = await fetch(`/api/users/${editingUser.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editForm.name, phone: editForm.phone, role: editForm.role }),
+        body: JSON.stringify({ name: editForm.name, email: editForm.email, phone: editForm.phone, role: editForm.role }),
       })
       if (res.ok) { setEditingUser(null); router.refresh() }
       else {
@@ -552,6 +552,9 @@ export function SettingsClient({
       <Modal open={!!editingUser} onClose={() => setEditingUser(null)} title="Edit User">
         <FormField label="Full Name">
           <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} style={inputStyle} placeholder="Full name" />
+        </FormField>
+        <FormField label="Email Address">
+          <input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} style={inputStyle} placeholder="user@example.com" />
         </FormField>
         <FormField label="Phone (optional)">
           <input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} style={inputStyle} placeholder="+880-1700-000000" />
