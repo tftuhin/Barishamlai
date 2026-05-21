@@ -90,7 +90,8 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl
         if (pathname.startsWith('/dashboard') || pathname.startsWith('/developer')) {
-          return !!token
+          // Check token.id specifically — deleted users have id cleared to ''
+          return !!(token?.id)
         }
         return true
       },

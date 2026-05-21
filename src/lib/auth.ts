@@ -93,12 +93,21 @@ export const authOptions: NextAuthOptions = {
         token.buildingName = u.buildingName
       } else if (token.id) {
         // Re-sync role from DB on every token refresh so admin role changes
-        // take effect on the user's next request without requiring re-login.
+        // take effect without re-login, and deleted users are immediately
+        // kicked out on their next request.
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: { role: true },
         })
-        if (dbUser) token.role = dbUser.role
+        if (dbUser) {
+          token.role = dbUser.role
+        } else {
+          // User was deleted — clear identity so middleware denies dashboard access
+          token.id          = ''
+          token.role        = ''
+          token.buildingId  = null
+          token.buildingName = null
+        }
       }
 
       // Handle property switching: client calls useSession().update({ switchBuildingId })
