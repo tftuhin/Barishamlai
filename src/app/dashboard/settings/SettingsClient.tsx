@@ -293,8 +293,11 @@ export function SettingsClient({
                     <tr key={u.id}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: u.role === 'ADMIN' ? '#eff6ff' : u.role === 'OWNER' ? '#f0fdf4' : '#fefce8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, color: u.role === 'ADMIN' ? '#1d4ed8' : u.role === 'OWNER' ? '#15803d' : '#a16207', flexShrink: 0 }}>
-                            {getInitials(u.name)}
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', background: u.role === 'ADMIN' ? '#eff6ff' : u.role === 'OWNER' ? '#f0fdf4' : '#fefce8' }}>
+                            {u.gravatarUrl ? (
+                              <img src={u.gravatarUrl} alt={u.name} width={32} height={32} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                            ) : null}
+                            <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, color: u.role === 'ADMIN' ? '#1d4ed8' : u.role === 'OWNER' ? '#15803d' : '#a16207', zIndex: -1 }}>{getInitials(u.name)}</span>
                           </div>
                           <span style={{ fontWeight: 500 }}>{u.name}{u.id === currentUserId && <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '6px' }}>(you)</span>}</span>
                         </div>

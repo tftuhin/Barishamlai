@@ -334,7 +334,7 @@ function AddPropertyModal({ onClose, onCreated, propertyCount, propertyLimit }: 
 }
 
 // ── Main Sidebar ──────────────────────────────────────────────
-export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved, propertyCount, propertyLimit, hasMultiPropertyDiscount }: {
+export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved, propertyCount, propertyLimit, hasMultiPropertyDiscount, gravatarUrl }: {
   user: { name: string; email: string; role: string; buildingId?: string | null; buildingName?: string | null }
   isPremium: boolean
   moduleConfig?: ModuleConfig
@@ -342,6 +342,7 @@ export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved, 
   propertyCount?: number
   propertyLimit?: number | null
   hasMultiPropertyDiscount?: boolean
+  gravatarUrl?: string
 }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen]   = useState(false)
@@ -576,9 +577,13 @@ export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved, 
               <motion.div
                 whileHover={{ scale: 1.08 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(29,158,117,0.3)', border: '2px solid rgba(93,202,165,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600, color: '#9FE1CB', flexShrink: 0, overflow: 'hidden' }}
+                style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid rgba(93,202,165,0.3)', flexShrink: 0, overflow: 'hidden', position: 'relative', background: 'rgba(29,158,117,0.3)' }}
               >
-                {getInitials(user.name)}
+                {gravatarUrl ? (
+                  <img src={gravatarUrl} alt={user.name} width={36} height={36} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                ) : (
+                  <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600, color: '#9FE1CB' }}>{getInitials(user.name)}</span>
+                )}
               </motion.div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '13px', fontWeight: 500, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>

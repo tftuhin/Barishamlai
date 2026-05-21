@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { AuthProvider } from '@/components/layout/AuthProvider'
 import { isPremiumBuilding } from '@/lib/utils'
+import { gravatarUrl } from '@/lib/gravatar'
 
 const STATUS_CONFIG = {
   LOCKED: {
@@ -115,7 +116,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <AuthProvider>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--surface)' }}>
-        <Sidebar user={session.user} isPremium={isPremium} moduleConfig={moduleConfig} multiPropertyApproved={!!multiPropertyRequest} propertyCount={propertyCount} propertyLimit={propertyLimit} hasMultiPropertyDiscount={hasMultiPropertyDiscount} />
+        <Sidebar user={session.user} isPremium={isPremium} moduleConfig={moduleConfig} multiPropertyApproved={!!multiPropertyRequest} propertyCount={propertyCount} propertyLimit={propertyLimit} hasMultiPropertyDiscount={hasMultiPropertyDiscount} gravatarUrl={gravatarUrl(session.user.email ?? '', 40)} />
         <main className="main-content" style={{ flex: 1, marginLeft: '260px', minHeight: '100vh', overflow: 'auto' }}>
           {/* LOCKED: show warning banner but allow access */}
           {status === 'LOCKED' && (

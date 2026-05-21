@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { SettingsClient } from './SettingsClient'
+import { gravatarUrl } from '@/lib/gravatar'
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions)
@@ -41,7 +42,7 @@ export default async function SettingsPage() {
 
   return (
     <SettingsClient
-      users={users}
+      users={users.map(u => ({ ...u, gravatarUrl: gravatarUrl(u.email, 40) }))}
       currentUserId={session.user.id}
       buildingId={bId ?? ''}
       buildingName={building?.name ?? session.user.buildingName ?? ''}
