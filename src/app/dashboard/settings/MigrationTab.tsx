@@ -29,6 +29,7 @@ const ALL_MODULES: ModuleInfo[] = [
 
 type BillRow = { _id: string; month: string; year: string; billType: string; amount: string; status: 'PENDING' | 'PAID' }
 type ExistingBill = { id: string; month: number; year: number; type: string; amount: number; status: string }
+type EditForm = { month: string; year: string; billType: string; amount: string; status: string }
 
 const now = new Date()
 const THIS_YEAR = String(now.getFullYear())
@@ -86,6 +87,9 @@ export function MigrationTab({
   const [existingBills, setExistingBills]   = useState<ExistingBill[]>([])
   const [loadingBills, setLoadingBills]     = useState(false)
   const [deletingId, setDeletingId]         = useState<string | null>(null)
+  const [editingId, setEditingId]           = useState<string | null>(null)
+  const [editForm, setEditForm]             = useState<EditForm>({ month: '', year: '', billType: '', amount: '', status: '' })
+  const [savingEdit, setSavingEdit]         = useState(false)
 
   const [rows, setRows]           = useState<BillRow[]>([newRow()])
   const [submitting, setSubmitting] = useState(false)
@@ -110,6 +114,26 @@ export function MigrationTab({
     const res = await fetch(`/api/bills/${billId}`, { method: 'DELETE' })
     if (res.ok) setExistingBills(p => p.filter(b => b.id !== billId))
     setDeletingId(null)
+  }
+
+  function startEdit(b: ExistingBill) {
+    setEditingId(b.id)
+    setEditForm({ month: String(b.month), year: String(b.year), billType: b.type, amount: String(b.amount), status: b.status })
+  }
+
+  async function saveEdit(billId: string) {
+    setSavingEdit(true)
+    const res = await fetch(`/api/bills/${billId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month: Number(editForm.month), year: Number(editForm.year), type: editForm.billType, amount: Number(editForm.amount), status: editForm.status }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setExistingBills(p => p.map(b => b.id === billId ? { ...b, month: updated.month, year: updated.year, type: updated.type, amount: updated.amount, status: updated.status } : b))
+      setEditingId(null)
+    }
+    setSavingEdit(false)
   }
 
   function updateRow(id: string, field: keyof BillRow, value: string) {
@@ -238,25 +262,70 @@ export function MigrationTab({
                 <tbody>
                   {existingBills.map((b, i) => {
                     const sc = STATUS_COLORS[b.status] ?? STATUS_COLORS.PENDING
+                    const isEditing = editingId === b.id
                     return (
-                      <tr key={b.id} style={{ background: i % 2 === 0 ? '#fff' : 'var(--surface-subtle)' }}>
-                        <td style={{ padding: '7px 12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{getMonthName(b.month)} {b.year}</td>
-                        <td style={{ padding: '7px 12px', fontWeight: 500 }}>{BILL_TYPE_LABELS[b.type] ?? b.type}</td>
-                        <td style={{ padding: '7px 12px', fontWeight: 600 }}>{formatCurrency(b.amount)}</td>
-                        <td style={{ padding: '7px 12px' }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
-                            {b.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: '7px 12px', textAlign: 'right' }}>
-                          <button
-                            onClick={() => deleteBill(b.id)}
-                            disabled={deletingId === b.id}
-                            style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', color: '#dc2626', fontSize: 12, cursor: 'pointer', fontWeight: 500, opacity: deletingId === b.id ? 0.5 : 1 }}
-                          >
-                            {deletingId === b.id ? '…' : 'Delete'}
-                          </button>
-                        </td>
+                      <tr key={b.id} style={{ background: isEditing ? '#fffbeb' : i % 2 === 0 ? '#fff' : 'var(--surface-subtle)' }}>
+                        {isEditing ? (
+                          <>
+                            <td style={{ padding: '6px 6px' }}>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <select value={editForm.month} onChange={e => setEditForm(f => ({ ...f, month: e.target.value }))} style={{ ...selectStyle, fontSize: 12, padding: '4px 6px', minWidth: 80 }}>
+                                  {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
+                                </select>
+                                <input type="number" value={editForm.year} onChange={e => setEditForm(f => ({ ...f, year: e.target.value }))} style={{ ...inputStyle, fontSize: 12, padding: '4px 6px', width: 64 }} min="2000" max="2100" />
+                              </div>
+                            </td>
+                            <td style={{ padding: '6px 6px' }}>
+                              <select value={editForm.billType} onChange={e => setEditForm(f => ({ ...f, billType: e.target.value }))} style={{ ...selectStyle, fontSize: 12, padding: '4px 6px', minWidth: 140 }}>
+                                {BILL_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                              </select>
+                            </td>
+                            <td style={{ padding: '6px 6px' }}>
+                              <input type="number" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} style={{ ...inputStyle, fontSize: 12, padding: '4px 6px', width: 90 }} min="1" />
+                            </td>
+                            <td style={{ padding: '6px 6px' }}>
+                              <select value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))} style={{ ...selectStyle, fontSize: 12, padding: '4px 6px', minWidth: 90 }}>
+                                <option value="PENDING">Due</option>
+                                <option value="PAID">Paid</option>
+                                <option value="OVERDUE">Overdue</option>
+                              </select>
+                            </td>
+                            <td style={{ padding: '6px 6px', whiteSpace: 'nowrap' }}>
+                              <button onClick={() => saveEdit(b.id)} disabled={savingEdit} style={{ padding: '3px 10px', borderRadius: 6, border: 'none', background: '#15803d', color: '#fff', fontSize: 12, cursor: 'pointer', fontWeight: 600, marginRight: 4, opacity: savingEdit ? 0.6 : 1 }}>
+                                {savingEdit ? '…' : 'Save'}
+                              </button>
+                              <button onClick={() => setEditingId(null)} style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', fontSize: 12, cursor: 'pointer' }}>
+                                Cancel
+                              </button>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td style={{ padding: '7px 12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{getMonthName(b.month)} {b.year}</td>
+                            <td style={{ padding: '7px 12px', fontWeight: 500 }}>{BILL_TYPE_LABELS[b.type] ?? b.type}</td>
+                            <td style={{ padding: '7px 12px', fontWeight: 600 }}>{formatCurrency(b.amount)}</td>
+                            <td style={{ padding: '7px 12px' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
+                                {b.status}
+                              </span>
+                            </td>
+                            <td style={{ padding: '7px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                              <button
+                                onClick={() => startEdit(b)}
+                                style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, cursor: 'pointer', fontWeight: 500, marginRight: 4 }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => deleteBill(b.id)}
+                                disabled={deletingId === b.id}
+                                style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid #FECACA', background: '#FEF2F2', color: '#dc2626', fontSize: 12, cursor: 'pointer', fontWeight: 500, opacity: deletingId === b.id ? 0.5 : 1 }}
+                              >
+                                {deletingId === b.id ? '…' : 'Delete'}
+                              </button>
+                            </td>
+                          </>
+                        )}
                       </tr>
                     )
                   })}
