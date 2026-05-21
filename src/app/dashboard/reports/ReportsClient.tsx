@@ -40,7 +40,9 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
   const [selFund, setSelFund] = useState<'SERVICE_CHARGE' | 'GAS'>('SERVICE_CHARGE')
   const [generating, setGenerating] = useState(false)
 
-  const monthBills    = bills.filter(b => b.month === selMonth && b.year === selYear)
+  const monthBills    = bills
+    .filter(b => b.month === selMonth && b.year === selYear)
+    .sort((a, b) => (a.unit?.number ?? '').localeCompare(b.unit?.number ?? '', undefined, { numeric: true }))
   const monthExpenses = expenses.filter(e => {
     const d = new Date(e.date); return d.getMonth() + 1 === selMonth && d.getFullYear() === selYear
   })
@@ -92,13 +94,15 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
   })).filter(d=>d.value>0)
 
   // Rent per owner table
-  const rentByUnit = rentBills.map(b => ({
-    unit: b.unit?.number ?? '—',
-    owner: b.unit?.owner?.name ?? '—',
-    amount: b.amount,
-    status: b.status,
-    paidAt: b.paidAt,
-  }))
+  const rentByUnit = rentBills
+    .map(b => ({
+      unit: b.unit?.number ?? '—',
+      owner: b.unit?.owner?.name ?? '—',
+      amount: b.amount,
+      status: b.status,
+      paidAt: b.paidAt,
+    }))
+    .sort((a, b) => a.unit.localeCompare(b.unit, undefined, { numeric: true }))
 
   async function downloadPDF() {
     setGenerating(true)
@@ -300,19 +304,21 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
         const closingBalance = openingBalance + thisMonthCollected - thisMonthExpenses
 
         // Per-unit breakdown
-        const unitBreakdown = billsForMonth.map(b => {
-          const unitOb = unitOpeningBalances.find(ob => ob.unitId === b.unitId && ob.billType === selFund)
-          const allUnpaidForUnit = bills.filter(bl => bl.unitId === b.unitId && bl.type === selFund && bl.status !== 'PAID' && (bl.year < selYear || (bl.year === selYear && bl.month <= selMonth))).reduce((s,bl) => s + bl.amount, 0)
-          const accumulatedDue = (unitOb?.amount || 0) + allUnpaidForUnit
-          return {
-            unitNumber: b.unit?.number || '—',
-            resident: (b.unit?.tenant?.name || b.unit?.owner?.name || '—'),
-            billAmount: b.amount,
-            paid: b.status === 'PAID' ? b.amount : 0,
-            due: b.status === 'PAID' ? 0 : b.amount,
-            accumulatedDue,
-          }
-        })
+        const unitBreakdown = billsForMonth
+          .map(b => {
+            const unitOb = unitOpeningBalances.find(ob => ob.unitId === b.unitId && ob.billType === selFund)
+            const allUnpaidForUnit = bills.filter(bl => bl.unitId === b.unitId && bl.type === selFund && bl.status !== 'PAID' && (bl.year < selYear || (bl.year === selYear && bl.month <= selMonth))).reduce((s,bl) => s + bl.amount, 0)
+            const accumulatedDue = (unitOb?.amount || 0) + allUnpaidForUnit
+            return {
+              unitNumber: b.unit?.number || '—',
+              resident: (b.unit?.tenant?.name || b.unit?.owner?.name || '—'),
+              billAmount: b.amount,
+              paid: b.status === 'PAID' ? b.amount : 0,
+              due: b.status === 'PAID' ? 0 : b.amount,
+              accumulatedDue,
+            }
+          })
+          .sort((a, b) => a.unitNumber.localeCompare(b.unitNumber, undefined, { numeric: true }))
 
         return (
           <>
