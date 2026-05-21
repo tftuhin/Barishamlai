@@ -529,7 +529,11 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
                           <tr style={{ background: 'var(--surface-subtle)' }}>
-                            {['#', 'Flat', 'Floor', 'Owner', 'Occupant', 'Amount (৳)', 'Status', 'Signature'].map(h => (
+                            {[
+                              '#', 'Flat', 'Owner', 'Occupant',
+                              ...(collFundType === 'GAS' ? ['Opening Unit', 'Closing Unit'] : []),
+                              'Amount (৳)', 'Status', 'Signature',
+                            ].map(h => (
                               <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, fontSize: 11, borderBottom: '2px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
@@ -538,19 +542,21 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
                           {sheetBills.map((bill, idx) => {
                             const unit = bill.unit ?? {}
                             const ownerName = unit.owner?.name ?? '—'
-                            const tenant = unit.tenant?.name
-                            const ownerName2 = unit.owner?.name
-                            const occupant = tenant ?? (ownerName2 ? ownerName2 : '')
+                            const occupant = unit.tenant?.name ?? (unit.owner?.name ? unit.owner.name : '')
                             const pill = STATUS_PILL[bill.status] ?? STATUS_PILL.PENDING
+                            const blankCell = (w = 100) => (
+                              <td style={{ padding: '9px 12px', minWidth: w, borderLeft: '1px dashed var(--border)' }}>&nbsp;</td>
+                            )
                             return (
                               <tr key={bill.id} style={{ background: idx % 2 === 0 ? '#fff' : 'var(--surface-subtle)' }}>
                                 <td style={{ padding: '9px 12px', color: 'var(--text-muted)', fontSize: 12 }}>{idx + 1}</td>
                                 <td style={{ padding: '9px 12px', fontWeight: 600 }}>Flat {unit.number ?? '—'}</td>
-                                <td style={{ padding: '9px 12px', color: 'var(--text-secondary)' }}>Floor {unit.floor ?? '—'}</td>
                                 <td style={{ padding: '9px 12px' }}>{ownerName}</td>
                                 <td style={{ padding: '9px 12px', color: occupant ? 'inherit' : 'var(--text-muted)', fontStyle: occupant ? 'normal' : 'italic' }}>
                                   {occupant || 'Vacant'}
                                 </td>
+                                {collFundType === 'GAS' && blankCell(90)}
+                                {collFundType === 'GAS' && blankCell(90)}
                                 <td style={{ padding: '9px 12px', fontWeight: 700 }}>{formatCurrency(bill.amount)}</td>
                                 <td style={{ padding: '9px 12px' }}>
                                   <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, ...pill }}>
@@ -564,7 +570,7 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
                         </tbody>
                         <tfoot>
                           <tr style={{ background: 'var(--surface-subtle)', fontWeight: 700 }}>
-                            <td colSpan={5} style={{ padding: '9px 12px', fontSize: 13, borderTop: '2px solid var(--border)' }}>
+                            <td colSpan={collFundType === 'GAS' ? 6 : 4} style={{ padding: '9px 12px', fontSize: 13, borderTop: '2px solid var(--border)' }}>
                               Total ({sheetBills.length} flat{sheetBills.length !== 1 ? 's' : ''})
                             </td>
                             <td style={{ padding: '9px 12px', fontSize: 13, borderTop: '2px solid var(--border)' }}>{formatCurrency(sheetTotal)}</td>
