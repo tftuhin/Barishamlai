@@ -144,7 +144,7 @@ export function SettingsClient({
       if (res.ok) { setEditingUser(null); router.refresh() }
       else {
         const d = await res.json().catch(() => ({}))
-        setEditError(d.error || 'Failed to save')
+        setEditError(d.error || d.message || `Request failed (${res.status})`)
       }
     } catch {
       setEditError('Network error. Please try again.')

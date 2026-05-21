@@ -2,6 +2,36 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ok, Err, requireAdmin } from '@/lib/api'
 
+const VALID_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'OWNER', 'TENANT']
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const [session, e] = await requireAdmin()
+    if (e) return e
+
+    const target = await prisma.user.findUnique({ where: { id: params.id }, select: { buildingId: true } })
+    if (!target) return Err.notFound('User not found')
+    if (target.buildingId !== session.user.buildingId) return Err.forbidden()
+
+    const body = await req.json()
+    if (body.role && !VALID_ROLES.includes(body.role)) return Err.badRequest('Invalid role')
+
+    const updated = await prisma.user.update({
+      where: { id: params.id },
+      data: {
+        ...(body.name  !== undefined && { name:  body.name  }),
+        ...(body.phone !== undefined && { phone: body.phone || null }),
+        ...(body.role  !== undefined && { role:  body.role  }),
+      },
+      select: { id: true, name: true, email: true, phone: true, role: true, createdAt: true },
+    })
+    return ok(updated)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to update user'
+    return Err.internal(msg)
+  }
+}
+
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
   const [session, e] = await requireAdmin()
   if (e) return e
