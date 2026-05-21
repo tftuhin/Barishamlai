@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, Noto_Sans_Bengali, Fraunces } from 'next/font/google'
 import { Suspense } from 'react'
 import './globals.css'
@@ -36,7 +36,12 @@ export const metadata: Metadata = {
     icon: '/logo.webp',
     apple: '/logo.webp',
   },
-  viewport: 'width=device-width, initial-scale=1.0, maximum-scale=5.0',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
