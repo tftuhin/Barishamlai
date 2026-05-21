@@ -45,6 +45,7 @@ const ALL_ROLES = [
   { value: 'ADMIN',     label: 'Admin' },
   { value: 'PRESIDENT', label: 'President' },
   { value: 'SECRETARY', label: 'Secretary' },
+  { value: 'MEMBER',    label: 'Member' },
   { value: 'OWNER',     label: 'Flat Owner' },
   { value: 'TENANT',    label: 'Tenant' },
 ]
@@ -263,11 +264,12 @@ export function SettingsClient({
       {/* ════ USERS TAB ════ */}
       {tab === 'users' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '1rem', marginBottom: '1.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: '1rem', marginBottom: '1.75rem' }}>
             {[
               { label: 'Admins',      count: byRole('ADMIN').length,     color: '#1d4ed8', bg: '#eff6ff' },
               { label: 'Presidents',  count: byRole('PRESIDENT').length,  color: '#7c3aed', bg: '#f5f3ff' },
               { label: 'Secretaries', count: byRole('SECRETARY').length,  color: '#0369a1', bg: '#e0f2fe' },
+              { label: 'Members',     count: byRole('MEMBER').length,     color: '#0891b2', bg: '#ecfeff' },
               { label: 'Owners',      count: byRole('OWNER').length,      color: '#15803d', bg: '#f0fdf4' },
               { label: 'Tenants',     count: byRole('TENANT').length,     color: '#a16207', bg: '#fefce8' },
             ].map(s => (

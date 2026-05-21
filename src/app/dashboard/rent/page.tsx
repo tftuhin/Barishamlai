@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { RentClient } from './RentClient'
 
-const ALLOWED_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'OWNER']
+const ALLOWED_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'MEMBER', 'OWNER']
 
 export default async function RentPage() {
   const session = await getServerSession(authOptions)

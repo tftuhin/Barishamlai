@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { ExpensesClient } from './ExpensesClient'
 
-const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY']
+const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'MEMBER']
 
 export default async function ExpensesPage() {
   const session = await getServerSession(authOptions)

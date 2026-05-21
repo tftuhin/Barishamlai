@@ -6,7 +6,7 @@ import { ReportsClient } from './ReportsClient'
 
 export default async function ReportsPage() {
   const session = await getServerSession(authOptions)
-  const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY']
+  const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'MEMBER']
   if (!session || !VIEWER_ROLES.includes(session.user.role)) redirect('/dashboard')
 
   const now = new Date()

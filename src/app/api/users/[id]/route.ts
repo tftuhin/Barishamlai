@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ok, Err, requireAdmin } from '@/lib/api'
 
-const VALID_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'OWNER', 'TENANT']
+const VALID_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'MEMBER', 'OWNER', 'TENANT']
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {

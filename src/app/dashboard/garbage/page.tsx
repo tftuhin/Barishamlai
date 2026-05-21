@@ -6,7 +6,7 @@ import { isPremiumBuilding } from '@/lib/utils'
 import { PremiumGate } from '@/components/ui/PremiumGate'
 import { GarbageClient } from './GarbageClient'
 
-const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY']
+const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'MEMBER']
 
 export default async function GarbagePage() {
   const session = await getServerSession(authOptions)

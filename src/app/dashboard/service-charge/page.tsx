@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { ServiceChargeClient } from './ServiceChargeClient'
 
 const DEFAULT_CONFIG = { serviceChargeOccupied: 0, serviceChargeVacant: 0 }
-const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY']
+const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'MEMBER']
 
 export default async function ServiceChargePage() {
   const session = await getServerSession(authOptions)

@@ -7,7 +7,7 @@ import { UnitsClient } from './UnitsClient'
 export default async function UnitsPage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
-  if (!['ADMIN', 'OWNER'].includes(session.user.role)) redirect('/dashboard')
+  if (!['ADMIN', 'PRESIDENT', 'SECRETARY', 'MEMBER', 'OWNER'].includes(session.user.role)) redirect('/dashboard')
 
   const bId = session.user.buildingId ?? undefined
   const [units, users, building] = await Promise.all([

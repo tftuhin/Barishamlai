@@ -7,7 +7,7 @@ import { PremiumGate } from '@/components/ui/PremiumGate'
 import { GasClient } from './GasClient'
 
 const DEFAULT_CONFIG = { gasUnitRate: 0 }
-const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY']
+const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'MEMBER']
 
 export default async function GasPage() {
   const session = await getServerSession(authOptions)

@@ -6,7 +6,7 @@ import { isPremiumBuilding } from '@/lib/utils'
 import { PremiumGate } from '@/components/ui/PremiumGate'
 import { WaterClient } from './WaterClient'
 
-const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY']
+const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'MEMBER']
 
 export default async function WaterPage() {
   const session = await getServerSession(authOptions)

@@ -75,8 +75,8 @@ export async function requireAuth(): Promise<[AuthSession, null] | [null, NextRe
 /** Admin-tier roles — can perform write operations */
 export const ADMIN_ROLES = ['ADMIN'] as const
 
-/** Viewer-tier roles — read-only access to admin data (PRESIDENT & SECRETARY) */
-export const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY'] as const
+/** Viewer-tier roles — read-only access to admin data */
+export const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY', 'MEMBER'] as const
 
 /** Requires ADMIN role with a valid buildingId (write operations). */
 export async function requireAdmin(): Promise<[AuthSession, null] | [null, NextResponse]> {

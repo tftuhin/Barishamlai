@@ -14,6 +14,7 @@ enum Role {
   ADMIN
   PRESIDENT   // read-only admin access
   SECRETARY   // read-only admin access
+  MEMBER      // read-only admin access (same as PRESIDENT)
   OWNER
   TENANT
 }
