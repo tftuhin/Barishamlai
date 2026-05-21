@@ -12,7 +12,7 @@ export default async function BillingPage() {
   let units: any[] = []
 
   const bId = session.user.buildingId ?? undefined
-  if (session.user.role === 'ADMIN') {
+  if (['ADMIN', 'PRESIDENT', 'SECRETARY'].includes(session.user.role)) {
     bills = await prisma.bill.findMany({
       where: { buildingId: bId },
       include: { unit: { include: { tenant: true, owner: true } } },

@@ -91,6 +91,14 @@ export const authOptions: NextAuthOptions = {
         token.role        = u.role
         token.buildingId  = u.buildingId
         token.buildingName = u.buildingName
+      } else if (token.id) {
+        // Re-sync role from DB on every token refresh so admin role changes
+        // take effect on the user's next request without requiring re-login.
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true },
+        })
+        if (dbUser) token.role = dbUser.role
       }
 
       // Handle property switching: client calls useSession().update({ switchBuildingId })

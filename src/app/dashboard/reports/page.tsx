@@ -6,7 +6,8 @@ import { ReportsClient } from './ReportsClient'
 
 export default async function ReportsPage() {
   const session = await getServerSession(authOptions)
-  if (!session || session.user.role !== 'ADMIN') redirect('/dashboard')
+  const VIEWER_ROLES = ['ADMIN', 'PRESIDENT', 'SECRETARY']
+  if (!session || !VIEWER_ROLES.includes(session.user.role)) redirect('/dashboard')
 
   const now = new Date()
   const month = now.getMonth() + 1
