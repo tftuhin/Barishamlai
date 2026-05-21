@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, PageHeader, Button, Modal, FormField, inputStyle, selectStyle, RoleBadge, EmptyState } from '@/components/ui'
 import { formatDate, getInitials } from '@/lib/utils'
@@ -95,6 +95,8 @@ export function SettingsClient({
   // ── Access ──
   const [joinRequests, setJoinRequests] = useState<any[]>(initialJoinRequests)
   const [invitations, setInvitations] = useState<any[]>(initialInvitations)
+  useEffect(() => { setJoinRequests(initialJoinRequests) }, [initialJoinRequests])
+  useEffect(() => { setInvitations(initialInvitations) }, [initialInvitations])
   const [showInvite, setShowInvite] = useState(false)
   const [inviteForm, setInviteForm] = useState({ email: '', role: 'TENANT' })
   const [inviteSaving, setInviteSaving] = useState(false)
