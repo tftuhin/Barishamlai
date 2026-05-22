@@ -181,7 +181,7 @@ export default async function DashboardPage() {
 
           {/* Floor map */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <FloorMapClient units={(data as any).unitsForMap} />
+            <FloorMapClient units={(data as any).unitsForMap} enabledModules={(data as any).enabledModules} />
           </div>
 
           <div className="resp-grid-2">
