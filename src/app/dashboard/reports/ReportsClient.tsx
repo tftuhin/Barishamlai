@@ -40,8 +40,8 @@ function FundCard({ label, collected, expenses, color }: { label: string; collec
   )
 }
 
-export function ReportsClient({ bills, expenses, totalUnits, currentMonth, currentYear, fundBalances, unitOpeningBalances }: {
-  bills: any[]; expenses: any[]; totalUnits: number; currentMonth: number; currentYear: number; fundBalances: any[]; unitOpeningBalances: any[]
+export function ReportsClient({ bills, expenses, units, currentMonth, currentYear, fundBalances, unitOpeningBalances }: {
+  bills: any[]; expenses: any[]; units: any[]; currentMonth: number; currentYear: number; fundBalances: any[]; unitOpeningBalances: any[]
 }) {
   const [reportType, setReportType] = useState<'summary' | 'monthly' | 'annual' | 'collection'>('summary')
   const [selMonth, setSelMonth] = useState(currentMonth)
@@ -208,7 +208,7 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
         <StatCard label="Building Collected" value={formatCurrency(buildingCollected)} color="#15803d" />
         <StatCard label="Building Expenses" value={formatCurrency(buildingExpenses)} color="#dc2626" />
         <StatCard label="Building Net" value={formatCurrency(buildingNet)} color={buildingNet >= 0 ? '#15803d' : '#dc2626'} />
-        <StatCard label="Total Units" value={totalUnits} />
+        <StatCard label="Total Units" value={units.length} />
       </div>
 
       {/* ── Per-fund cards ── */}
@@ -448,24 +448,38 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
       {/* ── COLLECTION SHEET ── */}
       {reportType === 'collection' && (() => {
         const activeFund = COLLECTION_FUNDS.find(f => f.type === collFundType) ?? COLLECTION_FUNDS[0]
-        const sheetBills = bills
-          .filter(b => b.type === collFundType && b.month === selMonth && b.year === selYear)
-          .slice()
-          .sort((a, b) => {
-            const na = parseInt(a.unit?.number ?? '0') || 0
-            const nb = parseInt(b.unit?.number ?? '0') || 0
-            return na !== nb ? na - nb : (a.unit?.number ?? '').localeCompare(b.unit?.number ?? '')
+        const isGas = collFundType === 'GAS'
+
+        // Bill lookup map: unitId → bill
+        const billMap = new Map(
+          bills
+            .filter(b => b.type === collFundType && b.month === selMonth && b.year === selYear)
+            .map(b => [b.unitId, b])
+        )
+
+        // Build display rows from ALL units (excluding units merged into another)
+        // Units with mergedWithUnitId are shown as part of their parent row
+        const displayRows = units
+          .filter(u => !u.mergedWithUnitId)
+          .map(u => {
+            const bill = billMap.get(u.id) ?? null
+            const mergedNumbers = (u.mergedUnits ?? []).map((m: any) => m.number)
+            const flatLabel = mergedNumbers.length > 0
+              ? `Flat ${u.number} + ${mergedNumbers.join(' + ')}`
+              : `Flat ${u.number}`
+            const isMerged = mergedNumbers.length > 0
+            const ownerName = u.owner?.name ?? '—'
+            const occupant = u.tenant?.name ?? (u.owner?.name ? u.owner.name : '')
+            const amount = bill?.amount ?? 0
+            const status: string = bill?.status ?? 'NONE'
+            return { u, bill, flatLabel, isMerged, ownerName, occupant, amount, status }
           })
 
-        const sheetTotal = sheetBills.reduce((s, b) => s + b.amount, 0)
-        const sheetPaid  = sheetBills.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0)
+        const sheetTotal = displayRows.reduce((s, r) => s + r.amount, 0)
+        const sheetPaid  = displayRows.filter(r => r.status === 'PAID').reduce((s, r) => s + r.amount, 0)
         const sheetDue   = sheetTotal - sheetPaid
 
-        const STATUS_PILL: Record<string, React.CSSProperties> = {
-          PAID:    { background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' },
-          PENDING: { background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' },
-          OVERDUE: { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' },
-        }
+        const colSpanTotal = isGas ? 6 : 4
 
         return (
           <>
@@ -487,9 +501,9 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
               ))}
             </div>
 
-            {sheetBills.length === 0 ? (
+            {units.length === 0 ? (
               <Card style={{ padding: '2rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>
-                No {activeFund.label} bills found for {getMonthName(selMonth)} {selYear}.
+                No flats found for this building.
               </Card>
             ) : (
               <>
@@ -531,43 +545,47 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
                           <tr style={{ background: 'var(--surface-subtle)' }}>
                             {[
                               '#', 'Flat', 'Owner', 'Occupant',
-                              ...(collFundType === 'GAS' ? ['Opening Unit', 'Closing Unit'] : []),
-                              'Amount (৳)', 'Status', 'Signature',
+                              ...(isGas ? ['Opening Unit', 'Closing Unit'] : []),
+                              'Amount (৳)', 'Payment Date', 'Signature',
                             ].map(h => (
                               <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, fontSize: 11, borderBottom: '2px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {sheetBills.map((bill, idx) => {
-                            const unit = bill.unit ?? {}
-                            const ownerName = unit.owner?.name ?? '—'
-                            const occupant = unit.tenant?.name ?? (unit.owner?.name ? unit.owner.name : '')
-                            const pill = STATUS_PILL[bill.status] ?? STATUS_PILL.PENDING
+                          {displayRows.map((row, idx) => {
+                            const { bill, flatLabel, isMerged, ownerName, occupant, amount } = row
+                            const isZero = amount === 0
+                            const rowBg = isMerged
+                              ? (idx % 2 === 0 ? '#fefce8' : '#fef9c3')
+                              : (idx % 2 === 0 ? '#fff' : 'var(--surface-subtle)')
                             return (
-                              <tr key={bill.id} style={{ background: idx % 2 === 0 ? '#fff' : 'var(--surface-subtle)' }}>
+                              <tr key={row.u.id} style={{ background: rowBg }}>
                                 <td style={{ padding: '9px 12px', color: 'var(--text-muted)', fontSize: 12 }}>{idx + 1}</td>
-                                <td style={{ padding: '9px 12px', fontWeight: 600 }}>Flat {unit.number ?? '—'}</td>
+                                <td style={{ padding: '9px 12px', fontWeight: 600 }}>
+                                  {flatLabel}
+                                  {isMerged && (
+                                    <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, background: '#d97706', color: '#fff', padding: '1px 5px', borderRadius: 4 }}>merged</span>
+                                  )}
+                                </td>
                                 <td style={{ padding: '9px 12px' }}>{ownerName}</td>
                                 <td style={{ padding: '9px 12px', color: occupant ? 'inherit' : 'var(--text-muted)', fontStyle: occupant ? 'normal' : 'italic' }}>
                                   {occupant || 'Vacant'}
                                 </td>
-                                {collFundType === 'GAS' && (
+                                {isGas && (
                                   <td style={{ padding: '9px 12px', fontWeight: 500 }}>
-                                    {bill.openingMeterReading != null ? bill.openingMeterReading : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                                    {bill?.openingMeterReading != null ? bill.openingMeterReading : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                                   </td>
                                 )}
-                                {collFundType === 'GAS' && (
+                                {isGas && (
                                   <td style={{ padding: '9px 12px', fontWeight: 500 }}>
-                                    {bill.meterReading != null ? bill.meterReading : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                                    {bill?.meterReading != null ? bill.meterReading : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                                   </td>
                                 )}
-                                <td style={{ padding: '9px 12px', fontWeight: 700 }}>{formatCurrency(bill.amount)}</td>
-                                <td style={{ padding: '9px 12px' }}>
-                                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, ...pill }}>
-                                    {bill.status}
-                                  </span>
+                                <td style={{ padding: '9px 12px', fontWeight: isZero ? 400 : 700, color: isZero ? 'var(--text-muted)' : 'inherit' }}>
+                                  {isZero ? '৳ 0' : formatCurrency(amount)}
                                 </td>
+                                <td style={{ padding: '9px 12px', minWidth: 110, borderLeft: '1px dashed var(--border)' }}>&nbsp;</td>
                                 <td style={{ padding: '9px 12px', minWidth: 120, borderLeft: '1px dashed var(--border)' }}>&nbsp;</td>
                               </tr>
                             )
@@ -575,8 +593,8 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
                         </tbody>
                         <tfoot>
                           <tr style={{ background: 'var(--surface-subtle)', fontWeight: 700 }}>
-                            <td colSpan={collFundType === 'GAS' ? 6 : 4} style={{ padding: '9px 12px', fontSize: 13, borderTop: '2px solid var(--border)' }}>
-                              Total ({sheetBills.length} flat{sheetBills.length !== 1 ? 's' : ''})
+                            <td colSpan={colSpanTotal} style={{ padding: '9px 12px', fontSize: 13, borderTop: '2px solid var(--border)' }}>
+                              Total ({displayRows.length} flat{displayRows.length !== 1 ? 's' : ''})
                             </td>
                             <td style={{ padding: '9px 12px', fontSize: 13, borderTop: '2px solid var(--border)' }}>{formatCurrency(sheetTotal)}</td>
                             <td colSpan={2} style={{ padding: '9px 12px', borderTop: '2px solid var(--border)' }}></td>
