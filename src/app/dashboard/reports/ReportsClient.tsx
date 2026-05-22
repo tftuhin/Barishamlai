@@ -472,14 +472,25 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
             const occupant = u.tenant?.name ?? (u.owner?.name ? u.owner.name : '')
             const amount = bill?.amount ?? 0
             const status: string = bill?.status ?? 'NONE'
-            return { u, bill, flatLabel, isMerged, ownerName, occupant, amount, status }
+
+            // Accumulated due: opening balance + all unpaid bills up to selected month
+            const unitOb = unitOpeningBalances.find((ob: any) => ob.unitId === u.id && ob.billType === collFundType)
+            const unpaidUpToMonth = bills
+              .filter((b: any) =>
+                b.unitId === u.id && b.type === collFundType && b.status !== 'PAID' &&
+                (b.year < selYear || (b.year === selYear && b.month <= selMonth))
+              )
+              .reduce((s: number, b: any) => s + b.amount, 0)
+            const accumulatedDue = (unitOb?.amount ?? 0) + unpaidUpToMonth
+
+            return { u, bill, flatLabel, isMerged, ownerName, occupant, amount, status, accumulatedDue }
           })
 
         const sheetTotal = displayRows.reduce((s, r) => s + r.amount, 0)
         const sheetPaid  = displayRows.filter(r => r.status === 'PAID').reduce((s, r) => s + r.amount, 0)
         const sheetDue   = sheetTotal - sheetPaid
 
-        const colSpanTotal = isGas ? 6 : 4
+        const colSpanTotal = isGas ? 7 : 5
 
         return (
           <>
@@ -546,7 +557,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                             {[
                               '#', 'Flat', 'Owner', 'Occupant',
                               ...(isGas ? ['Opening Unit', 'Closing Unit'] : []),
-                              'Amount (৳)', 'Payment Date', 'Signature',
+                              'Amount (৳)', 'Accumulated Due (৳)', 'Payment Date', 'Signature',
                             ].map(h => (
                               <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, fontSize: 11, borderBottom: '2px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                             ))}
@@ -554,7 +565,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                         </thead>
                         <tbody>
                           {displayRows.map((row, idx) => {
-                            const { bill, flatLabel, isMerged, ownerName, occupant, amount } = row
+                            const { bill, flatLabel, isMerged, ownerName, occupant, amount, accumulatedDue } = row
                             const isZero = amount === 0
                             const rowBg = isMerged
                               ? (idx % 2 === 0 ? '#fefce8' : '#fef9c3')
@@ -584,6 +595,9 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                                 )}
                                 <td style={{ padding: '9px 12px', fontWeight: isZero ? 400 : 700, color: isZero ? 'var(--text-muted)' : 'inherit' }}>
                                   {isZero ? '৳ 0' : formatCurrency(amount)}
+                                </td>
+                                <td style={{ padding: '9px 12px', fontWeight: 700, color: accumulatedDue > 0 ? '#dc2626' : '#15803d' }}>
+                                  {formatCurrency(accumulatedDue)}
                                 </td>
                                 <td style={{ padding: '9px 12px', minWidth: 110, borderLeft: '1px dashed var(--border)' }}>&nbsp;</td>
                                 <td style={{ padding: '9px 12px', minWidth: 120, borderLeft: '1px dashed var(--border)' }}>&nbsp;</td>
