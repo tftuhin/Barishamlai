@@ -118,24 +118,83 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
   function printSheet() {
     const content = printRef.current
     if (!content) return
-    const win = window.open('', '_blank', 'width=950,height=750')
+    // Read meta from the header div children
+    const titleEl   = content.querySelector('h2')
+    const subtitleEl = content.querySelector('p')
+    const table     = content.querySelector('table')
+    if (!table) return
+    const isLandscape = (table.querySelectorAll('th').length > 7)
+    const win = window.open('', '_blank', 'width=1100,height=800')
     if (!win) return
-    win.document.write(`<!DOCTYPE html><html><head><title>Collection Sheet</title><style>
-      body { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; color: #111; }
-      h2 { margin: 0 0 4px; font-size: 18px; }
-      .subtitle { color: #555; margin: 0 0 16px; font-size: 12px; }
-      table { width: 100%; border-collapse: collapse; }
-      th { background: #f1f5f9; padding: 8px 10px; text-align: left; font-size: 11px; border: 1px solid #cbd5e1; }
-      td { padding: 8px 10px; border: 1px solid #e2e8f0; font-size: 12px; }
-      tr:nth-child(even) td { background: #f8fafc; }
-      .paid { color: #15803d; font-weight: 700; }
-      .pending { color: #9a3412; font-weight: 700; }
-      tfoot td { font-weight: 700; background: #f1f5f9; border-top: 2px solid #94a3b8; }
-      @media print { body { margin: 10mm; } }
-    </style></head><body>${content.innerHTML}</body></html>`)
+    win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${titleEl?.textContent ?? 'Collection Sheet'}</title>
+<style>
+  @page { size: A4 ${isLandscape ? 'landscape' : 'portrait'}; margin: 12mm 14mm; }
+  *  { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #111; margin: 0; }
+
+  /* ── Header ── */
+  .hdr { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #1e3a5f; display: flex; justify-content: space-between; align-items: flex-end; }
+  .hdr-left h1 { font-size: 16px; font-weight: 700; margin: 0 0 2px; color: #1e3a5f; }
+  .hdr-left p  { font-size: 9px; color: #64748b; margin: 0; }
+  .hdr-right   { font-size: 9px; color: #94a3b8; text-align: right; }
+
+  /* ── Summary bar ── */
+  .summary { display: flex; gap: 0; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; }
+  .sum-item { flex: 1; padding: 6px 10px; border-right: 1px solid #cbd5e1; }
+  .sum-item:last-child { border-right: none; }
+  .sum-label { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; display: block; margin-bottom: 2px; }
+  .sum-val   { font-size: 13px; font-weight: 700; }
+  .c-blue  { color: #1e40af; }
+  .c-green { color: #15803d; }
+  .c-red   { color: #dc2626; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; table-layout: auto; }
+  thead th {
+    background: #1e3a5f;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    color: #fff; padding: 6px 7px;
+    text-align: left; font-size: 8px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
+    border: 1px solid #1e3a5f; white-space: nowrap;
+  }
+  thead th.r { text-align: right; }
+  tbody td { padding: 0 7px; height: 28px; border: 1px solid #d1d5db; font-size: 10px; vertical-align: middle; }
+  tbody tr:nth-child(even) td { background: #f8fafc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  tbody tr.merged td { background: #fffbeb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  tbody tr { page-break-inside: avoid; }
+  td.r  { text-align: right; }
+  td.no { color: #94a3b8; font-size: 9px; text-align: center; width: 24px; }
+  td.bold { font-weight: 700; }
+  td.muted { color: #94a3b8; font-style: italic; }
+  td.due-red  { color: #dc2626; font-weight: 700; text-align: right; }
+  td.due-zero { color: #15803d; font-weight: 700; text-align: right; }
+  td.write { border-left: 1px dashed #9ca3af !important; background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .merged-badge { display: inline-block; background: #d97706; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #fff; font-size: 7px; font-weight: 700; padding: 1px 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
+  tfoot td { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: 700; border-top: 2px solid #1e3a5f; font-size: 10px; padding: 5px 7px; }
+  tfoot td.r { text-align: right; }
+
+  /* ── Page footer ── */
+  .pfooter { margin-top: 10px; font-size: 8px; color: #94a3b8; display: flex; justify-content: space-between; border-top: 1px solid #e5e7eb; padding-top: 4px; }
+</style>
+</head><body>
+  <div class="hdr">
+    <div class="hdr-left">
+      <h1>${titleEl?.textContent ?? ''}</h1>
+      <p>${subtitleEl?.textContent ?? ''}</p>
+    </div>
+    <div class="hdr-right">Printed ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+  </div>
+  ${table.outerHTML}
+  <div class="pfooter">
+    <span>${titleEl?.textContent ?? ''}</span>
+    <span>Page 1</span>
+  </div>
+</body></html>`)
     win.document.close()
     win.focus()
-    setTimeout(() => { win.print() }, 300)
+    setTimeout(() => { win.print() }, 400)
   }
 
   async function downloadPDF() {
@@ -542,24 +601,39 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                 {/* Printable table */}
                 <Card>
                   <div ref={printRef}>
+                    {/* Header — used by printSheet to extract title/subtitle */}
                     <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
                       <h2 style={{ margin: '0 0 2px', fontSize: 16, fontWeight: 700 }}>
                         {activeFund.label} — Cash Collection Sheet
                       </h2>
                       <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
-                        {getMonthName(selMonth)} {selYear} &nbsp;|&nbsp; Generated {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {getMonthName(selMonth)} {selYear} &nbsp;|&nbsp; {displayRows.length} flat{displayRows.length !== 1 ? 's' : ''}
                       </p>
                     </div>
-                    <div style={{ overflowX: 'auto' }}>
+                    <div style={{ overflowX: 'auto', padding: '0 0 1rem' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
-                          <tr style={{ background: 'var(--surface-subtle)' }}>
+                          <tr style={{ background: '#1e3a5f' }}>
                             {[
-                              '#', 'Flat', 'Owner', 'Occupant',
-                              ...(isGas ? ['Opening Unit', 'Closing Unit'] : []),
-                              'Amount (৳)', 'Accumulated Due (৳)', 'Payment Date', 'Signature',
+                              { label: '#',                  cls: '' },
+                              { label: 'Flat',               cls: '' },
+                              { label: 'Owner',              cls: '' },
+                              { label: 'Occupant',           cls: '' },
+                              ...(isGas ? [
+                                { label: 'Opening Unit', cls: 'r' },
+                                { label: 'Closing Unit', cls: 'r' },
+                              ] : []),
+                              { label: 'Amount (৳)',         cls: 'r' },
+                              { label: 'Accumulated Due (৳)',cls: 'r' },
+                              { label: 'Payment Date',       cls: '' },
+                              { label: 'Signature',          cls: '' },
                             ].map(h => (
-                              <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, fontSize: 11, borderBottom: '2px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
+                              <th key={h.label} className={h.cls} style={{
+                                padding: '8px 10px', textAlign: h.cls === 'r' ? 'right' : 'left',
+                                fontWeight: 700, fontSize: 11, color: '#fff',
+                                background: '#1e3a5f', whiteSpace: 'nowrap',
+                                borderBottom: '2px solid #1e3a5f',
+                              }}>{h.label}</th>
                             ))}
                           </tr>
                         </thead>
@@ -568,50 +642,50 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                             const { bill, flatLabel, isMerged, ownerName, occupant, amount, accumulatedDue } = row
                             const isZero = amount === 0
                             const rowBg = isMerged
-                              ? (idx % 2 === 0 ? '#fefce8' : '#fef9c3')
-                              : (idx % 2 === 0 ? '#fff' : 'var(--surface-subtle)')
+                              ? (idx % 2 === 0 ? '#fffbeb' : '#fef9c3')
+                              : (idx % 2 === 0 ? '#fff' : '#f8fafc')
                             return (
-                              <tr key={row.u.id} style={{ background: rowBg }}>
-                                <td style={{ padding: '9px 12px', color: 'var(--text-muted)', fontSize: 12 }}>{idx + 1}</td>
-                                <td style={{ padding: '9px 12px', fontWeight: 600 }}>
+                              <tr key={row.u.id} className={isMerged ? 'merged' : ''} style={{ background: rowBg }}>
+                                <td className="no" style={{ padding: '8px 6px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 11, width: 28, border: '1px solid #e5e7eb' }}>{idx + 1}</td>
+                                <td className="bold" style={{ padding: '8px 10px', fontWeight: 600, border: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>
                                   {flatLabel}
                                   {isMerged && (
-                                    <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, background: '#d97706', color: '#fff', padding: '1px 5px', borderRadius: 4 }}>merged</span>
+                                    <span style={{ marginLeft: 5, fontSize: 9, fontWeight: 700, background: '#d97706', color: '#fff', padding: '1px 4px', borderRadius: 3 }}>merged</span>
                                   )}
                                 </td>
-                                <td style={{ padding: '9px 12px' }}>{ownerName}</td>
-                                <td style={{ padding: '9px 12px', color: occupant ? 'inherit' : 'var(--text-muted)', fontStyle: occupant ? 'normal' : 'italic' }}>
+                                <td style={{ padding: '8px 10px', border: '1px solid #e5e7eb' }}>{ownerName}</td>
+                                <td style={{ padding: '8px 10px', border: '1px solid #e5e7eb', color: occupant ? 'inherit' : '#94a3b8', fontStyle: occupant ? 'normal' : 'italic' }}>
                                   {occupant || 'Vacant'}
                                 </td>
                                 {isGas && (
-                                  <td style={{ padding: '9px 12px', fontWeight: 500 }}>
-                                    {bill?.openingMeterReading != null ? bill.openingMeterReading : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                                  <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 500 }}>
+                                    {bill?.openingMeterReading != null ? bill.openingMeterReading : <span style={{ color: '#94a3b8' }}>—</span>}
                                   </td>
                                 )}
                                 {isGas && (
-                                  <td style={{ padding: '9px 12px', fontWeight: 500 }}>
-                                    {bill?.meterReading != null ? bill.meterReading : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                                  <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 500 }}>
+                                    {bill?.meterReading != null ? bill.meterReading : <span style={{ color: '#94a3b8' }}>—</span>}
                                   </td>
                                 )}
-                                <td style={{ padding: '9px 12px', fontWeight: isZero ? 400 : 700, color: isZero ? 'var(--text-muted)' : 'inherit' }}>
-                                  {isZero ? '৳ 0' : formatCurrency(amount)}
+                                <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: isZero ? 400 : 700, color: isZero ? '#94a3b8' : 'inherit' }}>
+                                  {isZero ? '০' : formatCurrency(amount)}
                                 </td>
-                                <td style={{ padding: '9px 12px', fontWeight: 700, color: accumulatedDue > 0 ? '#dc2626' : '#15803d' }}>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 700, color: accumulatedDue > 0 ? '#dc2626' : '#15803d' }}>
                                   {formatCurrency(accumulatedDue)}
                                 </td>
-                                <td style={{ padding: '9px 12px', minWidth: 110, borderLeft: '1px dashed var(--border)' }}>&nbsp;</td>
-                                <td style={{ padding: '9px 12px', minWidth: 120, borderLeft: '1px dashed var(--border)' }}>&nbsp;</td>
+                                <td className="write" style={{ padding: '8px 10px', minWidth: 100, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
+                                <td className="write" style={{ padding: '8px 10px', minWidth: 110, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
                               </tr>
                             )
                           })}
                         </tbody>
                         <tfoot>
-                          <tr style={{ background: 'var(--surface-subtle)', fontWeight: 700 }}>
-                            <td colSpan={colSpanTotal} style={{ padding: '9px 12px', fontSize: 13, borderTop: '2px solid var(--border)' }}>
-                              Total ({displayRows.length} flat{displayRows.length !== 1 ? 's' : ''})
+                          <tr style={{ background: '#f1f5f9', fontWeight: 700 }}>
+                            <td colSpan={colSpanTotal} style={{ padding: '8px 10px', fontSize: 13, borderTop: '2px solid #1e3a5f', background: '#f1f5f9' }}>
+                              Total &nbsp;<span style={{ fontWeight: 400, fontSize: 11, color: '#64748b' }}>({displayRows.length} flat{displayRows.length !== 1 ? 's' : ''})</span>
                             </td>
-                            <td style={{ padding: '9px 12px', fontSize: 13, borderTop: '2px solid var(--border)' }}>{formatCurrency(sheetTotal)}</td>
-                            <td colSpan={2} style={{ padding: '9px 12px', borderTop: '2px solid var(--border)' }}></td>
+                            <td style={{ padding: '8px 10px', fontSize: 13, borderTop: '2px solid #1e3a5f', textAlign: 'right', background: '#f1f5f9' }}>{formatCurrency(sheetTotal)}</td>
+                            <td colSpan={2} style={{ padding: '8px 10px', borderTop: '2px solid #1e3a5f', background: '#f1f5f9' }}></td>
                           </tr>
                         </tfoot>
                       </table>
