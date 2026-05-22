@@ -544,9 +544,6 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
                             const ownerName = unit.owner?.name ?? '—'
                             const occupant = unit.tenant?.name ?? (unit.owner?.name ? unit.owner.name : '')
                             const pill = STATUS_PILL[bill.status] ?? STATUS_PILL.PENDING
-                            const blankCell = (w = 100) => (
-                              <td style={{ padding: '9px 12px', minWidth: w, borderLeft: '1px dashed var(--border)' }}>&nbsp;</td>
-                            )
                             return (
                               <tr key={bill.id} style={{ background: idx % 2 === 0 ? '#fff' : 'var(--surface-subtle)' }}>
                                 <td style={{ padding: '9px 12px', color: 'var(--text-muted)', fontSize: 12 }}>{idx + 1}</td>
@@ -555,8 +552,16 @@ export function ReportsClient({ bills, expenses, totalUnits, currentMonth, curre
                                 <td style={{ padding: '9px 12px', color: occupant ? 'inherit' : 'var(--text-muted)', fontStyle: occupant ? 'normal' : 'italic' }}>
                                   {occupant || 'Vacant'}
                                 </td>
-                                {collFundType === 'GAS' && blankCell(90)}
-                                {collFundType === 'GAS' && blankCell(90)}
+                                {collFundType === 'GAS' && (
+                                  <td style={{ padding: '9px 12px', fontWeight: 500 }}>
+                                    {bill.openingMeterReading != null ? bill.openingMeterReading : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                                  </td>
+                                )}
+                                {collFundType === 'GAS' && (
+                                  <td style={{ padding: '9px 12px', fontWeight: 500 }}>
+                                    {bill.meterReading != null ? bill.meterReading : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                                  </td>
+                                )}
                                 <td style={{ padding: '9px 12px', fontWeight: 700 }}>{formatCurrency(bill.amount)}</td>
                                 <td style={{ padding: '9px 12px' }}>
                                   <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, ...pill }}>

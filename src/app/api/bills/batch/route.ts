@@ -13,6 +13,7 @@ interface BillInput {
   status?: 'PENDING' | 'PAID'
   paidAt?: string | null
   meterReading?: number | null
+  openingMeterReading?: number | null
   note?: string | null
 }
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     const errors: string[] = []
 
     for (const b of bills as BillInput[]) {
-      const { unitId, type, amount, month, year, dueDate, status, paidAt, meterReading, note } = b
+      const { unitId, type, amount, month, year, dueDate, status, paidAt, meterReading, openingMeterReading, note } = b
       if (!unitId || !type || !amount || !month || !year || !dueDate) {
         skipped++
         continue
@@ -62,8 +63,9 @@ export async function POST(req: NextRequest) {
             dueDate:      new Date(dueDate),
             status:       billStatus,
             paidAt:       billStatus === 'PAID' ? (paidAt ? new Date(paidAt) : new Date(dueDate)) : null,
-            meterReading: meterReading != null ? Number(meterReading) : null,
-            note:         note ?? null,
+            meterReading:        meterReading != null ? Number(meterReading) : null,
+            openingMeterReading: openingMeterReading != null ? Number(openingMeterReading) : null,
+            note:                note ?? null,
             buildingId,
           },
         })

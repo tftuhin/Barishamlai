@@ -260,8 +260,9 @@ model Bill {
   dueDate      DateTime
   status       PaymentStatus @default(PENDING)
   paidAt       DateTime?
-  note         String?
-  meterReading Float?
+  note                String?
+  meterReading        Float?
+  openingMeterReading Float?
 
   receipt Receipt?
 

@@ -175,7 +175,10 @@ export function MigrationTab({
     const bills = valid.map(r => {
       const month = Number(r.month); const year = Number(r.year)
       const dueDate = new Date(year, month, 0).toISOString().split('T')[0]
-      return { unitId: selectedUnitId, type: r.billType, amount: Number(r.amount), month, year, dueDate, status: r.status }
+      const extra = r.billType === 'GAS' && r.closingUnit
+        ? { meterReading: Number(r.closingUnit), openingMeterReading: r.openingUnit ? Number(r.openingUnit) : null }
+        : {}
+      return { unitId: selectedUnitId, type: r.billType, amount: Number(r.amount), month, year, dueDate, status: r.status, ...extra }
     })
     const res  = await fetch('/api/bills/batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bills }) })
     const data = await res.json()

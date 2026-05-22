@@ -116,6 +116,7 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
         year: Number(batchYear),
         dueDate: batchDueDate,
         meterReading: Number(r.currentReading),
+        openingMeterReading: r.prevReading ? Number(r.prevReading) : null,
       }))
     const res = await fetch('/api/bills/batch', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -217,7 +218,7 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
             <div>
               <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: 0 }}>Initiate Gas Bills — Meter Readings</h3>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '3px 0 0' }}>
-                Enter current meter reading for each unit. Previous (closing) reading is auto-filled. Rate: ৳{gasUnitRate}/unit
+                Opening unit is auto-filled from last month&apos;s closing reading. Just enter this month&apos;s closing unit for each flat. Rate: ৳{gasUnitRate}/unit
                 {gasUnitRate === 0 && <span style={{ color: '#d97706', marginLeft: '8px' }}>⚠ Set gas rate in Settings first</span>}
               </p>
             </div>
@@ -241,7 +242,7 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
               <thead>
                 <tr style={{ background: 'var(--surface-subtle)' }}>
-                  {['Unit', 'Prev Reading', 'Current Reading', 'Usage', 'Amount (৳)', 'Skip'].map(h => (
+                  {['Unit', 'Opening Unit (auto)', 'Closing Unit', 'Usage', 'Amount (৳)', 'Skip'].map(h => (
                     <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>{h}</th>
                   ))}
                 </tr>
@@ -260,14 +261,19 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
                         {existing && <div style={{ fontSize: '10px', color: '#d97706', marginTop: '2px' }}>⚠ Bill exists</div>}
                       </td>
                       <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>
-                        <input
-                          type="number"
-                          value={row.prevReading}
-                          onChange={e => updateRow(i, 'prevReading', e.target.value)}
-                          style={inputSt}
-                          placeholder="—"
-                          disabled={row.skip || !!existing}
-                        />
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="number"
+                            value={row.prevReading}
+                            onChange={e => updateRow(i, 'prevReading', e.target.value)}
+                            style={{ ...inputSt, background: row.prevReading ? '#f0fdf4' : undefined }}
+                            placeholder="—"
+                            disabled={row.skip || !!existing}
+                          />
+                          {row.prevReading && !row.skip && !existing && (
+                            <span style={{ position: 'absolute', top: -8, right: 2, fontSize: 9, fontWeight: 700, background: '#15803d', color: '#fff', padding: '1px 5px', borderRadius: 4 }}>auto</span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>
                         <input
@@ -275,7 +281,7 @@ export function GasClient({ units, gasBills, gasExpenses, fundBalance, gasUnitRa
                           value={row.currentReading}
                           onChange={e => updateRow(i, 'currentReading', e.target.value)}
                           style={row.skip || existing ? readonlySt : inputSt}
-                          placeholder="Enter reading"
+                          placeholder="Enter closing unit"
                           disabled={row.skip || !!existing}
                         />
                       </td>
