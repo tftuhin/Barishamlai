@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npx prisma generate && node scripts/migrate.mjs && next build",
+  "outputDirectory": ".next",
+  "crons": [
+    {
+      "path": "/api/cron/monthly-bills",
+      "schedule": "0 0 1 * *"
+    }
+  ]
+}

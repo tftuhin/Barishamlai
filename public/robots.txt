@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Allow: /blog
+Allow: /blog/
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+
+# Disallow private dashboard and API routes
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /login
+Disallow: /signup
+Disallow: /pending-approval
+Disallow: /developer
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://barishamlai.com/sitemap.xml

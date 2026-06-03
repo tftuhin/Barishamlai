@@ -1,0 +1,502 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ── Enums ──────────────────────────────────────────────────────
+enum Role {
+  ADMIN
+  PRESIDENT   // read-only admin access
+  SECRETARY   // read-only admin access
+  MEMBER      // read-only admin access (same as PRESIDENT)
+  OWNER
+  TENANT
+}
+
+enum BillType {
+  RENT
+  SERVICE_CHARGE
+  GAS
+  WATER
+  ELECTRICITY
+  GARBAGE
+  COMMUNITY_SECURITY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum UnitStatus {
+  OCCUPIED
+  VACANT
+}
+
+enum OccupancyType {
+  OWNER_OCCUPIED
+  TENANT_OCCUPIED
+  VACANT
+  MERGED
+}
+
+enum ServiceChargeType {
+  STANDARD
+  SPECIAL
+}
+
+enum ExpenseCategory {
+  MAINTENANCE
+  CLEANING
+  UTILITIES
+  SECURITY
+  INSURANCE
+  LEGAL
+  OTHER
+}
+
+// Which income bucket this expense is charged against
+enum ExpenseSource {
+  GAS
+  SERVICE_CHARGE
+  WATER
+  GARBAGE
+  COMMUNITY_SECURITY
+  RENT
+  GENERAL
+}
+
+// Granular categories for module-specific expenses
+enum ServiceExpenseCategory {
+  // Service charge module expenses
+  SECURITY_GUARD_SALARY
+  CARETAKER_SALARY
+  CLEANER_SALARY
+  LIFT_SERVICING
+  COMMON_ELECTRICITY
+  GENERATOR
+  SC_MAINTENANCE
+  DIESEL
+  SMALL_REPAIR
+  // Gas module expenses
+  GAS_CYLINDER
+  // Water module expenses
+  WATER_BILL_PAYMENT
+  // Garbage module expenses
+  GARBAGE_PAYMENT
+  // Community security expenses
+  COMMUNITY_SECURITY_PAYMENT
+}
+
+// Fund types for opening balance tracking
+enum FundType {
+  SERVICE_CHARGE
+  GAS
+  WATER
+  GARBAGE
+  COMMUNITY_SECURITY
+  RENT
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BuildingPlan {
+  FREE
+  PREMIUM
+}
+
+enum BuildingTier {
+  BASIC      // ৳200/mo — up to 10 units
+  STANDARD   // ৳300/mo — up to 20 units
+  PRO        // ৳400/mo — up to 30 units
+  ENTERPRISE // ৳500/mo — unlimited
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+enum BuildingStatus {
+  ACTIVE
+  LOCKED   // read-only warning; dashboard accessible but changes disabled
+  BLOCKED  // access denied pending review
+  BANNED   // permanent account ban
+}
+
+enum SubscriptionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ── Building (tenant root) ─────────────────────────────────────
+model Building {
+  id              String          @id @default(cuid())
+  name            String
+  address         String?
+  plan            BuildingPlan    @default(FREE)
+  tier            BuildingTier?   // null = FREE plan
+  premiumUntil    DateTime?
+  status          BuildingStatus  @default(ACTIVE)
+  statusNote      String?         // developer note for lock/block/ban
+  statusUpdatedAt DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  users                User[]
+  units                Unit[]
+  bills                Bill[]
+  expenses             Expense[]
+  messages             Message[]
+  config               BuildingConfig?
+  joinRequests         JoinRequest[]
+  invitations          Invitation[]
+  subscriptionPayments SubscriptionPayment[]
+  fundBalances         FundBalance[]
+  unitOpeningBalances  UnitOpeningBalance[]
+  userBuildings        UserBuilding[]
+  multiPropertyRequests MultiPropertyRequest[]
+  monthlySetups        MonthlySetup[]
+}
+
+// ── Users ──────────────────────────────────────────────────────
+model User {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  password            String
+  phone               String?
+  profileImage        String?   // data URL or external URL
+  passwordResetToken  String?   @unique
+  passwordResetExpiry DateTime?
+  role                Role      @default(TENANT)
+  buildingId          String?
+  building            Building? @relation(fields: [buildingId], references: [id])
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  ownedUnits       Unit[]    @relation("UnitOwner")
+  tenantUnit       Unit?     @relation("UnitTenant")
+  sentMessages     Message[] @relation("MessageSender")
+  receivedMessages MessageRecipient[]
+  receiptsIssued   Receipt[] @relation("ReceiptIssuer")
+  receiptsReceived Receipt[] @relation("ReceiptRecipient")
+  joinRequests     JoinRequest[]
+  sentInvitations  Invitation[] @relation("InvitationSender")
+  userBuildings    UserBuilding[]
+  multiPropertyRequests MultiPropertyRequest[]
+}
+
+// ── Units ──────────────────────────────────────────────────────
+model Unit {
+  id                String     @id @default(cuid())
+  number            String
+  floor             Int
+  area              Float?
+  monthlyRent       Float
+  status            UnitStatus @default(OCCUPIED)
+  isOwnerOccupied   Boolean    @default(false)  // owner lives here — no rent charged
+  customServiceCharge Float?    // overrides building-level rate when set
+  ownerContactName  String?
+  ownerPhone        String?
+  tenantContactName String?
+  tenantPhone       String?
+  tenantNid         String?
+
+  occupancyType       OccupancyType     @default(TENANT_OCCUPIED)
+  serviceChargeType   ServiceChargeType @default(STANDARD)
+  skipRentModule      Boolean           @default(false)
+  ownerEmail          String?
+  tenantEmail         String?
+  tenantMoveInDate    DateTime?
+
+  buildingId String?
+  building   Building? @relation(fields: [buildingId], references: [id])
+
+  ownerId  String?
+  tenantId String? @unique
+  owner    User?   @relation("UnitOwner",  fields: [ownerId],  references: [id])
+  tenant   User?   @relation("UnitTenant", fields: [tenantId], references: [id])
+
+  mergedWithUnitId String?
+  mergedWith       Unit?   @relation("MergedUnits", fields: [mergedWithUnitId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  mergedUnits      Unit[]  @relation("MergedUnits")
+
+  bills           Bill[]
+  receipts        Receipt[]
+  openingBalances UnitOpeningBalance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([buildingId, number])
+}
+
+// ── Bills ──────────────────────────────────────────────────────
+model Bill {
+  id           String        @id @default(cuid())
+  unitId       String
+  unit         Unit          @relation(fields: [unitId], references: [id])
+  buildingId   String?
+  building     Building?     @relation(fields: [buildingId], references: [id])
+  type         BillType
+  amount       Float
+  month        Int
+  year         Int
+  dueDate      DateTime
+  status       PaymentStatus @default(PENDING)
+  paidAt       DateTime?
+  note                String?
+  meterReading        Float?
+  openingMeterReading Float?
+
+  receipt Receipt?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([unitId, type, month, year])
+}
+
+// ── Receipts ───────────────────────────────────────────────────
+model Receipt {
+  id          String   @id @default(cuid())
+  billId      String   @unique
+  bill        Bill     @relation(fields: [billId], references: [id])
+  unitId      String
+  unit        Unit     @relation(fields: [unitId], references: [id])
+  issuedById  String
+  issuedBy    User     @relation("ReceiptIssuer",   fields: [issuedById],  references: [id])
+  recipientId String
+  recipient   User     @relation("ReceiptRecipient", fields: [recipientId], references: [id])
+  amount      Float
+  pdfUrl      String?
+  sentEmail   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// ── Expenses ───────────────────────────────────────────────────
+model Expense {
+  id              String                  @id @default(cuid())
+  title           String
+  amount          Float
+  category        ExpenseCategory
+  serviceCategory ServiceExpenseCategory? // set for SC or Gas module expenses
+  incomeSource    ExpenseSource           @default(GENERAL)
+  date            DateTime
+  description     String?
+  month           Int
+  year            Int
+  buildingId      String?
+  building        Building?               @relation(fields: [buildingId], references: [id])
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+}
+
+// ── BuildingConfig ─────────────────────────────────────────────
+model BuildingConfig {
+  id                        String   @id           // equals buildingId
+  building                  Building @relation(fields: [id], references: [id])
+  featureRent               Boolean  @default(true)
+  featureElectricity        Boolean  @default(true)
+  featureGas                Boolean  @default(true)
+  featureLift               Boolean  @default(false)
+  featureSecurityGuard      Boolean  @default(false)
+  featureGarbage            Boolean  @default(false)
+  featureServiceCharge      Boolean  @default(true)
+  featureWater              Boolean  @default(false)
+  featureCommunitySecurity  Boolean  @default(false)
+  serviceChargeOccupied     Float    @default(0)
+  serviceChargeVacant       Float    @default(0)
+  gasUnitRate               Float    @default(0)
+  garbageRate               Float    @default(0)   // fixed rate per unit per month
+  communitySecurityRate     Float    @default(0)   // fixed rate per unit per month
+  onboardingComplete        Boolean  @default(false)
+  updatedAt                 DateTime @updatedAt
+}
+
+// ── Monthly Module Setup ───────────────────────────────────────
+// Stores per-month admin-confirmed values for water billing and
+// SC occupancy confirmation. One row per building per month/year.
+model MonthlySetup {
+  id                    String   @id @default(cuid())
+  buildingId            String
+  building              Building @relation(fields: [buildingId], references: [id])
+  month                 Int
+  year                  Int
+  // Water module
+  waterBillTotal        Float?   // total WASA bill for this month
+  waterOccupied         Int?     // confirmed occupied flat count for water division
+  waterBillsGenerated   Boolean  @default(false)
+  // Service charge module
+  scOccupancyConfirmed  Boolean  @default(false)
+  scBillsGenerated      Boolean  @default(false)
+  // Garbage module
+  garbageBillsGenerated Boolean  @default(false)
+  // Community security module
+  csBillsGenerated      Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([buildingId, month, year])
+}
+
+// ── Messages ───────────────────────────────────────────────────
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  sender     User     @relation("MessageSender", fields: [senderId], references: [id])
+  buildingId String?
+  building   Building? @relation(fields: [buildingId], references: [id])
+  subject    String
+  body       String   @db.Text
+  isGlobal   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  recipients MessageRecipient[]
+}
+
+model MessageRecipient {
+  id        String   @id @default(cuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId])
+}
+
+// ── Join Requests ──────────────────────────────────────────────
+// When an OWNER or TENANT registers with a building ID, a JoinRequest
+// is created. The admin approves or rejects it.
+model JoinRequest {
+  id         String            @id @default(cuid())
+  userId     String
+  buildingId String
+  role       Role
+  status     JoinRequestStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  building Building @relation(fields: [buildingId], references: [id])
+}
+
+// ── Subscription Payments ──────────────────────────────────────
+// Tracks SSLCommerz payments for plan upgrades/renewals.
+model SubscriptionPayment {
+  id          String             @id @default(cuid())
+  buildingId  String
+  building    Building           @relation(fields: [buildingId], references: [id])
+  tier        BuildingTier
+  months      Int                @default(1)
+  amount      Float              // total amount charged (BDT)
+  tranId      String             @unique  // our unique transaction ID sent to SSLCommerz
+  valId       String?            // SSLCommerz validation ID on success
+  status      SubscriptionStatus @default(PENDING)
+  createdAt   DateTime           @default(now())
+  completedAt DateTime?
+}
+
+// ── Fund Opening Balances ──────────────────────────────────────
+// Stores the opening cash balance per fund at time of migration.
+// One row per fund type per building. Missing row = zero balance.
+model FundBalance {
+  id         String    @id @default(cuid())
+  buildingId String
+  building   Building  @relation(fields: [buildingId], references: [id])
+  fundType   FundType
+  amount     Float     // positive = surplus, negative = deficit
+  note       String?
+  setAt      DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([buildingId, fundType])
+}
+
+// ── Unit Opening Balances ──────────────────────────────────────
+// Per-unit opening due/advance at time of migration.
+// Positive = tenant owes; negative = tenant has credit/advance.
+model UnitOpeningBalance {
+  id         String    @id @default(cuid())
+  unitId     String
+  unit       Unit      @relation(fields: [unitId], references: [id])
+  buildingId String
+  building   Building  @relation(fields: [buildingId], references: [id])
+  billType   BillType
+  amount     Float
+  note       String?
+  setAt      DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([unitId, billType])
+}
+
+// ── Multi-Property Access ──────────────────────────────────────
+// Links an admin user to additional buildings they manage beyond their
+// primary buildingId. Used for multi-property switching.
+model UserBuilding {
+  id         String   @id @default(cuid())
+  userId     String
+  buildingId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId],     references: [id], onDelete: Cascade)
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, buildingId])
+}
+
+// ── Multi-Property Activation Requests ────────────────────────
+// When an admin on FREE/STANDARD wants to add a second property,
+// they submit a request. Developer reviews and approves manually.
+model MultiPropertyRequest {
+  id                  String   @id @default(cuid())
+  userId              String
+  buildingId          String
+  phone               String
+  totalProperties     Int
+  totalFlats          Int
+  approvedProperties  Int?      // set by developer on approval; defaults to totalProperties
+  status              String   @default("PENDING")  // PENDING | APPROVED | REJECTED
+  note                String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user     User     @relation(fields: [userId],     references: [id])
+  building Building @relation(fields: [buildingId], references: [id])
+}
+
+// ── Invitations ────────────────────────────────────────────────
+// Admin pre-invites a user by email. The token is shared with the
+// invitee, who uses it during signup to be auto-approved.
+model Invitation {
+  id          String           @id @default(cuid())
+  email       String
+  buildingId  String
+  role        Role
+  token       String           @unique @default(cuid())
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  invitedById String
+  createdAt   DateTime         @default(now())
+
+  building  Building @relation(fields: [buildingId], references: [id])
+  invitedBy User     @relation("InvitationSender", fields: [invitedById], references: [id])
+}
