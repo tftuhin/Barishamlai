@@ -49,6 +49,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
   const [selFund, setSelFund] = useState<'SERVICE_CHARGE' | 'GAS'>('SERVICE_CHARGE')
   const [generating, setGenerating] = useState(false)
   const [collFundType, setCollFundType] = useState('SERVICE_CHARGE')
+  const [showAccumulatedDue, setShowAccumulatedDue] = useState(true)
   const printRef = useRef<HTMLDivElement>(null)
 
   const monthBills    = bills
@@ -549,7 +550,8 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
         const sheetPaid  = displayRows.filter(r => r.status === 'PAID').reduce((s, r) => s + r.amount, 0)
         const sheetDue   = sheetTotal - sheetPaid
 
-        const colSpanTotal = isGas ? 7 : 5
+        let colSpanTotal = isGas ? 7 : 5
+        if (!showAccumulatedDue) colSpanTotal -= 1
 
         return (
           <>
@@ -558,7 +560,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
             </p>
 
             {/* Fund tabs */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: '1.5rem', alignItems: 'center' }}>
               {COLLECTION_FUNDS.map(f => (
                 <button key={f.type} onClick={() => setCollFundType(f.type)} style={{
                   padding: '8px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', border: 'none',
@@ -569,6 +571,17 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                   {f.label}
                 </button>
               ))}
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', userSelect: 'none' }}>
+                  <input
+                    type="checkbox"
+                    checked={showAccumulatedDue}
+                    onChange={e => setShowAccumulatedDue(e.target.checked)}
+                    style={{ cursor: 'pointer', width: 16, height: 16 }}
+                  />
+                  Show Accumulated Due
+                </label>
+              </div>
             </div>
 
             {units.length === 0 ? (
@@ -624,7 +637,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                                 { label: 'Closing Unit', cls: 'r' },
                               ] : []),
                               { label: 'Amount (৳)',         cls: 'r' },
-                              { label: 'Accumulated Due (৳)',cls: 'r' },
+                              ...(showAccumulatedDue ? [{ label: 'Accumulated Due (৳)',cls: 'r' }] : []),
                               { label: 'Payment Date',       cls: '' },
                               { label: 'Signature',          cls: '' },
                             ].map(h => (
@@ -668,11 +681,13 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                                   </td>
                                 )}
                                 <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: isZero ? 400 : 700, color: isZero ? '#94a3b8' : 'inherit' }}>
-                                  {isZero ? '০' : formatCurrency(amount)}
+                                  {isZero ? '०' : formatCurrency(amount)}
                                 </td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 700, color: accumulatedDue > 0 ? '#dc2626' : '#15803d' }}>
-                                  {formatCurrency(accumulatedDue)}
-                                </td>
+                                {showAccumulatedDue && (
+                                  <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 700, color: accumulatedDue > 0 ? '#dc2626' : '#15803d' }}>
+                                    {formatCurrency(accumulatedDue)}
+                                  </td>
+                                )}
                                 <td className="write" style={{ padding: '8px 10px', minWidth: 100, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
                                 <td className="write" style={{ padding: '8px 10px', minWidth: 110, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
                               </tr>
