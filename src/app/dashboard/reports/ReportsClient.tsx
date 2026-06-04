@@ -129,25 +129,31 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
     if (prevMonth === 0) { prevMonth = 12; prevYear -= 1 }
 
     const thCount = table.querySelectorAll('thead th').length
-    const isLandscape = thCount > 8
+    // Always portrait — scale down font/padding for dense sheets
+    const dense = thCount > 8
+    const thFs   = dense ? '7px'   : '8px'
+    const tdFs   = dense ? '7.5px' : '9.5px'
+    const thPad  = dense ? '5px 4px' : '6px 7px'
+    const tdPad  = dense ? '0 3px'   : '0 6px'
+    const tdH    = dense ? '24px'    : '26px'
 
     const sheetTitle = `${activeFund.label} — Cash Collection Sheet`
     const sheetSub   = `${getMonthName(selMonth)} ${selYear}`
 
-    const win = window.open('', '_blank', 'width=1200,height=900')
+    const win = window.open('', '_blank', 'width=900,height=1200')
     if (!win) return
     win.document.write(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${sheetTitle}</title>
 <style>
-  @page { size: A4 ${isLandscape ? 'landscape' : 'portrait'}; margin: 10mm 12mm; }
+  @page { size: A4 portrait; margin: 10mm 12mm; }
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #111; margin: 0; }
 
   /* ── Building header ── */
   .bldg-hdr { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 3px solid #1e3a5f; }
-  .bldg-name { font-size: 18px; font-weight: 700; color: #1e3a5f; margin: 0 0 2px; }
+  .bldg-name { font-size: 16px; font-weight: 700; color: #1e3a5f; margin: 0 0 2px; }
   .bldg-addr { font-size: 9px; color: #64748b; margin: 0 0 6px; }
-  .sheet-meta { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 6px; }
+  .sheet-meta { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-top: 6px; }
   .meta-item { font-size: 9px; color: #374151; }
   .meta-item strong { color: #1e3a5f; }
   .print-date { float: right; font-size: 8px; color: #94a3b8; }
@@ -157,18 +163,19 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
   thead th {
     background: #1e3a5f;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    color: #fff; padding: 6px 7px;
-    text-align: center; font-size: 8px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .05em;
+    color: #fff; padding: ${thPad};
+    text-align: center; font-size: ${thFs}; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .04em;
     border: 1px solid #1e3a5f; white-space: nowrap;
   }
-  tbody td { padding: 0 6px; height: 26px; border: 1px solid #d1d5db; font-size: 9.5px; vertical-align: middle; text-align: center; }
+  tbody td { padding: ${tdPad}; height: ${tdH}; border: 1px solid #d1d5db; font-size: ${tdFs}; vertical-align: middle; text-align: center; white-space: nowrap; }
   tbody tr:nth-child(even) td { background: #f8fafc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   tbody tr.merged td { background: #fffbeb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   tbody tr { page-break-inside: avoid; }
-  td.write { border-left: 1px dashed #9ca3af !important; background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .merged-badge { display: inline-block; background: #d97706; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #fff; font-size: 7px; font-weight: 700; padding: 1px 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
-  tfoot td { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: 700; border-top: 2px solid #1e3a5f; font-size: 10px; padding: 5px 7px; text-align: center; }
+  /* handwriting columns — allow wider and keep wrapping off */
+  td.write { border-left: 1px dashed #9ca3af !important; background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; min-width: ${dense ? '60px' : '80px'}; }
+  .merged-badge { display: inline-block; background: #d97706; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #fff; font-size: 6px; font-weight: 700; padding: 1px 3px; border-radius: 3px; margin-left: 3px; vertical-align: middle; }
+  tfoot td { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: 700; border-top: 2px solid #1e3a5f; font-size: ${tdFs}; padding: 4px 5px; text-align: center; }
 
   /* ── Page footer ── */
   .pfooter { margin-top: 8px; font-size: 8px; color: #94a3b8; display: flex; justify-content: space-between; border-top: 1px solid #e5e7eb; padding-top: 4px; }
@@ -703,8 +710,8 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                                     {formatCurrency(accumulatedDue)}
                                   </td>
                                 )}
-                                <td style={{ padding: '8px 10px', textAlign: 'center', minWidth: 100, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'center', minWidth: 110, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
+                                <td className="write" style={{ padding: '8px 10px', textAlign: 'center', minWidth: 100, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
+                                <td className="write" style={{ padding: '8px 10px', textAlign: 'center', minWidth: 110, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', minWidth: 50 }}>
                                   <input type="checkbox" style={{ cursor: 'pointer', width: 18, height: 18 }} />
                                 </td>
