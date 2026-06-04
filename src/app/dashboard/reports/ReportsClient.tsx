@@ -144,7 +144,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
     win.document.write(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${sheetTitle}</title>
 <style>
-  @page { size: A4 ${dense ? 'landscape' : 'portrait'}; margin: 10mm 12mm; }
+  @page { size: A4 portrait; margin: 10mm 12mm; }
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #111; margin: 0; }
 
