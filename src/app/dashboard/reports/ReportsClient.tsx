@@ -124,7 +124,8 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
     const subtitleEl = content.querySelector('p')
     const table     = content.querySelector('table')
     if (!table) return
-    const isLandscape = false
+    const thElements = table.querySelectorAll('thead th')
+    const isLandscape = thElements.length > 8
     const win = window.open('', '_blank', 'width=1100,height=800')
     if (!win) return
     win.document.write(`<!DOCTYPE html>
@@ -554,7 +555,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
         const sheetPaid  = displayRows.filter(r => r.status === 'PAID').reduce((s, r) => s + r.amount, 0)
         const sheetDue   = sheetTotal - sheetPaid
 
-        let colSpanTotal = isGas ? 7 : 5
+        let colSpanTotal = isGas ? 8 : 5
         if (!showAccumulatedDue) colSpanTotal -= 1
 
         return (
@@ -637,8 +638,9 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                               { label: 'Owner',              cls: '' },
                               { label: 'Occupant',           cls: '' },
                               ...(isGas ? [
-                                { label: 'Opening Unit', cls: 'r' },
-                                { label: 'Closing Unit', cls: 'r' },
+                                { label: 'Previous Unit', cls: 'r' },
+                                { label: 'Current Unit',  cls: 'r' },
+                                { label: 'Consumed Unit', cls: 'r' },
                               ] : []),
                               { label: 'Amount (৳)',         cls: 'r' },
                               ...(showAccumulatedDue ? [{ label: 'Accumulated Due (৳)',cls: 'r' }] : []),
@@ -683,6 +685,13 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                                 {isGas && (
                                   <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 500 }}>
                                     {bill?.meterReading != null ? bill.meterReading : <span style={{ color: '#94a3b8' }}>—</span>}
+                                  </td>
+                                )}
+                                {isGas && (
+                                  <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 600, color: '#0369a1' }}>
+                                    {bill?.meterReading != null && bill?.openingMeterReading != null
+                                      ? +(bill.meterReading - bill.openingMeterReading).toFixed(4)
+                                      : <span style={{ color: '#94a3b8' }}>—</span>}
                                   </td>
                                 )}
                                 <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: isZero ? 400 : 700, color: isZero ? '#94a3b8' : 'inherit' }}>
