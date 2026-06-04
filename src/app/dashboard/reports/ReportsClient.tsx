@@ -529,7 +529,11 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
               : `Flat ${u.number}`
             const isMerged = mergedNumbers.length > 0
             const ownerName = u.owner?.name ?? '—'
-            const occupant = u.tenant ? (u.tenant.name ?? '') : (u.owner?.name ?? '')
+            const occupant = u.occupancyType === 'TENANT_OCCUPIED'
+              ? (u.tenant?.name ?? '')
+              : u.occupancyType === 'OWNER_OCCUPIED'
+              ? (u.owner?.name ?? '')
+              : ''
             const amount = bill?.amount ?? 0
             const status: string = bill?.status ?? 'NONE'
 
@@ -669,7 +673,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                                 </td>
                                 <td style={{ padding: '8px 10px', border: '1px solid #e5e7eb' }}>{ownerName}</td>
                                 <td style={{ padding: '8px 10px', border: '1px solid #e5e7eb', color: occupant ? 'inherit' : '#94a3b8', fontStyle: occupant ? 'normal' : 'italic' }}>
-                                  {occupant || (hasTenant ? '' : 'Vacant')}
+                                  {occupant || (row.u.occupancyType === 'VACANT' ? 'Vacant' : '')}
                                 </td>
                                 {isGas && (
                                   <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 500 }}>
