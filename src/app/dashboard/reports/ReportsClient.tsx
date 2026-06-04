@@ -124,7 +124,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
     const subtitleEl = content.querySelector('p')
     const table     = content.querySelector('table')
     if (!table) return
-    const isLandscape = (table.querySelectorAll('th').length > 7)
+    const isLandscape = false
     const win = window.open('', '_blank', 'width=1100,height=800')
     if (!win) return
     win.document.write(`<!DOCTYPE html>
@@ -640,6 +640,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                               ...(showAccumulatedDue ? [{ label: 'Accumulated Due (৳)',cls: 'r' }] : []),
                               { label: 'Payment Date',       cls: '' },
                               { label: 'Signature',          cls: '' },
+                              { label: 'Verified',           cls: 'center' },
                             ].map(h => (
                               <th key={h.label} className={h.cls} style={{
                                 padding: '8px 10px', textAlign: h.cls === 'r' ? 'right' : 'left',
@@ -690,6 +691,9 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                                 )}
                                 <td className="write" style={{ padding: '8px 10px', minWidth: 100, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
                                 <td className="write" style={{ padding: '8px 10px', minWidth: 110, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', minWidth: 50 }}>
+                                  <input type="checkbox" style={{ cursor: 'pointer', width: 18, height: 18 }} />
+                                </td>
                               </tr>
                             )
                           })}
@@ -700,7 +704,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                               Total &nbsp;<span style={{ fontWeight: 400, fontSize: 11, color: '#64748b' }}>({displayRows.length} flat{displayRows.length !== 1 ? 's' : ''})</span>
                             </td>
                             <td style={{ padding: '8px 10px', fontSize: 13, borderTop: '2px solid #1e3a5f', textAlign: 'right', background: '#f1f5f9' }}>{formatCurrency(sheetTotal)}</td>
-                            <td colSpan={2} style={{ padding: '8px 10px', borderTop: '2px solid #1e3a5f', background: '#f1f5f9' }}></td>
+                            <td colSpan={3} style={{ padding: '8px 10px', borderTop: '2px solid #1e3a5f', background: '#f1f5f9' }}></td>
                           </tr>
                         </tfoot>
                       </table>
