@@ -132,8 +132,8 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
     const dense = thCount > 8   // gas sheet
     const thFs   = dense ? '7px'    : '8px'
     const tdFs   = dense ? '7.5px'  : '9.5px'
-    const thPad  = dense ? '4px 5px' : '5px 7px'
-    const tdPad  = dense ? '2px 4px' : '3px 6px'
+    const thPad  = dense ? '3px 4px' : '5px 7px'
+    const tdPad  = dense ? '1px 3px' : '3px 6px'
     const tdH    = dense ? 'auto'    : 'auto'
 
     const sheetTitle = `${activeFund.label} — Cash Collection Sheet`
@@ -167,7 +167,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
     text-transform: uppercase; letter-spacing: .04em;
     border: 1px solid #1e3a5f; white-space: nowrap;
   }
-  tbody td { padding: ${tdPad}; height: ${tdH}; border: 1px solid #d1d5db; font-size: ${tdFs}; vertical-align: middle; text-align: center; white-space: nowrap; }
+  tbody td { padding: ${tdPad}; border: 1px solid #d1d5db; font-size: ${tdFs}; vertical-align: middle; text-align: center; white-space: nowrap; line-height: 1.2; }
   tbody tr:nth-child(even) td { background: #f8fafc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   tbody tr.merged td { background: #fffbeb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   tbody tr { page-break-inside: avoid; }
