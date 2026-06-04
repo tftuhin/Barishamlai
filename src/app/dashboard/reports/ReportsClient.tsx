@@ -529,7 +529,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
               : `Flat ${u.number}`
             const isMerged = mergedNumbers.length > 0
             const ownerName = u.owner?.name ?? '—'
-            const occupant = u.tenant?.name ?? (u.owner?.name ? u.owner.name : '')
+            const occupant = u.tenant ? (u.tenant.name ?? '') : (u.owner?.name ?? '')
             const amount = bill?.amount ?? 0
             const status: string = bill?.status ?? 'NONE'
 
@@ -543,7 +543,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
               .reduce((s: number, b: any) => s + b.amount, 0)
             const accumulatedDue = (unitOb?.amount ?? 0) + unpaidUpToMonth
 
-            return { u, bill, flatLabel, isMerged, ownerName, occupant, amount, status, accumulatedDue }
+            return { u, bill, flatLabel, isMerged, ownerName, occupant, amount, status, accumulatedDue, hasTenant: !!u.tenant }
           })
 
         const sheetTotal = displayRows.reduce((s, r) => s + r.amount, 0)
@@ -653,7 +653,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                         </thead>
                         <tbody>
                           {displayRows.map((row, idx) => {
-                            const { bill, flatLabel, isMerged, ownerName, occupant, amount, accumulatedDue } = row
+                            const { bill, flatLabel, isMerged, ownerName, occupant, amount, accumulatedDue, hasTenant } = row
                             const isZero = amount === 0
                             const rowBg = isMerged
                               ? (idx % 2 === 0 ? '#fffbeb' : '#fef9c3')
@@ -669,7 +669,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                                 </td>
                                 <td style={{ padding: '8px 10px', border: '1px solid #e5e7eb' }}>{ownerName}</td>
                                 <td style={{ padding: '8px 10px', border: '1px solid #e5e7eb', color: occupant ? 'inherit' : '#94a3b8', fontStyle: occupant ? 'normal' : 'italic' }}>
-                                  {occupant || 'Vacant'}
+                                  {occupant || (hasTenant ? '' : 'Vacant')}
                                 </td>
                                 {isGas && (
                                   <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 500 }}>
