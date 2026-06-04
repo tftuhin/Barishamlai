@@ -40,8 +40,9 @@ function FundCard({ label, collected, expenses, color }: { label: string; collec
   )
 }
 
-export function ReportsClient({ bills, expenses, units, currentMonth, currentYear, fundBalances, unitOpeningBalances }: {
+export function ReportsClient({ bills, expenses, units, currentMonth, currentYear, fundBalances, unitOpeningBalances, buildingName, buildingAddress, gasUnitRate }: {
   bills: any[]; expenses: any[]; units: any[]; currentMonth: number; currentYear: number; fundBalances: any[]; unitOpeningBalances: any[]
+  buildingName?: string | null; buildingAddress?: string | null; gasUnitRate?: number | null
 }) {
   const [reportType, setReportType] = useState<'summary' | 'monthly' | 'annual' | 'collection'>('summary')
   const [selMonth, setSelMonth] = useState(currentMonth)
@@ -119,78 +120,74 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
   function printSheet() {
     const content = printRef.current
     if (!content) return
-    // Read meta from the header div children
-    const titleEl   = content.querySelector('h2')
-    const subtitleEl = content.querySelector('p')
-    const table     = content.querySelector('table')
+    const table = content.querySelector('table')
     if (!table) return
-    const thElements = table.querySelectorAll('thead th')
-    const isLandscape = thElements.length > 8
-    const win = window.open('', '_blank', 'width=1100,height=800')
+
+    const activeFund = COLLECTION_FUNDS.find(f => f.type === collFundType) ?? COLLECTION_FUNDS[0]
+    const isGas = collFundType === 'GAS'
+    let prevMonth = selMonth - 1, prevYear = selYear
+    if (prevMonth === 0) { prevMonth = 12; prevYear -= 1 }
+
+    const thCount = table.querySelectorAll('thead th').length
+    const isLandscape = thCount > 8
+
+    const sheetTitle = `${activeFund.label} — Cash Collection Sheet`
+    const sheetSub   = `${getMonthName(selMonth)} ${selYear}`
+
+    const win = window.open('', '_blank', 'width=1200,height=900')
     if (!win) return
     win.document.write(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${titleEl?.textContent ?? 'Collection Sheet'}</title>
+<html><head><meta charset="utf-8"><title>${sheetTitle}</title>
 <style>
-  @page { size: A4 ${isLandscape ? 'landscape' : 'portrait'}; margin: 12mm 14mm; }
-  *  { box-sizing: border-box; }
+  @page { size: A4 ${isLandscape ? 'landscape' : 'portrait'}; margin: 10mm 12mm; }
+  * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #111; margin: 0; }
 
-  /* ── Header ── */
-  .hdr { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #1e3a5f; display: flex; justify-content: space-between; align-items: flex-end; }
-  .hdr-left h1 { font-size: 16px; font-weight: 700; margin: 0 0 2px; color: #1e3a5f; }
-  .hdr-left p  { font-size: 9px; color: #64748b; margin: 0; }
-  .hdr-right   { font-size: 9px; color: #94a3b8; text-align: right; }
-
-  /* ── Summary bar ── */
-  .summary { display: flex; gap: 0; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; }
-  .sum-item { flex: 1; padding: 6px 10px; border-right: 1px solid #cbd5e1; }
-  .sum-item:last-child { border-right: none; }
-  .sum-label { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; display: block; margin-bottom: 2px; }
-  .sum-val   { font-size: 13px; font-weight: 700; }
-  .c-blue  { color: #1e40af; }
-  .c-green { color: #15803d; }
-  .c-red   { color: #dc2626; }
+  /* ── Building header ── */
+  .bldg-hdr { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 3px solid #1e3a5f; }
+  .bldg-name { font-size: 18px; font-weight: 700; color: #1e3a5f; margin: 0 0 2px; }
+  .bldg-addr { font-size: 9px; color: #64748b; margin: 0 0 6px; }
+  .sheet-meta { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 6px; }
+  .meta-item { font-size: 9px; color: #374151; }
+  .meta-item strong { color: #1e3a5f; }
+  .print-date { float: right; font-size: 8px; color: #94a3b8; }
 
   /* ── Table ── */
-  table { width: 100%; border-collapse: collapse; table-layout: auto; }
+  table { width: 100%; border-collapse: collapse; table-layout: auto; margin-top: 8px; }
   thead th {
     background: #1e3a5f;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
     color: #fff; padding: 6px 7px;
-    text-align: left; font-size: 8px; font-weight: 700;
+    text-align: center; font-size: 8px; font-weight: 700;
     text-transform: uppercase; letter-spacing: .05em;
     border: 1px solid #1e3a5f; white-space: nowrap;
   }
-  thead th.r { text-align: right; }
-  tbody td { padding: 0 7px; height: 28px; border: 1px solid #d1d5db; font-size: 10px; vertical-align: middle; }
+  tbody td { padding: 0 6px; height: 26px; border: 1px solid #d1d5db; font-size: 9.5px; vertical-align: middle; text-align: center; }
   tbody tr:nth-child(even) td { background: #f8fafc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   tbody tr.merged td { background: #fffbeb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   tbody tr { page-break-inside: avoid; }
-  td.r  { text-align: right; }
-  td.no { color: #94a3b8; font-size: 9px; text-align: center; width: 24px; }
-  td.bold { font-weight: 700; }
-  td.muted { color: #94a3b8; font-style: italic; }
-  td.due-red  { color: #dc2626; font-weight: 700; text-align: right; }
-  td.due-zero { color: #15803d; font-weight: 700; text-align: right; }
   td.write { border-left: 1px dashed #9ca3af !important; background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .merged-badge { display: inline-block; background: #d97706; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #fff; font-size: 7px; font-weight: 700; padding: 1px 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
-  tfoot td { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: 700; border-top: 2px solid #1e3a5f; font-size: 10px; padding: 5px 7px; }
-  tfoot td.r { text-align: right; }
+  tfoot td { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: 700; border-top: 2px solid #1e3a5f; font-size: 10px; padding: 5px 7px; text-align: center; }
 
   /* ── Page footer ── */
-  .pfooter { margin-top: 10px; font-size: 8px; color: #94a3b8; display: flex; justify-content: space-between; border-top: 1px solid #e5e7eb; padding-top: 4px; }
+  .pfooter { margin-top: 8px; font-size: 8px; color: #94a3b8; display: flex; justify-content: space-between; border-top: 1px solid #e5e7eb; padding-top: 4px; }
 </style>
 </head><body>
-  <div class="hdr">
-    <div class="hdr-left">
-      <h1>${titleEl?.textContent ?? ''}</h1>
-      <p>${subtitleEl?.textContent ?? ''}</p>
+  <div class="bldg-hdr">
+    <span class="print-date">Printed ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+    <div class="bldg-name">${buildingName ?? ''}</div>
+    ${buildingAddress ? `<div class="bldg-addr">${buildingAddress}</div>` : ''}
+    <div class="sheet-meta">
+      <span class="meta-item"><strong>Bill:</strong> ${activeFund.label} Collection Sheet</span>
+      <span class="meta-item"><strong>Bill Month:</strong> ${getMonthName(selMonth)} ${selYear}</span>
+      ${isGas ? `<span class="meta-item"><strong>Consumption Month:</strong> ${getMonthName(prevMonth)} ${prevYear}</span>` : ''}
+      ${isGas ? `<span class="meta-item"><strong>Gas Unit Rate:</strong> ৳${gasUnitRate ?? 0} / unit</span>` : ''}
     </div>
-    <div class="hdr-right">Printed ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
   </div>
   ${table.outerHTML}
   <div class="pfooter">
-    <span>${titleEl?.textContent ?? ''}</span>
+    <span>${sheetTitle} — ${sheetSub}</span>
     <span>Page 1</span>
   </div>
 </body></html>`)
@@ -555,8 +552,8 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
         const sheetPaid  = displayRows.filter(r => r.status === 'PAID').reduce((s, r) => s + r.amount, 0)
         const sheetDue   = sheetTotal - sheetPaid
 
-        let colSpanTotal = isGas ? 8 : 5
-        if (!showAccumulatedDue) colSpanTotal -= 1
+        // colSpanTotal = columns before Amount: # Flat Owner Occupant [Prev Curr Consumed]
+        const colSpanTotal = isGas ? 7 : 4
 
         return (
           <>
@@ -619,41 +616,45 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                 {/* Printable table */}
                 <Card>
                   <div ref={printRef}>
-                    {/* Header — used by printSheet to extract title/subtitle */}
+                    {/* Building + sheet header */}
                     <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-                      <h2 style={{ margin: '0 0 2px', fontSize: 16, fontWeight: 700 }}>
-                        {activeFund.label} — Cash Collection Sheet
-                      </h2>
-                      <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
-                        {getMonthName(selMonth)} {selYear} &nbsp;|&nbsp; {displayRows.length} flat{displayRows.length !== 1 ? 's' : ''}
-                      </p>
+                      {buildingName && (
+                        <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--brand)', marginBottom: 2 }}>{buildingName}</div>
+                      )}
+                      {buildingAddress && (
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>{buildingAddress}</div>
+                      )}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 24px', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                        <span><strong>Bill:</strong> {activeFund.label} Collection Sheet</span>
+                        <span><strong>Bill Month:</strong> {getMonthName(selMonth)} {selYear}</span>
+                        {isGas && (() => {
+                          let pm = selMonth - 1, py = selYear
+                          if (pm === 0) { pm = 12; py -= 1 }
+                          return <span><strong>Consumption Month:</strong> {getMonthName(pm)} {py}</span>
+                        })()}
+                        {isGas && <span><strong>Gas Unit Rate:</strong> ৳{gasUnitRate ?? 0} / unit</span>}
+                        <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 11 }}>
+                          {displayRows.length} flat{displayRows.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
                     </div>
                     <div style={{ overflowX: 'auto', padding: '0 0 1rem' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
                           <tr style={{ background: '#1e3a5f' }}>
                             {[
-                              { label: '#',                  cls: '' },
-                              { label: 'Flat',               cls: '' },
-                              { label: 'Owner',              cls: '' },
-                              { label: 'Occupant',           cls: '' },
-                              ...(isGas ? [
-                                { label: 'Previous Unit', cls: 'r' },
-                                { label: 'Current Unit',  cls: 'r' },
-                                { label: 'Consumed Unit', cls: 'r' },
-                              ] : []),
-                              { label: 'Amount (৳)',         cls: 'r' },
-                              ...(showAccumulatedDue ? [{ label: 'Accumulated Due (৳)',cls: 'r' }] : []),
-                              { label: 'Payment Date',       cls: '' },
-                              { label: 'Signature',          cls: '' },
-                              { label: 'Verified',           cls: 'center' },
-                            ].map(h => (
-                              <th key={h.label} className={h.cls} style={{
-                                padding: '8px 10px', textAlign: h.cls === 'r' ? 'right' : 'left',
+                              '#', 'Flat', 'Owner', 'Occupant',
+                              ...(isGas ? ['Previous Unit', 'Current Unit', 'Consumed Unit'] : []),
+                              'Amount (৳)',
+                              ...(showAccumulatedDue ? ['Accumulated Due (৳)'] : []),
+                              'Payment Date', 'Signature', 'Verified',
+                            ].map(label => (
+                              <th key={label} style={{
+                                padding: '8px 10px', textAlign: 'center',
                                 fontWeight: 700, fontSize: 11, color: '#fff',
                                 background: '#1e3a5f', whiteSpace: 'nowrap',
                                 borderBottom: '2px solid #1e3a5f',
-                              }}>{h.label}</th>
+                              }}>{label}</th>
                             ))}
                           </tr>
                         </thead>
@@ -666,44 +667,44 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                               : (idx % 2 === 0 ? '#fff' : '#f8fafc')
                             return (
                               <tr key={row.u.id} className={isMerged ? 'merged' : ''} style={{ background: rowBg }}>
-                                <td className="no" style={{ padding: '8px 6px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 11, width: 28, border: '1px solid #e5e7eb' }}>{idx + 1}</td>
-                                <td className="bold" style={{ padding: '8px 10px', fontWeight: 600, border: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>
+                                <td style={{ padding: '8px 6px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 11, width: 28, border: '1px solid #e5e7eb' }}>{idx + 1}</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>
                                   {flatLabel}
                                   {isMerged && (
                                     <span style={{ marginLeft: 5, fontSize: 9, fontWeight: 700, background: '#d97706', color: '#fff', padding: '1px 4px', borderRadius: 3 }}>merged</span>
                                   )}
                                 </td>
-                                <td style={{ padding: '8px 10px', border: '1px solid #e5e7eb' }}>{ownerName}</td>
-                                <td style={{ padding: '8px 10px', border: '1px solid #e5e7eb', color: occupant ? 'inherit' : '#94a3b8', fontStyle: occupant ? 'normal' : 'italic' }}>
+                                <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb' }}>{ownerName}</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', color: occupant ? 'inherit' : '#94a3b8', fontStyle: occupant ? 'normal' : 'italic' }}>
                                   {occupant || (row.u.occupancyType === 'VACANT' ? 'Vacant' : '')}
                                 </td>
                                 {isGas && (
-                                  <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 500 }}>
+                                  <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 500 }}>
                                     {bill?.openingMeterReading != null ? bill.openingMeterReading : <span style={{ color: '#94a3b8' }}>—</span>}
                                   </td>
                                 )}
                                 {isGas && (
-                                  <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 500 }}>
+                                  <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 500 }}>
                                     {bill?.meterReading != null ? bill.meterReading : <span style={{ color: '#94a3b8' }}>—</span>}
                                   </td>
                                 )}
                                 {isGas && (
-                                  <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 600, color: '#0369a1' }}>
+                                  <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 700, color: '#0369a1' }}>
                                     {bill?.meterReading != null && bill?.openingMeterReading != null
-                                      ? +(bill.meterReading - bill.openingMeterReading).toFixed(4)
+                                      ? +(bill.meterReading - bill.openingMeterReading).toFixed(2)
                                       : <span style={{ color: '#94a3b8' }}>—</span>}
                                   </td>
                                 )}
-                                <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: isZero ? 400 : 700, color: isZero ? '#94a3b8' : 'inherit' }}>
-                                  {isZero ? '०' : formatCurrency(amount)}
+                                <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: isZero ? 400 : 700, color: isZero ? '#94a3b8' : 'inherit' }}>
+                                  {isZero ? '—' : formatCurrency(amount)}
                                 </td>
                                 {showAccumulatedDue && (
-                                  <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 700, color: accumulatedDue > 0 ? '#dc2626' : '#15803d' }}>
+                                  <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 700, color: accumulatedDue > 0 ? '#dc2626' : '#15803d' }}>
                                     {formatCurrency(accumulatedDue)}
                                   </td>
                                 )}
-                                <td className="write" style={{ padding: '8px 10px', minWidth: 100, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
-                                <td className="write" style={{ padding: '8px 10px', minWidth: 110, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'center', minWidth: 100, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'center', minWidth: 110, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', minWidth: 50 }}>
                                   <input type="checkbox" style={{ cursor: 'pointer', width: 18, height: 18 }} />
                                 </td>
@@ -713,10 +714,11 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                         </tbody>
                         <tfoot>
                           <tr style={{ background: '#f1f5f9', fontWeight: 700 }}>
-                            <td colSpan={colSpanTotal} style={{ padding: '8px 10px', fontSize: 13, borderTop: '2px solid #1e3a5f', background: '#f1f5f9' }}>
+                            <td colSpan={colSpanTotal} style={{ padding: '8px 10px', fontSize: 13, borderTop: '2px solid #1e3a5f', background: '#f1f5f9', textAlign: 'center' }}>
                               Total &nbsp;<span style={{ fontWeight: 400, fontSize: 11, color: '#64748b' }}>({displayRows.length} flat{displayRows.length !== 1 ? 's' : ''})</span>
                             </td>
-                            <td style={{ padding: '8px 10px', fontSize: 13, borderTop: '2px solid #1e3a5f', textAlign: 'right', background: '#f1f5f9' }}>{formatCurrency(sheetTotal)}</td>
+                            <td style={{ padding: '8px 10px', fontSize: 13, borderTop: '2px solid #1e3a5f', textAlign: 'center', background: '#f1f5f9' }}>{formatCurrency(sheetTotal)}</td>
+                            {showAccumulatedDue && <td style={{ padding: '8px 10px', borderTop: '2px solid #1e3a5f', background: '#f1f5f9' }}></td>}
                             <td colSpan={3} style={{ padding: '8px 10px', borderTop: '2px solid #1e3a5f', background: '#f1f5f9' }}></td>
                           </tr>
                         </tfoot>

@@ -14,7 +14,7 @@ export default async function ReportsPage() {
   const year = now.getFullYear()
 
   const bId = session.user.buildingId ?? undefined
-  const [bills, expenses, units, fundBalances, unitOpeningBalances] = await Promise.all([
+  const [bills, expenses, units, fundBalances, unitOpeningBalances, building, config] = await Promise.all([
     prisma.bill.findMany({ where: { buildingId: bId }, include: { unit: { include: { owner: { select: { name: true } }, tenant: { select: { name: true } } } } }, orderBy: [{ year: 'desc' }, { month: 'desc' }] }),
     prisma.expense.findMany({ where: { buildingId: bId }, orderBy: { date: 'desc' } }),
     prisma.unit.findMany({
@@ -28,7 +28,22 @@ export default async function ReportsPage() {
     }),
     prisma.fundBalance.findMany({ where: { buildingId: bId } }),
     prisma.unitOpeningBalance.findMany({ where: { unit: { buildingId: bId } } }),
+    prisma.building.findUnique({ where: { id: bId }, select: { name: true, address: true } }),
+    prisma.buildingConfig.findUnique({ where: { id: bId }, select: { gasUnitRate: true } }),
   ])
 
-  return <ReportsClient bills={bills} expenses={expenses} units={units} currentMonth={month} currentYear={year} fundBalances={fundBalances} unitOpeningBalances={unitOpeningBalances} />
+  return (
+    <ReportsClient
+      bills={bills}
+      expenses={expenses}
+      units={units}
+      currentMonth={month}
+      currentYear={year}
+      fundBalances={fundBalances}
+      unitOpeningBalances={unitOpeningBalances}
+      buildingName={building?.name ?? null}
+      buildingAddress={building?.address ?? null}
+      gasUnitRate={config?.gasUnitRate ?? null}
+    />
+  )
 }
