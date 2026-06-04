@@ -129,13 +129,12 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
     if (prevMonth === 0) { prevMonth = 12; prevYear -= 1 }
 
     const thCount = table.querySelectorAll('thead th').length
-    // Always portrait — scale down font/padding for dense sheets
-    const dense = thCount > 8
-    const thFs   = dense ? '7px'   : '8px'
-    const tdFs   = dense ? '7.5px' : '9.5px'
-    const thPad  = dense ? '5px 4px' : '6px 7px'
-    const tdPad  = dense ? '0 3px'   : '0 6px'
-    const tdH    = dense ? '24px'    : '26px'
+    const dense = thCount > 8   // gas sheet
+    const thFs   = dense ? '7px'    : '8px'
+    const tdFs   = dense ? '7.5px'  : '9.5px'
+    const thPad  = dense ? '4px 5px' : '5px 7px'
+    const tdPad  = dense ? '2px 4px' : '3px 6px'
+    const tdH    = dense ? 'auto'    : 'auto'
 
     const sheetTitle = `${activeFund.label} — Cash Collection Sheet`
     const sheetSub   = `${getMonthName(selMonth)} ${selYear}`
@@ -145,7 +144,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
     win.document.write(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${sheetTitle}</title>
 <style>
-  @page { size: A4 portrait; margin: 10mm 12mm; }
+  @page { size: A4 ${dense ? 'landscape' : 'portrait'}; margin: 10mm 12mm; }
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #111; margin: 0; }
 
