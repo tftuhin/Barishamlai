@@ -168,6 +168,8 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
     border: 1px solid #1e3a5f; white-space: nowrap;
   }
   tbody td { padding: ${tdPad}; border: 1px solid #d1d5db; font-size: ${tdFs}; vertical-align: middle; text-align: center; white-space: nowrap; line-height: 1.2; }
+  /* PU / CU / UU — columns 5,6,7 in gas sheet: pin to a narrow width */
+  ${dense ? 'thead th:nth-child(5), thead th:nth-child(6), thead th:nth-child(7) { width: 28px; } tbody td:nth-child(5), tbody td:nth-child(6), tbody td:nth-child(7) { width: 28px; }' : ''}
   tbody tr:nth-child(even) td { background: #f8fafc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   tbody tr.merged td { background: #fffbeb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   tbody tr { page-break-inside: avoid; }
@@ -189,6 +191,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
       <span class="meta-item"><strong>Bill Month:</strong> ${getMonthName(selMonth)} ${selYear}</span>
       ${isGas ? `<span class="meta-item"><strong>Consumption Month:</strong> ${getMonthName(prevMonth)} ${prevYear}</span>` : ''}
       ${isGas ? `<span class="meta-item"><strong>Gas Unit Rate:</strong> ৳${gasUnitRate ?? 0} / unit</span>` : ''}
+      ${isGas ? `<span class="meta-item" style="color:#64748b">PU = Previous Unit &nbsp;|&nbsp; CU = Current Unit &nbsp;|&nbsp; UU = Used Unit</span>` : ''}
     </div>
   </div>
   ${table.outerHTML}
@@ -639,6 +642,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                           return <span><strong>Consumption Month:</strong> {getMonthName(pm)} {py}</span>
                         })()}
                         {isGas && <span><strong>Gas Unit Rate:</strong> ৳{gasUnitRate ?? 0} / unit</span>}
+                        {isGas && <span style={{ color: 'var(--text-muted)' }}>PU = Previous Unit &nbsp;|&nbsp; CU = Current Unit &nbsp;|&nbsp; UU = Used Unit</span>}
                         <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 11 }}>
                           {displayRows.length} flat{displayRows.length !== 1 ? 's' : ''}
                         </span>
@@ -650,7 +654,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                           <tr style={{ background: '#1e3a5f' }}>
                             {[
                               '#', 'Flat', 'Owner', 'Occupant',
-                              ...(isGas ? ['Previous Unit', 'Current Unit', 'Consumed Unit'] : []),
+                              ...(isGas ? ['PU', 'CU', 'UU'] : []),
                               'Amount (৳)',
                               ...(showAccumulatedDue ? ['Accumulated Due (৳)'] : []),
                               'Payment Date', 'Signature', 'Verified',
