@@ -159,15 +159,8 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
 
   /* ── Table ── */
   table { width: 100%; border-collapse: collapse; table-layout: auto; margin-top: 8px; }
-  thead th {
-    background: #1e3a5f;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    color: #fff; padding: ${thPad};
-    text-align: center; font-size: ${thFs}; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .04em;
-    border: 1px solid #1e3a5f; white-space: nowrap;
-  }
-  tbody td { padding: ${tdPad}; border: 1px solid #d1d5db; font-size: ${tdFs}; vertical-align: middle; text-align: center; white-space: nowrap; line-height: 1.2; }
+  thead th { background: #1e3a5f; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #fff; padding: ${thPad}; text-align: center; font-size: ${thFs}; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; border: 1px solid #1e3a5f; white-space: nowrap; line-height: 1; }
+  tbody td { padding: ${tdPad}; border: 1px solid #d1d5db; font-size: ${tdFs}; vertical-align: middle; text-align: center; white-space: nowrap; line-height: 1; overflow: hidden; }
   /* PU / CU / UU — columns 5,6,7 in gas sheet: pin to a narrow width */
   ${dense ? 'thead th:nth-child(5), thead th:nth-child(6), thead th:nth-child(7) { width: 28px; } tbody td:nth-child(5), tbody td:nth-child(6), tbody td:nth-child(7) { width: 28px; }' : ''}
   tbody tr:nth-child(even) td { background: #f8fafc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
