@@ -130,10 +130,10 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
 
     const thCount = table.querySelectorAll('thead th').length
     const dense = thCount > 8   // gas sheet
-    const thFs   = dense ? '7px'    : '8px'
-    const tdFs   = dense ? '7.5px'  : '9.5px'
-    const thPad  = dense ? '3px 4px' : '5px 7px'
-    const tdPad  = dense ? '1px 3px' : '3px 6px'
+    const thFs   = dense ? '8.5px' : '9px'
+    const tdFs   = dense ? '9px'   : '10px'
+    const thPad  = dense ? '2px 3px' : '2px 5px'
+    const tdPad  = dense ? '0px 2px' : '0px 4px'
     const tdH    = dense ? 'auto'    : 'auto'
 
     const sheetTitle = `${activeFund.label} — Cash Collection Sheet`
