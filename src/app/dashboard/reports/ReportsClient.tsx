@@ -130,8 +130,8 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
 
     const thCount = table.querySelectorAll('thead th').length
     const dense = thCount > 8   // gas sheet
-    const thFs   = dense ? '8.5px' : '9px'
-    const tdFs   = dense ? '9px'   : '10px'
+    const thFs   = dense ? '10px' : '11px'
+    const tdFs   = dense ? '11px' : '12px'
     const thPad  = dense ? '2px 3px' : '2px 5px'
     const tdPad  = dense ? '0px 2px' : '0px 4px'
     const tdH    = dense ? 'auto'    : 'auto'
