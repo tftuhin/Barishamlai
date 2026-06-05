@@ -653,7 +653,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                               'Payment Date', 'Signature', 'Verified',
                             ].map(label => (
                               <th key={label} style={{
-                                padding: '8px 10px', textAlign: 'center',
+                                padding: '3px 8px', textAlign: 'center',
                                 fontWeight: 700, fontSize: 11, color: '#fff',
                                 background: '#1e3a5f', whiteSpace: 'nowrap',
                                 borderBottom: '2px solid #1e3a5f',
@@ -670,45 +670,45 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                               : (idx % 2 === 0 ? '#fff' : '#f8fafc')
                             return (
                               <tr key={row.u.id} className={isMerged ? 'merged' : ''} style={{ background: rowBg }}>
-                                <td style={{ padding: '8px 6px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 11, width: 28, border: '1px solid #e5e7eb' }}>{idx + 1}</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>
+                                <td style={{ padding: '3px 6px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 11, width: 28, border: '1px solid #e5e7eb' }}>{idx + 1}</td>
+                                <td style={{ padding: '3px 8px', textAlign: 'center', fontWeight: 600, border: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>
                                   {flatLabel}
                                   {isMerged && (
                                     <span style={{ marginLeft: 5, fontSize: 9, fontWeight: 700, background: '#d97706', color: '#fff', padding: '1px 4px', borderRadius: 3 }}>merged</span>
                                   )}
                                 </td>
-                                <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb' }}>{ownerName}</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', color: occupant ? 'inherit' : '#94a3b8', fontStyle: occupant ? 'normal' : 'italic' }}>
+                                <td style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e5e7eb' }}>{ownerName}</td>
+                                <td style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e5e7eb', color: occupant ? 'inherit' : '#94a3b8', fontStyle: occupant ? 'normal' : 'italic' }}>
                                   {occupant || (row.u.occupancyType === 'VACANT' ? 'Vacant' : '')}
                                 </td>
                                 {isGas && (
-                                  <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 500 }}>
+                                  <td style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 500 }}>
                                     {bill?.openingMeterReading != null ? bill.openingMeterReading : <span style={{ color: '#94a3b8' }}>—</span>}
                                   </td>
                                 )}
                                 {isGas && (
-                                  <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 500 }}>
+                                  <td style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 500 }}>
                                     {bill?.meterReading != null ? bill.meterReading : <span style={{ color: '#94a3b8' }}>—</span>}
                                   </td>
                                 )}
                                 {isGas && (
-                                  <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 700, color: '#0369a1' }}>
+                                  <td style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 700, color: '#0369a1' }}>
                                     {bill?.meterReading != null && bill?.openingMeterReading != null
                                       ? +(bill.meterReading - bill.openingMeterReading).toFixed(2)
                                       : <span style={{ color: '#94a3b8' }}>—</span>}
                                   </td>
                                 )}
-                                <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: isZero ? 400 : 700, color: isZero ? '#94a3b8' : 'inherit' }}>
+                                <td style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: isZero ? 400 : 700, color: isZero ? '#94a3b8' : 'inherit' }}>
                                   {isZero ? '—' : formatCurrency(amount)}
                                 </td>
                                 {showAccumulatedDue && (
-                                  <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 700, color: accumulatedDue > 0 ? '#dc2626' : '#15803d' }}>
+                                  <td style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e5e7eb', fontWeight: 700, color: accumulatedDue > 0 ? '#dc2626' : '#15803d' }}>
                                     {formatCurrency(accumulatedDue)}
                                   </td>
                                 )}
-                                <td className="write" style={{ padding: '8px 10px', textAlign: 'center', minWidth: 100, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
-                                <td className="write" style={{ padding: '8px 10px', textAlign: 'center', minWidth: 110, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', minWidth: 50 }}>
+                                <td className="write" style={{ padding: '3px 8px', textAlign: 'center', minWidth: 100, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
+                                <td className="write" style={{ padding: '3px 8px', textAlign: 'center', minWidth: 110, border: '1px solid #e5e7eb', borderLeft: '1px dashed #9ca3af' }}>&nbsp;</td>
+                                <td style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e5e7eb', minWidth: 50 }}>
                                   <input type="checkbox" style={{ cursor: 'pointer', width: 18, height: 18 }} />
                                 </td>
                               </tr>
@@ -717,12 +717,12 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
                         </tbody>
                         <tfoot>
                           <tr style={{ background: '#f1f5f9', fontWeight: 700 }}>
-                            <td colSpan={colSpanTotal} style={{ padding: '8px 10px', fontSize: 13, borderTop: '2px solid #1e3a5f', background: '#f1f5f9', textAlign: 'center' }}>
+                            <td colSpan={colSpanTotal} style={{ padding: '3px 8px', fontSize: 13, borderTop: '2px solid #1e3a5f', background: '#f1f5f9', textAlign: 'center' }}>
                               Total &nbsp;<span style={{ fontWeight: 400, fontSize: 11, color: '#64748b' }}>({displayRows.length} flat{displayRows.length !== 1 ? 's' : ''})</span>
                             </td>
-                            <td style={{ padding: '8px 10px', fontSize: 13, borderTop: '2px solid #1e3a5f', textAlign: 'center', background: '#f1f5f9' }}>{formatCurrency(sheetTotal)}</td>
-                            {showAccumulatedDue && <td style={{ padding: '8px 10px', borderTop: '2px solid #1e3a5f', background: '#f1f5f9' }}></td>}
-                            <td colSpan={3} style={{ padding: '8px 10px', borderTop: '2px solid #1e3a5f', background: '#f1f5f9' }}></td>
+                            <td style={{ padding: '3px 8px', fontSize: 13, borderTop: '2px solid #1e3a5f', textAlign: 'center', background: '#f1f5f9' }}>{formatCurrency(sheetTotal)}</td>
+                            {showAccumulatedDue && <td style={{ padding: '3px 8px', borderTop: '2px solid #1e3a5f', background: '#f1f5f9' }}></td>}
+                            <td colSpan={3} style={{ padding: '3px 8px', borderTop: '2px solid #1e3a5f', background: '#f1f5f9' }}></td>
                           </tr>
                         </tfoot>
                       </table>
