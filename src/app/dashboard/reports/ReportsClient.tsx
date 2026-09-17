@@ -57,7 +57,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
     .filter(b => b.month === selMonth && b.year === selYear)
     .sort((a, b) => (a.unit?.number ?? '').localeCompare(b.unit?.number ?? '', undefined, { numeric: true }))
   const monthExpenses = expenses.filter(e => {
-    const d = new Date(e.date); return d.getMonth() + 1 === selMonth && d.getFullYear() === selYear
+    return e.month === selMonth && e.year === selYear
   })
 
   // ── Per-fund calculations ──────────────────────────────────
@@ -91,7 +91,7 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
     let m = currentMonth - i; let y = currentYear
     if (m <= 0) { m += 12; y -= 1 }
     const mb = bills.filter(b => b.month===m && b.year===y && b.type !== 'RENT')
-    const me = expenses.filter(e => { const d = new Date(e.date); return d.getMonth()+1===m && d.getFullYear()===y })
+    const me = expenses.filter(e => e.month === m && e.year === y)
     return {
       name: getMonthName(m).slice(0,3),
       collected: mb.filter(b=>b.status==='PAID').reduce((s,b)=>s+b.amount,0),
@@ -382,15 +382,14 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
         const gasBillsForMonth = bills.filter(b => b.month === selMonth && b.year === selYear && b.type === 'GAS')
         const billsForMonth = selFund === 'SERVICE_CHARGE' ? scBillsForMonth : gasBillsForMonth
         const expensesForMonth = expenses.filter(e => {
-          const d = new Date(e.date); return d.getMonth()+1 === selMonth && d.getFullYear() === selYear && e.incomeSource === selFund
+          return e.month === selMonth && e.year === selYear && e.incomeSource === selFund
         })
 
         // Opening balance = fundBalance + all prior collected - all prior expenses
         const fundBal = fundBalances.find(f => f.fundType === selFund)
         const allCollectedBefore = bills.filter(b => b.type === selFund && b.status === 'PAID' && (b.year < selYear || (b.year === selYear && b.month < selMonth))).reduce((s,b) => s + b.amount, 0)
         const allExpensesBefore = expenses.filter(e => {
-          const d = new Date(e.date); const ey = d.getFullYear(); const em = d.getMonth()+1
-          return e.incomeSource === selFund && (ey < selYear || (ey === selYear && em < selMonth))
+          return e.incomeSource === selFund && (e.year < selYear || (e.year === selYear && e.month < selMonth))
         }).reduce((s,e) => s + e.amount, 0)
         const openingBalance = (fundBal?.amount || 0) + allCollectedBefore - allExpensesBefore
 
@@ -741,14 +740,13 @@ export function ReportsClient({ bills, expenses, units, currentMonth, currentYea
           const m = i + 1
           const billsForMonth = bills.filter(b => b.month === m && b.year === selYear && b.type === selFund)
           const expensesForMonth = expenses.filter(e => {
-            const d = new Date(e.date); return d.getMonth()+1 === m && d.getFullYear() === selYear && e.incomeSource === selFund
+            return e.month === m && e.year === selYear && e.incomeSource === selFund
           })
 
           const fundBal = fundBalances.find(f => f.fundType === selFund)
           const allCollectedBefore = bills.filter(b => b.type === selFund && b.status === 'PAID' && (b.year < selYear || (b.year === selYear && b.month < m))).reduce((s,b) => s + b.amount, 0)
           const allExpensesBefore = expenses.filter(e => {
-            const d = new Date(e.date); const ey = d.getFullYear(); const em = d.getMonth()+1
-            return e.incomeSource === selFund && (ey < selYear || (ey === selYear && em < m))
+            return e.incomeSource === selFund && (e.year < selYear || (e.year === selYear && e.month < m))
           }).reduce((s,e) => s + e.amount, 0)
           const opening = (fundBal?.amount || 0) + allCollectedBefore - allExpensesBefore
 

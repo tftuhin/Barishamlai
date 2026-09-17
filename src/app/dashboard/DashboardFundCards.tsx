@@ -51,50 +51,76 @@ export function DashboardFundCards({ initialMonth, initialYear, enabledModules }
     return flag ? enabledModules[flag] : true
   })
 
+  const totals = visible.reduce((acc, m) => {
+    const f: FundSummary = funds?.[m.key] ?? { opening: 0, collection: 0, expenses: 0, closing: 0 }
+    acc.opening += f.opening
+    acc.collection += f.collection
+    acc.expenses += f.expenses
+    acc.closing += f.closing
+    return acc
+  }, { opening: 0, collection: 0, expenses: 0, closing: 0 })
+
   return (
-    <div style={{ marginBottom: '1.75rem' }}>
-      {/* Month/Year selector */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fund Summary —</span>
-        <select value={month} onChange={e => setMonth(Number(e.target.value))} style={sel}>
-          {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
-        </select>
-        <input type="number" value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...sel, width: 78 }} min={2020} max={2035} />
-        {loading && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading…</span>}
+    <Card style={{ marginBottom: '1.5rem', overflow: 'hidden' }}>
+      {/* Header & Controls */}
+      <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: 0 }}>Consolidated Cash Flow</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <select value={month} onChange={e => setMonth(Number(e.target.value))} style={sel}>
+            {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
+          </select>
+          <input type="number" value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...sel, width: 78 }} min={2020} max={2035} />
+          {loading && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>...</span>}
+        </div>
       </div>
 
-      {visible.length === 0 && (
-        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: 14, background: 'var(--surface-subtle)', borderRadius: 10 }}>
+      {visible.length === 0 ? (
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>
           No modules enabled. Enable modules in Settings.
         </div>
-      )}
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+          {/* Total Summary Left Side */}
+          <div style={{ flex: '1 1 300px', padding: '1.5rem', borderRight: '1px solid var(--border)' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px', marginTop: 0 }}>Total Closing Balance</p>
+            <h2 style={{ fontSize: '2.5rem', fontFamily: 'var(--font-display)', color: totals.closing >= 0 ? '#15803d' : '#dc2626', margin: '0 0 1.5rem 0', lineHeight: 1 }}>
+              {formatCurrency(totals.closing)}
+            </h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
-        {visible.map(m => {
-          const f: FundSummary = funds?.[m.key] ?? { opening: 0, collection: 0, expenses: 0, closing: 0 }
-          return (
-            <Card key={m.key} style={{ padding: '1.25rem 1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: m.color, margin: 0 }}>{m.label}</p>
-                <a href={m.href} style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'none' }}>View →</a>
+            <div style={{ display: 'flex', gap: '1.5rem' }}>
+              <div>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 2px' }}>Total Collections</p>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#15803d' }}>{formatCurrency(totals.collection)}</div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                {[
-                  { label: 'Opening Balance', val: f.opening,    color: '#1d4ed8' },
-                  { label: 'Collection',       val: f.collection, color: '#15803d' },
-                  { label: 'Expenses',         val: f.expenses,   color: '#dc2626' },
-                  { label: 'Closing Balance',  val: f.closing,    color: f.closing >= 0 ? '#15803d' : '#dc2626' },
-                ].map(row => (
-                  <div key={row.label}>
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: 2, fontWeight: 500 }}>{row.label}</div>
-                    <div style={{ fontSize: '1rem', fontWeight: 700, color: row.color }}>{formatCurrency(row.val)}</div>
+              <div>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 2px' }}>Total Expenses</p>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#dc2626' }}>{formatCurrency(totals.expenses)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Individual Breakdown Right Side */}
+          <div style={{ flex: '2 1 400px', padding: '1.5rem' }}>
+            <p style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 12px' }}>Fund Breakdown</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
+              {visible.map(m => {
+                const f: FundSummary = funds?.[m.key] ?? { opening: 0, collection: 0, expenses: 0, closing: 0 }
+                return (
+                  <div key={m.key} style={{ padding: '12px', borderRadius: '8px', background: 'var(--surface-subtle)', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <p style={{ fontSize: '11px', fontWeight: 600, color: m.color, margin: 0 }}>{m.label}</p>
+                      <a href={m.href} style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'none' }}>→</a>
+                    </div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: f.closing >= 0 ? 'var(--text)' : '#dc2626' }}>
+                      {formatCurrency(f.closing)}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </Card>
-          )
-        })}
-      </div>
-    </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </Card>
   )
 }

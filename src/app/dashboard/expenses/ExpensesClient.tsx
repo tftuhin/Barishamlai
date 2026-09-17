@@ -23,7 +23,7 @@ export function ExpensesClient({ expenses, isReadOnly }: { expenses: any[]; isRe
   const [form, setForm] = useState({ title:'', amount:'', category:'MAINTENANCE', incomeSource:'GENERAL', date: now.toISOString().split('T')[0], description:'' })
 
   const total = expenses.reduce((s,e) => s+e.amount, 0)
-  const thisMonth = expenses.filter(e => { const d = new Date(e.date); return d.getMonth()+1 === now.getMonth()+1 && d.getFullYear() === now.getFullYear() }).reduce((s,e) => s+e.amount, 0)
+  const thisMonth = expenses.filter(e => e.month === now.getMonth()+1 && e.year === now.getFullYear()).reduce((s,e) => s+e.amount, 0)
   const byCat = CATEGORIES.map(c => ({ cat: c, total: expenses.filter(e=>e.category===c).reduce((s,e)=>s+e.amount,0) })).filter(x=>x.total>0)
 
   async function submit() {

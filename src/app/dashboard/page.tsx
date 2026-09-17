@@ -6,6 +6,7 @@ import { formatCurrency, getMonthName, getBillTypeLabel } from '@/lib/utils'
 import { Card, StatCard, Badge } from '@/components/ui'
 import { FloorMapClient } from './FloorMapClient'
 import { DashboardFundCards } from './DashboardFundCards'
+import { DashboardNOIChart } from './DashboardNOIChart'
 import Link from 'next/link'
 
 async function getDashboardData(role: string, userId: string, buildingId: string | null) {
@@ -64,7 +65,43 @@ async function getDashboardData(role: string, userId: string, buildingId: string
       featureCommunitySecurity: (config as any)?.featureCommunitySecurity ?? false,
       featureRent:              config?.featureRent              ?? true,
     }
-    return { role, totalUnits, occupiedCount, vacantCount, bills, collected, totalDue, totalExpenses, recentMessages, pendingCount, overdueCount, month, year, unitsForMap, enabledModules }
+
+    // 6 Month NOI Data
+    const noiData = []
+    for (let i = 5; i >= 0; i--) {
+      let m = month - i
+      let y = year
+      if (m <= 0) { m += 12; y -= 1 }
+      noiData.push({ month: m, year: y, monthName: getMonthName(m).substring(0, 3), income: 0, expenses: 0, noi: 0 })
+    }
+    const sixMonthsAgo = noiData[0]
+    const [recentBills, recentExpenses, urgentBills] = await Promise.all([
+      prisma.bill.findMany({
+        where: { buildingId: bId, status: 'PAID', OR: [{ year: { gt: sixMonthsAgo.year } }, { year: sixMonthsAgo.year, month: { gte: sixMonthsAgo.month } }] }
+      }),
+      prisma.expense.findMany({
+        where: { buildingId: bId, OR: [{ year: { gt: sixMonthsAgo.year } }, { year: sixMonthsAgo.year, month: { gte: sixMonthsAgo.month } }] }
+      }),
+      prisma.bill.findMany({
+        where: { buildingId: bId, status: { in: ['PENDING', 'OVERDUE'] } },
+        include: { unit: true },
+        take: 15
+      })
+    ])
+
+    noiData.forEach(d => {
+      d.income = recentBills.filter(b => b.month === d.month && b.year === d.year).reduce((s, b) => s + b.amount, 0)
+      d.expenses = recentExpenses.filter(e => e.month === d.month && e.year === d.year).reduce((s, e) => s + e.amount, 0)
+      d.noi = d.income - d.expenses
+    })
+
+    const topUrgentBills = urgentBills.sort((a, b) => {
+      if (a.status === 'OVERDUE' && b.status !== 'OVERDUE') return -1
+      if (a.status !== 'OVERDUE' && b.status === 'OVERDUE') return 1
+      return b.amount - a.amount
+    }).slice(0, 5)
+
+    return { role, totalUnits, occupiedCount, vacantCount, bills, collected, totalDue, totalExpenses, recentMessages, pendingCount, overdueCount, month, year, unitsForMap, enabledModules, noiData, topUrgentBills }
   }
 
   if (role === 'OWNER') {
@@ -122,112 +159,128 @@ export default async function DashboardPage() {
             <StatCard label="Total Expenses" value={formatCurrency((data as any).totalExpenses)} sub="This month" color="#dc2626" icon="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
           </div>
 
-          {/* Fund Summary Cards — all enabled modules with month/year selector */}
-          <DashboardFundCards
-            initialMonth={data.month}
-            initialYear={data.year}
-            enabledModules={(data as any).enabledModules}
-          />
-
-          {/* Row 2: Occupied vs Vacant */}
-          <div className="resp-grid-2" style={{ marginBottom: '1.75rem' }}>
-            <Card style={{ padding: '1.25rem 1.5rem' }}>
-              <p style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 12px' }}>Occupancy Status</p>
-              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: '2rem', fontWeight: 700, color: '#15803d', lineHeight: 1 }}>{(data as any).occupiedCount}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Occupied</div>
-                </div>
-                <div style={{ width: '1px', height: '40px', background: 'var(--border)' }} />
-                <div>
-                  <div style={{ fontSize: '2rem', fontWeight: 700, color: '#d97706', lineHeight: 1 }}>{(data as any).vacantCount}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Vacant</div>
-                </div>
-                <div style={{ flex: 1 }}>
-                  {/* Occupancy bar */}
-                  <div style={{ height: '8px', borderRadius: '4px', background: 'var(--border)', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%', borderRadius: '4px', background: '#15803d',
-                      width: `${(data as any).totalUnits > 0 ? Math.round(((data as any).occupiedCount / (data as any).totalUnits) * 100) : 0}%`,
-                      transition: 'width 0.5s ease',
-                    }} />
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', textAlign: 'right' }}>
-                    {(data as any).totalUnits > 0 ? Math.round(((data as any).occupiedCount / (data as any).totalUnits) * 100) : 0}% occupancy
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Quick links */}
-            <Card style={{ padding: '1.25rem 1.5rem' }}>
-              <p style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 12px' }}>Quick Links</p>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {[
-                  { href: '/dashboard/billing', label: '+ Add Bill' },
-                  { href: '/dashboard/gas', label: 'Gas Matrix' },
-                  { href: '/dashboard/expenses', label: '+ Expense' },
-                  { href: '/dashboard/units', label: 'Manage Units' },
-                ].map(l => (
-                  <Link key={l.href} href={l.href} style={{
-                    padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 500,
-                    background: 'var(--surface-subtle)', color: 'var(--brand)',
-                    border: '1px solid var(--border)', textDecoration: 'none',
-                  }}>{l.label}</Link>
-                ))}
-              </div>
-            </Card>
+          {/* Top Section: NOI Chart & Consolidated Funds */}
+          <div className="resp-grid-2" style={{ marginBottom: '1.5rem', alignItems: 'stretch' }}>
+            <DashboardNOIChart data={(data as any).noiData} />
+            <DashboardFundCards
+              initialMonth={data.month}
+              initialYear={data.year}
+              enabledModules={(data as any).enabledModules}
+            />
           </div>
 
-          {/* Floor map */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <FloorMapClient units={(data as any).unitsForMap} enabledModules={(data as any).enabledModules} />
-          </div>
+          {/* Main Layout: Left (60%) and Right (40%) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+            
+            {/* Left Column: Operational Highlights */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              
+              {/* Urgent Bills */}
+              <Card>
+                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: 0 }}>Pending & Overdue Collections</h3>
+                  <Link href="/dashboard/billing" style={{ fontSize: '13px', color: 'var(--brand)', textDecoration: 'none' }}>View all →</Link>
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="data-table">
+                    <thead><tr><th>Unit</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+                    <tbody>
+                      {((data as any).topUrgentBills as any[]).length === 0 ? (
+                        <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No pending or overdue bills.</td></tr>
+                      ) : ((data as any).topUrgentBills as any[]).map((bill: any) => (
+                        <tr key={bill.id}>
+                          <td style={{ fontWeight: 500 }}>{bill.unit.number}</td>
+                          <td style={{ color: 'var(--text-secondary)' }}>{getBillTypeLabel(bill.type)}</td>
+                          <td style={{ fontWeight: 600 }}>{formatCurrency(bill.amount)}</td>
+                          <td><Badge status={bill.status} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
 
-          <div className="resp-grid-2">
-            {/* Bill status */}
-            <Card>
-              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: 0 }}>This Month's Bills</h3>
-                <Link href="/dashboard/billing" style={{ fontSize: '13px', color: 'var(--brand)', textDecoration: 'none' }}>View all →</Link>
-              </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="data-table">
-                  <thead><tr><th>Unit</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
-                  <tbody>
-                    {((data as any).bills as any[]).slice(0, 8).map((bill: any) => (
-                      <tr key={bill.id}>
-                        <td style={{ fontWeight: 500 }}>{bill.unit.number}</td>
-                        <td style={{ color: 'var(--text-secondary)' }}>{getBillTypeLabel(bill.type)}</td>
-                        <td>{formatCurrency(bill.amount)}</td>
-                        <td><Badge status={bill.status} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
+              {/* Floor map */}
+              <Card style={{ padding: '1.5rem' }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: '0 0 1rem' }}>Floor Map</h3>
+                <FloorMapClient units={(data as any).unitsForMap} enabledModules={(data as any).enabledModules} />
+              </Card>
+            </div>
 
-            {/* Recent messages */}
-            <Card>
-              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: 0 }}>Recent Messages</h3>
-                <Link href="/dashboard/messages" style={{ fontSize: '13px', color: 'var(--brand)', textDecoration: 'none' }}>Compose →</Link>
-              </div>
-              <div style={{ padding: '0.5rem' }}>
-                {((data as any).recentMessages as any[]).length === 0 ? (
-                  <p style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>No messages yet</p>
-                ) : ((data as any).recentMessages as any[]).map((msg: any) => (
-                  <div key={msg.id} style={{ padding: '10px 12px', borderRadius: '8px', marginBottom: '4px', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 500 }}>{msg.subject}</span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{msg.isGlobal ? '🌐 All' : 'Direct'}</span>
+            {/* Right Column: Action Center & Tasks */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              
+              {/* Quick Actions */}
+              <Card style={{ padding: '1.5rem' }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: '0 0 1rem' }}>Quick Actions</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {[
+                    { href: '/dashboard/billing', label: '+ Generate Bills' },
+                    { href: '/dashboard/expenses', label: '+ Record Expense' },
+                    { href: '/dashboard/units', label: 'Manage Units' },
+                    { href: '/dashboard/gas', label: 'Gas Matrix' },
+                  ].map(l => (
+                    <Link key={l.href} href={l.href} style={{
+                      padding: '10px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 500,
+                      background: 'var(--surface-subtle)', color: 'var(--brand)',
+                      border: '1px solid var(--border)', textDecoration: 'none', textAlign: 'center',
+                      transition: 'background 0.2s'
+                    }}>{l.label}</Link>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Occupied vs Vacant */}
+              <Card style={{ padding: '1.5rem' }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: '0 0 1rem' }}>Occupancy Status</h3>
+                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '2rem', fontWeight: 700, color: '#15803d', lineHeight: 1 }}>{(data as any).occupiedCount}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Occupied</div>
+                  </div>
+                  <div style={{ width: '1px', height: '40px', background: 'var(--border)' }} />
+                  <div>
+                    <div style={{ fontSize: '2rem', fontWeight: 700, color: '#d97706', lineHeight: 1 }}>{(data as any).vacantCount}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Vacant</div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    {/* Occupancy bar */}
+                    <div style={{ height: '8px', borderRadius: '4px', background: 'var(--border)', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: '4px', background: '#15803d',
+                        width: `${(data as any).totalUnits > 0 ? Math.round(((data as any).occupiedCount / (data as any).totalUnits) * 100) : 0}%`,
+                        transition: 'width 0.5s ease',
+                      }} />
                     </div>
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{msg.body}</p>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', textAlign: 'right' }}>
+                      {(data as any).totalUnits > 0 ? Math.round(((data as any).occupiedCount / (data as any).totalUnits) * 100) : 0}% occupancy
+                    </div>
                   </div>
-                ))}
-              </div>
-            </Card>
+                </div>
+              </Card>
+
+              {/* Recent Messages */}
+              <Card>
+                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: 0 }}>Recent Messages</h3>
+                  <Link href="/dashboard/messages" style={{ fontSize: '13px', color: 'var(--brand)', textDecoration: 'none' }}>Compose →</Link>
+                </div>
+                <div style={{ padding: '0.5rem' }}>
+                  {((data as any).recentMessages as any[]).length === 0 ? (
+                    <p style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>No messages yet</p>
+                  ) : ((data as any).recentMessages as any[]).map((msg: any) => (
+                    <div key={msg.id} style={{ padding: '10px 12px', borderRadius: '8px', marginBottom: '4px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--brand)' }}>{msg.subject}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{msg.isGlobal ? '🌐 All' : 'Direct'}</span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{msg.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+            </div>
           </div>
         </>
       )}
