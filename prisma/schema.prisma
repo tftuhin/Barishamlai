@@ -11,6 +11,7 @@ datasource db {
 
 // ── Enums ──────────────────────────────────────────────────────
 enum Role {
+  DEVELOPER
   ADMIN
   PRESIDENT   // read-only admin access
   SECRETARY   // read-only admin access

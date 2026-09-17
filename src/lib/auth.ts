@@ -29,23 +29,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        // Developer super-admin: env-based credentials, no DB entry needed
-        const devEmail = process.env.DEVELOPER_EMAIL?.trim()
-        const devPass  = process.env.DEVELOPER_PASSWORD?.trim()
-        if (
-          devEmail && devPass &&
-          credentials.email.trim().toLowerCase() === devEmail.toLowerCase() &&
-          credentials.password.trim() === devPass
-        ) {
-          return {
-            id: 'developer',
-            name: 'Developer',
-            email: devEmail,
-            role: 'DEVELOPER',
-            buildingId: null,
-            buildingName: null,
-          }
-        }
+
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
@@ -92,26 +76,21 @@ export const authOptions: NextAuthOptions = {
         token.buildingId  = u.buildingId
         token.buildingName = u.buildingName
       } else if (token.id) {
-        if (token.id === 'developer') {
-          // Developer role is static and not in DB; preserve it
-          token.role = 'DEVELOPER'
+        // Re-sync role from DB on every token refresh so admin role changes
+        // take effect without re-login, and deleted users are immediately
+        // kicked out on their next request.
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true },
+        })
+        if (dbUser) {
+          token.role = dbUser.role
         } else {
-          // Re-sync role from DB on every token refresh so admin role changes
-          // take effect without re-login, and deleted users are immediately
-          // kicked out on their next request.
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.id as string },
-            select: { role: true },
-          })
-          if (dbUser) {
-            token.role = dbUser.role
-          } else {
-            // User was deleted — clear identity so middleware denies dashboard access
-            token.id          = ''
-            token.role        = ''
-            token.buildingId  = null
-            token.buildingName = null
-          }
+          // User was deleted — clear identity so middleware denies dashboard access
+          token.id          = ''
+          token.role        = ''
+          token.buildingId  = null
+          token.buildingName = null
         }
       }
 
