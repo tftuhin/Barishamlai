@@ -92,21 +92,26 @@ export const authOptions: NextAuthOptions = {
         token.buildingId  = u.buildingId
         token.buildingName = u.buildingName
       } else if (token.id) {
-        // Re-sync role from DB on every token refresh so admin role changes
-        // take effect without re-login, and deleted users are immediately
-        // kicked out on their next request.
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { role: true },
-        })
-        if (dbUser) {
-          token.role = dbUser.role
+        if (token.id === 'developer') {
+          // Developer role is static and not in DB; preserve it
+          token.role = 'DEVELOPER'
         } else {
-          // User was deleted — clear identity so middleware denies dashboard access
-          token.id          = ''
-          token.role        = ''
-          token.buildingId  = null
-          token.buildingName = null
+          // Re-sync role from DB on every token refresh so admin role changes
+          // take effect without re-login, and deleted users are immediately
+          // kicked out on their next request.
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true },
+          })
+          if (dbUser) {
+            token.role = dbUser.role
+          } else {
+            // User was deleted — clear identity so middleware denies dashboard access
+            token.id          = ''
+            token.role        = ''
+            token.buildingId  = null
+            token.buildingName = null
+          }
         }
       }
 
