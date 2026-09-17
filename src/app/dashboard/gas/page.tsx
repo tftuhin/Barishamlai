@@ -26,9 +26,9 @@ export default async function GasPage() {
 
   const [units, gasBills, config, gasExpenses, fundBalance] = await Promise.all([
     prisma.unit.findMany({ where: { buildingId: bId }, orderBy: [{ floor: 'asc' }, { number: 'asc' }] }),
-    prisma.bill.findMany({ where: { type: 'GAS', buildingId: bId }, orderBy: [{ year: 'desc' }, { month: 'desc' }] }),
+    prisma.bill.findMany({ where: { type: 'GAS', buildingId: bId, year: { gte: new Date().getFullYear() - 1 } }, orderBy: [{ year: 'desc' }, { month: 'desc' }] }),
     prisma.buildingConfig.findUnique({ where: { id: bId } }),
-    prisma.expense.findMany({ where: { buildingId: bId, incomeSource: 'GAS' }, orderBy: { date: 'desc' } }),
+    prisma.expense.findMany({ where: { buildingId: bId, incomeSource: 'GAS', year: { gte: new Date().getFullYear() - 1 } }, orderBy: { date: 'desc' } }),
     prisma.fundBalance.findUnique({ where: { buildingId_fundType: { buildingId: bId, fundType: 'GAS' } } }),
   ])
 

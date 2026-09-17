@@ -14,7 +14,7 @@ export default async function BillingPage() {
   const bId = session.user.buildingId ?? undefined
   if (['ADMIN', 'PRESIDENT', 'SECRETARY', 'MEMBER'].includes(session.user.role)) {
     bills = await prisma.bill.findMany({
-      where: { buildingId: bId },
+      where: { buildingId: bId, year: { gte: now.getFullYear() - 1 } },
       include: { unit: { include: { tenant: true, owner: true } } },
       orderBy: [{ year: 'desc' }, { month: 'desc' }, { createdAt: 'desc' }],
     })

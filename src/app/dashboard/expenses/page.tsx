@@ -12,7 +12,7 @@ export default async function ExpensesPage() {
   const bId = session.user.buildingId ?? undefined
   // General expenses only — SC/Gas expenses live on their own pages
   const expenses = await prisma.expense.findMany({
-    where: { buildingId: bId, incomeSource: 'GENERAL' },
+    where: { buildingId: bId, incomeSource: 'GENERAL', year: { gte: new Date().getFullYear() - 1 } },
     orderBy: { date: 'desc' },
   })
   const isReadOnly = session.user.role !== 'ADMIN'

@@ -271,6 +271,7 @@ model Bill {
   updatedAt DateTime @updatedAt
 
   @@unique([unitId, type, month, year])
+  @@index([buildingId, month, year])
 }
 
 // ── Receipts ───────────────────────────────────────────────────
@@ -306,6 +307,8 @@ model Expense {
   building        Building?               @relation(fields: [buildingId], references: [id])
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
+
+  @@index([buildingId, month, year])
 }
 
 // ── BuildingConfig ─────────────────────────────────────────────

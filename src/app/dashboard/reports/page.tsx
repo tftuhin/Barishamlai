@@ -15,8 +15,8 @@ export default async function ReportsPage() {
 
   const bId = session.user.buildingId ?? undefined
   const [bills, expenses, units, fundBalances, unitOpeningBalances, building, config] = await Promise.all([
-    prisma.bill.findMany({ where: { buildingId: bId }, include: { unit: { include: { owner: { select: { name: true } }, tenant: { select: { name: true } } } } }, orderBy: [{ year: 'desc' }, { month: 'desc' }] }),
-    prisma.expense.findMany({ where: { buildingId: bId }, orderBy: { date: 'desc' } }),
+    prisma.bill.findMany({ where: { buildingId: bId, year: { gte: year - 1 } }, include: { unit: { include: { owner: { select: { name: true } }, tenant: { select: { name: true } } } } }, orderBy: [{ year: 'desc' }, { month: 'desc' }] }),
+    prisma.expense.findMany({ where: { buildingId: bId, year: { gte: year - 1 } }, orderBy: { date: 'desc' } }),
     prisma.unit.findMany({
       where: { buildingId: bId },
       include: {

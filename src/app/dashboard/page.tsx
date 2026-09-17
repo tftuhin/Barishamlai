@@ -29,7 +29,7 @@ async function getDashboardData(role: string, userId: string, buildingId: string
         where: { buildingId: bId },
         orderBy: [{ floor: 'asc' }, { number: 'asc' }],
         include: {
-          bills: { orderBy: [{ year: 'desc' }, { month: 'desc' }] },
+          bills: { take: 12, orderBy: [{ year: 'desc' }, { month: 'desc' }] },
           owner: { select: { name: true } },
           tenant: { select: { name: true } },
           mergedWith: { select: { id: true, number: true } },
