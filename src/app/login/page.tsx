@@ -27,7 +27,7 @@ export default function LoginPage() {
     } else {
       const session = await getSession()
       if ((session?.user as any)?.role === 'DEVELOPER') {
-        router.push('/developer')
+        router.push('/dashboard/developer')
       } else {
         router.push('/dashboard')
       }
