@@ -81,6 +81,7 @@ export const translations = {
   navUnits:         { en: 'Units', bn: 'ফ্ল্যাট' },
   navReports:       { en: 'Reports', bn: 'রিপোর্ট' },
   navSettings:      { en: 'Settings', bn: 'সেটিংস' },
+  navDeveloper:     { en: 'Developer', bn: 'ডেভেলপার' },
   navSection:       { en: 'Navigation', bn: 'নেভিগেশন' },
   navSignOut:       { en: 'Sign out', bn: 'বের হন' },
   navSigningOut:    { en: 'Signing out…', bn: 'বের হচ্ছেন…' },
