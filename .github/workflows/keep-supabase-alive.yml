@@ -1,0 +1,36 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Runs every 3 days at 00:00 UTC (well within Supabase's 7-day inactivity limit)
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # Allows manual test trigger from the GitHub Actions UI
+
+jobs:
+  ping-supabase:
+    name: Ping Supabase Database API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://xwpdwzispenictajojfc.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3cGR3emlzcGVuaWN0YWpvamZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMTkwOTIsImV4cCI6MjA5MDU5NTA5Mn0.kRzWXg_J_nfhkUQdt63jdbV8pMQc7XNE2n1wOHYq_NI' }}
+        run: |
+          echo "Pinging Supabase REST API at $SUPABASE_URL/rest/v1/Building..."
+          
+          # Query a single row to register active database query
+          HTTP_STATUS=$(curl -s -o response.txt -w "%{http_code}" \
+            -X GET "$SUPABASE_URL/rest/v1/Building?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+
+          echo "Response HTTP Status: $HTTP_STATUS"
+          cat response.txt
+          echo ""
+
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo "✅ Supabase successfully pinged! Database activity recorded."
+          else
+            echo "::error::Ping returned unexpected status code: $HTTP_STATUS"
+            exit 1
+          fi
