@@ -34,7 +34,6 @@ const navItems: NavItem[] = [
   { href: '/dashboard/units',                 labelKey: 'navUnits',              icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', roles: ['ADMIN','PRESIDENT','SECRETARY','MEMBER','OWNER'] },
   { href: '/dashboard/reports',               labelKey: 'navReports',            icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', roles: VIEWER_ROLES },
   { href: '/dashboard/settings',              labelKey: 'navSettings',           icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', roles: ADMIN_ROLES },
-  { href: '/dashboard/developer',             labelKey: 'navDeveloper',          icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', roles: ['DEVELOPER'] },
 ]
 
 const navContainerVariants = {
@@ -453,6 +452,37 @@ export function Sidebar({ user, isPremium, moduleConfig, multiPropertyApproved, 
         <div style={{ padding: '8px 1rem', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
           <LangToggle forceDark />
         </div>
+
+        {/* Developer Console Link (Always above plan badge if Developer) */}
+        {user.role === 'DEVELOPER' && (
+          <div style={{ padding: '6px 1rem', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <Link href="/developer" style={{ textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>
+              <motion.div
+                whileHover={{ x: 3 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '8px 12px', borderRadius: '8px',
+                  background: pathname.startsWith('/developer') ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)',
+                  border: pathname.startsWith('/developer') ? '1px solid rgba(99,102,241,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                  cursor: 'pointer', overflow: 'hidden',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                  <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" stroke={pathname.startsWith('/developer') ? '#a5b4fc' : 'rgba(255,255,255,0.7)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span style={{
+                  fontSize: '12px', fontWeight: pathname.startsWith('/developer') ? 600 : 500,
+                  color: pathname.startsWith('/developer') ? '#c7d2fe' : 'rgba(255,255,255,0.7)', flex: 1,
+                  fontFamily: 'var(--font-body)', letterSpacing: '0.02em', textTransform: 'uppercase'
+                }}>
+                  Developer Console
+                </span>
+              </motion.div>
+            </Link>
+          </div>
+        )}
 
         {/* Plan badge */}
         {!isPremium && (

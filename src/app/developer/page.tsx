@@ -34,6 +34,13 @@ type Building = {
   createdAt: string
 }
 
+type DeveloperUser = {
+  id: string
+  name: string
+  email: string
+  createdAt: string
+}
+
 const STATUS_META: Record<BuildingStatus, { label: string; color: string; bg: string; border: string }> = {
   ACTIVE:  { label: 'Active',   color: '#34d399', bg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.3)' },
   LOCKED:  { label: 'Locked',   color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.3)' },
@@ -89,7 +96,7 @@ function formatDate(dateStr: string) {
 }
 
 export default function DeveloperPage() {
-  const [tab, setTab] = useState<'buildings' | 'requests'>('buildings')
+  const [tab, setTab] = useState<'buildings' | 'requests' | 'developers'>('buildings')
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -129,8 +136,18 @@ export default function DeveloperPage() {
   const [deleteSaving, setDeleteSaving] = useState(false)
   const [deleteError, setDeleteError] = useState('')
 
+  const [developers, setDevelopers] = useState<DeveloperUser[]>([])
+  const [devLoading, setDevLoading] = useState(false)
+  const [devModal, setDevModal] = useState(false)
+  const [devForm, setDevForm] = useState({ name: '', email: '', password: '' })
+  const [devSaving, setDevSaving] = useState(false)
+  const [devError, setDevError] = useState('')
+
   useEffect(() => { fetchBuildings() }, [])
-  useEffect(() => { if (tab === 'requests') fetchPropertyRequests() }, [tab])
+  useEffect(() => { 
+    if (tab === 'requests') fetchPropertyRequests() 
+    if (tab === 'developers') fetchDevelopers()
+  }, [tab])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -147,6 +164,32 @@ export default function DeveloperPage() {
     const res = await fetch('/api/developer/property-requests')
     if (res.ok) setPropRequests(await res.json())
     setRequestsLoading(false)
+  }
+
+  async function fetchDevelopers() {
+    setDevLoading(true)
+    const res = await fetch('/api/developer/developers')
+    if (res.ok) setDevelopers(await res.json())
+    setDevLoading(false)
+  }
+
+  async function handleAddDeveloper() {
+    setDevSaving(true); setDevError('')
+    const res = await fetch('/api/developer/developers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(devForm),
+    })
+    if (res.ok) {
+      const newDev = await res.json()
+      setDevelopers(prev => [newDev, ...prev])
+      setDevModal(false)
+      setDevForm({ name: '', email: '', password: '' })
+    } else {
+      const d = await res.json()
+      setDevError(d.error || 'Failed to create developer')
+    }
+    setDevSaving(false)
   }
 
   async function handleRequestAction() {
@@ -312,10 +355,11 @@ export default function DeveloperPage() {
         {[
           { key: 'buildings', label: `Properties (${buildings.length})` },
           { key: 'requests',  label: `Property Requests${propRequests.filter(r => r.status === 'PENDING').length > 0 ? ` (${propRequests.filter(r => r.status === 'PENDING').length})` : ''}` },
+          { key: 'developers', label: 'Developers' },
         ].map(t => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key as 'buildings' | 'requests')}
+            onClick={() => setTab(t.key as any)}
             style={{
               padding: '10px 20px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
               background: 'transparent',
@@ -622,6 +666,82 @@ export default function DeveloperPage() {
       </motion.div>
 
       </>)}
+
+      {tab === 'developers' && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', margin: 0 }}>Developer Accounts</h2>
+            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setDevModal(true)}
+              style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#34d399', color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              + Add Developer
+            </motion.button>
+          </div>
+          
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr', padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+              {['Name','Email','Joined'].map(h => (
+                <div key={h} style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', padding: '0 8px' }}>{h}</div>
+              ))}
+            </div>
+            {devLoading ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>Loading developers…</div>
+            ) : developers.length === 0 ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>No developers found</div>
+            ) : (
+              <div>
+                {developers.map(d => (
+                  <div key={d.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center' }}>
+                    <div style={{ padding: '0 8px', fontWeight: 600, color: '#fff', fontSize: 14 }}>{d.name}</div>
+                    <div style={{ padding: '0 8px', fontSize: 13, color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace' }}>{d.email}</div>
+                    <div style={{ padding: '0 8px', fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{formatDate(d.createdAt)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Add Developer Modal */}
+      <AnimatePresence>
+        {devModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+            onClick={e => { if (e.target === e.currentTarget) setDevModal(false) }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+              onClick={() => setDevModal(false)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 24 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+              style={{ position: 'relative', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, width: '100%', maxWidth: 420, padding: '2rem', boxShadow: '0 30px 80px rgba(0,0,0,0.6)' }}>
+              
+              <h3 style={{ color: '#fff', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 1.5rem' }}>Add Developer</h3>
+              
+              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: '0.5rem' }}>Name</label>
+              <input value={devForm.name} onChange={e => setDevForm({ ...devForm, name: e.target.value })}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: '1.25rem' }} />
+
+              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: '0.5rem' }}>Email</label>
+              <input type="email" value={devForm.email} onChange={e => setDevForm({ ...devForm, email: e.target.value })}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: '1.25rem' }} />
+
+              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: '0.5rem' }}>Temporary Password</label>
+              <input type="text" value={devForm.password} onChange={e => setDevForm({ ...devForm, password: e.target.value })}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box', marginBottom: '1.5rem' }} />
+
+              {devError && <p style={{ color: '#f87171', fontSize: 13, marginBottom: '1rem' }}>{devError}</p>}
+              
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button onClick={() => setDevModal(false)} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleAddDeveloper} disabled={devSaving}
+                  style={{ padding: '9px 22px', borderRadius: 8, border: 'none', background: '#34d399', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer', opacity: devSaving ? 0.7 : 1 }}>
+                  {devSaving ? 'Creating…' : 'Add Developer'}
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Status Modal */}
       <AnimatePresence>

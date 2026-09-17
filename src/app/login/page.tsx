@@ -27,7 +27,7 @@ export default function LoginPage() {
     } else {
       const session = await getSession()
       if ((session?.user as any)?.role === 'DEVELOPER') {
-        router.push('/dashboard/developer')
+        window.location.href = '/developer' // Use window.location to force a full hard reload
       } else {
         router.push('/dashboard')
       }

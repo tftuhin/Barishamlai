@@ -7,6 +7,8 @@ import Link from 'next/link'
 export default async function PendingApprovalPage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
+  
+  if (session.user.role === 'DEVELOPER') redirect('/developer')
   // If already assigned to a building, go to dashboard
   if (session.user.buildingId) redirect('/dashboard')
 
@@ -80,9 +82,14 @@ export default async function PendingApprovalPage() {
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
               Your account is not linked to any building yet. Please use an invitation link or request to join a building.
             </p>
-            <Link href="/signup" style={{ display: 'inline-block', padding: '10px 28px', borderRadius: '10px', background: '#1D9E75', color: '#fff', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}>
-              Join a Building
-            </Link>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <Link href="/signup" style={{ display: 'inline-block', padding: '10px 28px', borderRadius: '10px', background: '#1D9E75', color: '#fff', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}>
+                Join a Building
+              </Link>
+              <Link href="/api/auth/signout" style={{ display: 'inline-block', padding: '10px 28px', borderRadius: '10px', background: '#f1f5f9', color: '#475569', fontSize: '14px', fontWeight: 500, textDecoration: 'none' }}>
+                Sign Out
+              </Link>
+            </div>
           </>
         )}
       </div>

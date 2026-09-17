@@ -37,6 +37,9 @@ const STATUS_CONFIG = {
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
+
+  if (session.user.role === 'DEVELOPER') redirect('/developer')
+  
   if (session.user.role !== 'DEVELOPER' && !session.user.buildingId) redirect('/pending-approval')
 
   const bId = session.user.buildingId

@@ -62,7 +62,7 @@ export default withAuth(
     }
 
     // ── Auth role routing ────────────────────────────────────────────────────
-    if (token?.role !== 'DEVELOPER' && pathname.startsWith('/dashboard/developer')) {
+    if (token?.role !== 'DEVELOPER' && pathname.startsWith('/developer')) {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
 
@@ -73,7 +73,7 @@ export default withAuth(
       // Require auth only for dashboard and developer; allow everything else through
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl
-        if (pathname.startsWith('/dashboard')) {
+        if (pathname.startsWith('/dashboard') || pathname.startsWith('/developer')) {
           // Check token.id specifically — deleted users have id cleared to ''
           return !!(token?.id)
         }
