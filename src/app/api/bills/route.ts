@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ok, created, Err, isPrismaConflict, requireAuth, requireAdmin } from '@/lib/api'
+import { BILL_SAFE_INCLUDE } from '@/lib/dto'
 import type { BillType } from '@prisma/client'
 
 const VALID_BILL_TYPES = new Set<string>(['RENT', 'SERVICE_CHARGE', 'GAS', 'WATER', 'ELECTRICITY', 'OTHER'])
@@ -17,17 +18,30 @@ export async function GET(req: NextRequest) {
     const type   = searchParams.get('type')
     const limit  = searchParams.get('limit')
     const bId    = session.user.buildingId
+    const role   = session.user.role
 
     const typeFilter = type && VALID_BILL_TYPES.has(type) ? (type as BillType) : undefined
+
+    // Role-based scoping:
+    // Tenant only sees bills for their assigned unit;
+    // Owner sees bills for units they own;
+    // Admin / committee members see all bills in the building.
+    const unitFilter: Record<string, unknown> = {}
+    if (unitId) unitFilter.id = unitId
+    if (role === 'TENANT') {
+      unitFilter.tenantId = session.user.id
+    } else if (role === 'OWNER') {
+      unitFilter.ownerId = session.user.id
+    }
 
     const bills = await prisma.bill.findMany({
       where: {
         ...(bId ? { buildingId: bId } : {}),
         ...(month && year ? { month: Number(month), year: Number(year) } : {}),
-        ...(unitId ? { unitId } : {}),
+        ...(Object.keys(unitFilter).length > 0 ? { unit: unitFilter } : {}),
         ...(typeFilter ? { type: typeFilter } : {}),
       },
-      include: { unit: { include: { tenant: true, owner: true } } },
+      include: BILL_SAFE_INCLUDE,
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
       ...(limit ? { take: Number(limit) } : {}),
     })
@@ -51,6 +65,15 @@ export async function POST(req: NextRequest) {
     if (!VALID_BILL_TYPES.has(String(type)))
       return Err.badRequest('Invalid bill type')
 
+    // T02: Verify unit belongs to the active building before creating bill
+    const unit = await prisma.unit.findUnique({
+      where: { id: String(unitId) },
+      select: { buildingId: true },
+    })
+    if (!unit || unit.buildingId !== session.user.buildingId) {
+      return Err.badRequest('Unit does not belong to your building')
+    }
+
     const bill = await prisma.bill.create({
       data: {
         unitId:       String(unitId),
@@ -64,6 +87,7 @@ export async function POST(req: NextRequest) {
         meterReading: meterReading != null ? Number(meterReading) : null,
         buildingId:   session.user.buildingId,
       },
+      include: BILL_SAFE_INCLUDE,
     })
     return created(bill)
   } catch (e) {

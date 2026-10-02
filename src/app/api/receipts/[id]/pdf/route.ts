@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getBillTypeLabel, getMonthName } from '@/lib/utils'
+import { escapeHtml } from '@/lib/security'
+import { USER_PUBLIC_SELECT } from '@/lib/dto'
 
 export async function GET(
   _req: NextRequest,
@@ -15,9 +17,13 @@ export async function GET(
     where: { id: params.id },
     include: {
       bill: true,
-      unit: true,
-      issuedBy: true,
-      recipient: true,
+      unit: {
+        include: {
+          building: { select: { name: true, address: true } },
+        },
+      },
+      issuedBy: { select: USER_PUBLIC_SELECT },
+      recipient: { select: USER_PUBLIC_SELECT },
     },
   })
 
@@ -35,13 +41,19 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const buildingName = process.env.NEXT_PUBLIC_BUILDING_NAME || 'Building Management'
+  const buildingName = escapeHtml(receipt.unit?.building?.name || process.env.NEXT_PUBLIC_BUILDING_NAME || 'Bari Shamlai')
   const r = receipt
   const issueDate = new Date(r.createdAt).toLocaleDateString('en-BD', { day: '2-digit', month: 'long', year: 'numeric' })
-  const receiptNo = r.id.slice(-8).toUpperCase()
-  const billPeriod = r.bill ? `${getMonthName(r.bill.month)} ${r.bill.year}` : ''
-  const billType = r.bill ? getBillTypeLabel(r.bill.type) : ''
+  const receiptNo = escapeHtml(r.id.slice(-8).toUpperCase())
+  const billPeriod = escapeHtml(r.bill ? `${getMonthName(r.bill.month)} ${r.bill.year}` : '')
+  const billType = escapeHtml(r.bill ? getBillTypeLabel(r.bill.type) : '')
   const amount = new Intl.NumberFormat('en-BD').format(r.amount)
+
+  const recipientName = escapeHtml(r.recipient?.name ?? '—')
+  const recipientEmail = escapeHtml(r.recipient?.email ?? '—')
+  const recipientPhone = escapeHtml(r.recipient?.phone ?? '—')
+  const unitNumber = escapeHtml(r.unit?.number ?? '—')
+  const issuerName = escapeHtml(r.issuedBy?.name ?? '—')
 
   // Generate a clean HTML receipt that browsers can print as PDF
   const html = `<!DOCTYPE html>
@@ -75,7 +87,7 @@ export async function GET(
 <body>
 <div class="header">
   <div>
-    <div class="logo">BuildingHQ</div>
+    <div class="logo">Bari Shamlai</div>
     <div class="building-name">${buildingName}</div>
   </div>
   <div style="text-align:right">
@@ -89,20 +101,20 @@ export async function GET(
   <div>
     <div class="section-title">Issued To</div>
     <div class="field-label">Tenant Name</div>
-    <div class="field-value">${r.recipient?.name ?? '—'}</div>
+    <div class="field-value">${recipientName}</div>
     <div style="margin-top:12px">
       <div class="field-label">Email</div>
-      <div class="field-value">${r.recipient?.email ?? '—'}</div>
+      <div class="field-value">${recipientEmail}</div>
     </div>
     <div style="margin-top:12px">
       <div class="field-label">Phone</div>
-      <div class="field-value">${r.recipient?.phone ?? '—'}</div>
+      <div class="field-value">${recipientPhone}</div>
     </div>
   </div>
   <div>
     <div class="section-title">Property Details</div>
     <div class="field-label">Unit</div>
-    <div class="field-value">${r.unit?.number ?? '—'}</div>
+    <div class="field-value">${unitNumber}</div>
     <div style="margin-top:12px">
       <div class="field-label">Bill Type</div>
       <div class="field-value">${billType}</div>
@@ -113,7 +125,7 @@ export async function GET(
     </div>
     <div style="margin-top:12px">
       <div class="field-label">Issued By</div>
-      <div class="field-value">${r.issuedBy?.name ?? '—'}</div>
+      <div class="field-value">${issuerName}</div>
     </div>
   </div>
 </div>

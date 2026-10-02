@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ok, Err, requireAuth, requireAdmin } from '@/lib/api'
+import { USER_PUBLIC_SELECT } from '@/lib/dto'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const [session, e] = await requireAuth()
@@ -55,8 +56,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id: params.id },
       data,
       include: {
-        owner: true,
-        tenant: true,
+        owner: { select: USER_PUBLIC_SELECT },
+        tenant: { select: USER_PUBLIC_SELECT },
         mergedWith:  { select: { id: true, number: true } },
         mergedUnits: { select: { id: true, number: true, floor: true } },
       },

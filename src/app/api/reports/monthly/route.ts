@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getBillTypeLabel, getMonthName, getExpenseCategoryLabel } from '@/lib/utils'
+import { escapeHtml } from '@/lib/security'
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
   const [bills, expenses, units, building, fundBalances, priorBills, priorExpenses] = await Promise.all([
     prisma.bill.findMany({
       where: { month, year, buildingId: bId },
-      include: { unit: { include: { tenant: true } } },
+      include: { unit: { include: { tenant: { select: { name: true } } } } },
       orderBy: { unit: { number: 'asc' } },
     }),
     prisma.expense.findMany({ where: { date: { gte: startOfMonth, lte: endOfMonth }, buildingId: bId }, orderBy: { date: 'asc' } }),
@@ -64,28 +65,35 @@ export async function GET(req: NextRequest) {
   const totalExpenses  = expenses.reduce((s, e) => s + Number(e.amount), 0)
   const netIncome      = thisMonthCollected - thisMonthExpenses
 
-  const buildingName = building?.name || 'Building Management'
-  const buildingAddress = building?.address || ''
+  const buildingName = escapeHtml(building?.name || 'Building Management')
+  const buildingAddress = escapeHtml(building?.address || '')
+  const safeMonthName = escapeHtml(getMonthName(month))
+  const safeYear = escapeHtml(String(year))
   const fmt = (n: number) => `৳${new Intl.NumberFormat('en-BD').format(Math.round(n))}`
   const generatedAt = new Date().toLocaleDateString('en-BD', { day: '2-digit', month: 'long', year: 'numeric' })
 
   const billRows = bills.map(b => {
     const isDue = b.status !== 'PAID'
+    const safeTenant = b.unit.tenant?.name ? escapeHtml(b.unit.tenant.name) : '<span class="muted">Vacant</span>'
+    const safeUnit = escapeHtml(b.unit.number)
+    const safeType = escapeHtml(getBillTypeLabel(b.type))
+    const safeStatus = escapeHtml(b.status)
+    const safeStatusLower = escapeHtml(b.status.toLowerCase())
     return `
     <tr class="${isDue ? 'due-row' : ''}">
-      <td>${b.unit.number}</td>
-      <td>${b.unit.tenant?.name ?? '<span class="muted">Vacant</span>'}</td>
-      <td>${getBillTypeLabel(b.type)}</td>
+      <td>${safeUnit}</td>
+      <td>${safeTenant}</td>
+      <td>${safeType}</td>
       <td class="amount">${fmt(Number(b.amount))}</td>
-      <td><span class="badge badge-${b.status.toLowerCase()}">${b.status}</span></td>
+      <td><span class="badge badge-${safeStatusLower}">${safeStatus}</span></td>
       <td>${b.paidAt ? new Date(b.paidAt).toLocaleDateString('en-BD') : '—'}</td>
     </tr>
   `}).join('')
 
   const expenseRows = expenses.map(e => `
     <tr>
-      <td>${e.title}</td>
-      <td>${getExpenseCategoryLabel(e.category)}</td>
+      <td>${escapeHtml(e.title)}</td>
+      <td>${escapeHtml(getExpenseCategoryLabel(e.category))}</td>
       <td class="muted">${new Date(e.date).toLocaleDateString('en-BD')}</td>
       <td class="amount expense">${fmt(Number(e.amount))}</td>
     </tr>
@@ -95,7 +103,7 @@ export async function GET(req: NextRequest) {
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Monthly Report — ${getMonthName(month)} ${year}</title>
+<title>Monthly Report — ${safeMonthName} ${safeYear}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
@@ -147,7 +155,7 @@ export async function GET(req: NextRequest) {
   </div>
   <div class="report-title">
     <div class="period">Monthly Financial Report</div>
-    <div style="font-size:16px;color:#6b6860;margin-top:2px">${getMonthName(month)} ${year}</div>
+    <div style="font-size:16px;color:#6b6860;margin-top:2px">${safeMonthName} ${safeYear}</div>
     <div class="generated">Generated on ${generatedAt}</div>
   </div>
 </div>

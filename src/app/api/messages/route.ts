@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ok, created, Err, requireAuth, requirePremium } from '@/lib/api'
+import { MESSAGE_SAFE_INCLUDE, USER_PUBLIC_SELECT } from '@/lib/dto'
 
 export async function GET() {
   const [session, e] = await requireAuth()
@@ -12,7 +13,7 @@ export async function GET() {
     if (session.user.role === 'ADMIN') {
       const messages = await prisma.message.findMany({
         where: { buildingId: bId ?? undefined },
-        include: { sender: true, recipients: { include: { user: true } } },
+        include: MESSAGE_SAFE_INCLUDE,
         orderBy: { createdAt: 'desc' },
       })
       return ok(messages)
@@ -20,7 +21,7 @@ export async function GET() {
 
     const messages = await prisma.messageRecipient.findMany({
       where: { userId: session.user.id },
-      include: { message: { include: { sender: true } } },
+      include: { message: { include: { sender: { select: USER_PUBLIC_SELECT } } } },
       orderBy: { createdAt: 'desc' },
     })
     return ok(messages)

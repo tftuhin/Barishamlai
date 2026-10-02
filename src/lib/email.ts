@@ -1,4 +1,5 @@
 import { BrevoClient } from '@getbrevo/brevo'
+import { escapeHtml } from '@/lib/security'
 
 interface SendEmailOptions {
   to: string
@@ -51,9 +52,12 @@ export function emailBase(opts: {
   const footer   = opts.footerNote
     ?? `Sent by <strong>${appName}</strong> &middot; This is an automated message. Please do not reply.`
 
+  const safeHeading = escapeHtml(opts.heading)
+  const safeSubheading = opts.subheading ? escapeHtml(opts.subheading) : ''
+
   const cta = opts.ctaLabel && opts.ctaUrl
     ? `<a href="${opts.ctaUrl}" style="display:block;text-align:center;background:#1D9E75;color:#ffffff;padding:14px 24px;border-radius:9px;text-decoration:none;font-weight:600;font-size:15px;margin-top:28px;letter-spacing:-0.01em">
-        ${opts.ctaLabel}
+        ${escapeHtml(opts.ctaLabel)}
        </a>`
     : ''
 
@@ -62,15 +66,15 @@ export function emailBase(opts: {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${opts.heading}</title>
+  <title>${safeHeading}</title>
 </head>
 <body style="margin:0;padding:24px 16px;background:#F8FFFE;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased">
   <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.07)">
 
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#1D9E75 0%,#085041 100%);padding:28px 40px 26px">
-      <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;letter-spacing:-0.01em;line-height:1.3">${opts.heading}</h1>
-      ${opts.subheading ? `<p style="color:rgba(255,255,255,0.78);margin:6px 0 0;font-size:13px">${opts.subheading}</p>` : ''}
+      <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;letter-spacing:-0.01em;line-height:1.3">${safeHeading}</h1>
+      ${safeSubheading ? `<p style="color:rgba(255,255,255,0.78);margin:6px 0 0;font-size:13px">${safeSubheading}</p>` : ''}
     </div>
 
     <!-- Body -->

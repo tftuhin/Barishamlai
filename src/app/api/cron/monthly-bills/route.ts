@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { sendEmail, emailBase, amountBox, detailTable } from '@/lib/email'
 import { isPrismaConflict } from '@/lib/api'
 
+import { escapeHtml } from '@/lib/security'
+import { USER_PUBLIC_SELECT } from '@/lib/dto'
+
 function monthName(m: number) {
   return ['January','February','March','April','May','June','July','August','September','October','November','December'][m - 1]
 }
@@ -19,19 +22,25 @@ function billNotificationHtml(opts: {
   year:           number
   dueDate:        Date
 }): string {
+  const safeName = escapeHtml(opts.recipientName ?? 'Resident')
+  const safeBuilding = escapeHtml(opts.buildingName)
+  const safeType = escapeHtml(opts.billType)
+  const safeUnit = escapeHtml(opts.unit)
+  const safePeriod = escapeHtml(`${monthName(opts.month)} ${opts.year}`)
+
   return emailBase({
-    heading:    `${opts.billType} Bill`,
-    subheading: opts.buildingName,
+    heading:    `${safeType} Bill`,
+    subheading: safeBuilding,
     bodyHtml: `
-      <p style="color:#1A2E2A;margin:0 0 12px">Dear <strong>${opts.recipientName ?? 'Resident'}</strong>,</p>
+      <p style="color:#1A2E2A;margin:0 0 12px">Dear <strong>${safeName}</strong>,</p>
       <p style="color:#3D5A53;margin:0 0 4px;line-height:1.65">
-        Your <strong>${opts.billType}</strong> bill for <strong>${monthName(opts.month)} ${opts.year}</strong>
-        has been generated for Unit <strong>${opts.unit}</strong>.
+        Your <strong>${safeType}</strong> bill for <strong>${safePeriod}</strong>
+        has been generated for Unit <strong>${safeUnit}</strong>.
       </p>
       ${amountBox('Amount Due', opts.amount)}
       ${detailTable([
-        ['Period',   `${monthName(opts.month)} ${opts.year}`],
-        ['Unit',     opts.unit],
+        ['Period',   safePeriod],
+        ['Unit',     safeUnit],
         ['Due Date', opts.dueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })],
         ['Status',   '<span style="color:#d97706;font-weight:700">PENDING</span>'],
       ])}
@@ -65,9 +74,11 @@ export async function GET(req: NextRequest) {
   const year    = now.getFullYear()
   const dueDate = new Date(year, month - 1, 10) // 10th of current month
 
+  // T13: Restrict cron billing strictly to ACTIVE buildings
   const buildings = await prisma.building.findMany({
+    where: { status: 'ACTIVE' },
     include: {
-      units:  { include: { tenant: true, owner: true } },
+      units:  { include: { tenant: { select: USER_PUBLIC_SELECT }, owner: { select: USER_PUBLIC_SELECT } } },
       config: true,
     },
   })

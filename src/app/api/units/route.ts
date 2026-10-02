@@ -3,6 +3,8 @@ import { BillType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ok, created, Err, isPrismaConflict, requireAuth, requireAdmin } from '@/lib/api'
 
+import { UNIT_SAFE_INCLUDE } from '@/lib/dto'
+
 const TIER_LIMITS: Record<string, number> = {
   FREE:       5,
   BASIC:      10,
@@ -16,9 +18,23 @@ export async function GET() {
   if (e) return e
 
   try {
+    const bId = session.user.buildingId ?? undefined
+    const role = session.user.role
+
+    // Role-based unit scoping:
+    // Tenants can only see their own unit; Owners can see their own units;
+    // Admins and Committee Members can see all units in the building.
+    let whereCondition: Record<string, unknown> = { buildingId: bId }
+
+    if (role === 'TENANT') {
+      whereCondition = { buildingId: bId, tenantId: session.user.id }
+    } else if (role === 'OWNER') {
+      whereCondition = { buildingId: bId, ownerId: session.user.id }
+    }
+
     const units = await prisma.unit.findMany({
-      where: { buildingId: session.user.buildingId ?? undefined },
-      include: { owner: true, tenant: true },
+      where: whereCondition,
+      include: UNIT_SAFE_INCLUDE,
       orderBy: { number: 'asc' },
     })
     return ok(units)
@@ -58,6 +74,16 @@ export async function POST(req: NextRequest) {
 
     const dues: OpeningDue[] = Array.isArray(openingDues) ? openingDues : []
 
+    // Validate that assigned owner and tenant belong to this building
+    if (ownerId) {
+      const validOwner = await prisma.user.findFirst({ where: { id: String(ownerId), buildingId: bId } })
+      if (!validOwner) return Err.badRequest('Assigned owner does not belong to this building')
+    }
+    if (tenantId) {
+      const validTenant = await prisma.user.findFirst({ where: { id: String(tenantId), buildingId: bId } })
+      if (!validTenant) return Err.badRequest('Assigned tenant does not belong to this building')
+    }
+
     const unit = await prisma.$transaction(async (tx) => {
       const newUnit = await tx.unit.create({
         data: {
@@ -69,7 +95,7 @@ export async function POST(req: NextRequest) {
           tenantId:    tenantId ? String(tenantId) : null,
           buildingId:  bId,
         },
-        include: { owner: true, tenant: true },
+        include: UNIT_SAFE_INCLUDE,
       })
 
       if (dues.length > 0) {

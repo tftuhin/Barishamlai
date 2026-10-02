@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ok, created, Err, requirePremium } from '@/lib/api'
+import { RECEIPT_SAFE_INCLUDE, USER_PUBLIC_SELECT } from '@/lib/dto'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -15,7 +16,7 @@ export async function GET() {
     if (session.user.role === 'ADMIN') {
       receipts = await prisma.receipt.findMany({
         where: { unit: { buildingId: bId } },
-        include: { bill: true, unit: true, issuedBy: true, recipient: true },
+        include: RECEIPT_SAFE_INCLUDE,
         orderBy: { createdAt: 'desc' },
       })
     } else if (session.user.role === 'OWNER') {
@@ -24,14 +25,14 @@ export async function GET() {
       receipts = unitIds.length > 0
         ? await prisma.receipt.findMany({
             where: { unitId: { in: unitIds } },
-            include: { bill: true, unit: true, issuedBy: true, recipient: true },
+            include: RECEIPT_SAFE_INCLUDE,
             orderBy: { createdAt: 'desc' },
           })
         : []
     } else {
       receipts = await prisma.receipt.findMany({
         where: { recipientId: session.user.id },
-        include: { bill: true, unit: true, issuedBy: true, recipient: true },
+        include: RECEIPT_SAFE_INCLUDE,
         orderBy: { createdAt: 'desc' },
       })
     }
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
     // Fetch bill with building ownership check in a single atomic query
     const bill = await prisma.bill.findFirst({
       where: { id: billId, buildingId: session.user.buildingId },
-      include: { unit: { include: { tenant: true } } },
+      include: { unit: { include: { tenant: { select: USER_PUBLIC_SELECT } } } },
     })
 
     if (!bill) return Err.notFound('Bill not found')
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
         recipientId: bill.unit.tenantId,
         amount:      bill.amount,
       },
-      include: { bill: true, unit: true, issuedBy: true, recipient: true },
+      include: RECEIPT_SAFE_INCLUDE,
     })
 
     return created(receipt)
