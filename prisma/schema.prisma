@@ -172,6 +172,12 @@ model Building {
   userBuildings        UserBuilding[]
   multiPropertyRequests MultiPropertyRequest[]
   monthlySetups        MonthlySetup[]
+  payments             Payment[]
+  financialEvents      FinancialEvent[]
+  adjustments          Adjustment[]
+  periodCloses         PeriodClose[]
+  meterReadings        MeterReading[]
+  auditLogs            AuditLog[]
 }
 
 // ── Users ──────────────────────────────────────────────────────
@@ -240,6 +246,7 @@ model Unit {
   bills           Bill[]
   receipts        Receipt[]
   openingBalances UnitOpeningBalance[]
+  meterReadings   MeterReading[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -266,6 +273,7 @@ model Bill {
   openingMeterReading Float?
 
   receipt Receipt?
+  allocations PaymentAllocation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -504,3 +512,193 @@ model Invitation {
   building  Building @relation(fields: [buildingId], references: [id])
   invitedBy User     @relation("InvitationSender", fields: [invitedById], references: [id])
 }
+
+// ── Financial Ledger & Payments (Gate G2 - T06) ──────────────────
+
+enum PaymentMethod {
+  CASH
+  BKASH
+  NAGAD
+  BANK_TRANSFER
+  CARD
+  ADJUSTMENT
+}
+
+enum PaymentVerificationStatus {
+  PENDING_REVIEW
+  VERIFIED
+  REJECTED
+  REVERSED
+}
+
+enum PeriodStatus {
+  OPEN
+  CLOSING
+  CLOSED
+}
+
+enum FinancialEventType {
+  BILL_ISSUED
+  PAYMENT_RECEIVED
+  PAYMENT_ALLOCATED
+  PAYMENT_REVERSED
+  EXPENSE_POSTED
+  ADJUSTMENT_APPLIED
+  OPENING_BALANCE
+  PERIOD_CLOSED
+}
+
+enum FinancialDirection {
+  INFLOW
+  OUTFLOW
+}
+
+enum AdjustmentKind {
+  CREDIT
+  DEBIT
+  VOID
+  REFUND
+  CORRECTION
+}
+
+enum MeterType {
+  GAS
+  WATER
+}
+
+model Payment {
+  id                  String                    @id @default(cuid())
+  buildingId          String
+  amountPaisa         BigInt
+  currency            String                    @default("BDT")
+  method              PaymentMethod
+  externalReference   String?
+  receivedAt          DateTime                  @default(now())
+  receivedByUserId    String?
+  verificationStatus  PaymentVerificationStatus @default(PENDING_REVIEW)
+  verifiedByUserId    String?
+  proofAttachmentId   String?
+  reversalOfPaymentId String?
+  notes               String?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  building    Building            @relation(fields: [buildingId], references: [id])
+  allocations PaymentAllocation[]
+
+  @@index([buildingId, verificationStatus])
+  @@index([buildingId, receivedAt])
+}
+
+model PaymentAllocation {
+  id              String    @id @default(cuid())
+  paymentId       String
+  billId          String
+  amountPaisa     BigInt
+  effectiveAt     DateTime  @default(now())
+  createdByUserId String?
+  voidedAt        DateTime?
+  voidReason      String?
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  bill    Bill    @relation(fields: [billId],    references: [id], onDelete: Restrict)
+
+  @@index([paymentId])
+  @@index([billId])
+}
+
+model FinancialEvent {
+  id              String             @id @default(cuid())
+  buildingId      String
+  fund            FundType
+  eventType       FinancialEventType
+  amountPaisa     BigInt
+  direction       FinancialDirection
+  effectiveAt     DateTime
+  entityType      String
+  entityId        String
+  createdByUserId String?
+  reason          String?
+  idempotencyKey  String?
+  createdAt       DateTime           @default(now())
+
+  building Building @relation(fields: [buildingId], references: [id])
+
+  @@unique([buildingId, idempotencyKey])
+  @@index([buildingId, fund, effectiveAt])
+}
+
+model Adjustment {
+  id                 String         @id @default(cuid())
+  buildingId         String
+  kind               AdjustmentKind
+  amountPaisa        BigInt
+  originalEntityType String
+  originalEntityId   String
+  reason             String
+  requestedByUserId  String?
+  approvedByUserId   String?
+  effectiveAt        DateTime       @default(now())
+  createdAt          DateTime       @default(now())
+
+  building Building @relation(fields: [buildingId], references: [id])
+
+  @@index([buildingId, effectiveAt])
+}
+
+model PeriodClose {
+  id                 String       @id @default(cuid())
+  buildingId         String
+  periodYear         Int
+  periodMonth        Int
+  status             PeriodStatus @default(OPEN)
+  preparedByUserId   String?
+  approvedByUserId   String?
+  closedAt           DateTime?
+  reportSnapshotHash String?
+  notes              String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  building Building @relation(fields: [buildingId], references: [id])
+
+  @@unique([buildingId, periodYear, periodMonth])
+}
+
+model MeterReading {
+  id                 String    @id @default(cuid())
+  buildingId         String
+  unitId             String
+  meterType          MeterType
+  meterIdentifier    String?
+  reading            Float
+  readAt             DateTime
+  photoAttachmentId  String?
+  enteredByUserId    String?
+  approvedByUserId   String?
+  replacesReadingId  String?
+  createdAt          DateTime  @default(now())
+
+  building Building @relation(fields: [buildingId], references: [id])
+  unit     Unit     @relation(fields: [unitId], references: [id])
+
+  @@index([buildingId, unitId, meterType])
+}
+
+model AuditLog {
+  id               String   @id @default(cuid())
+  buildingId       String?
+  actorUserId      String?
+  action           String
+  entityType       String
+  entityId         String
+  reason           String?
+  requestId        String?
+  metadataRedacted String?
+  createdAt        DateTime @default(now())
+
+  building Building? @relation(fields: [buildingId], references: [id])
+
+  @@index([buildingId, createdAt])
+}
+
