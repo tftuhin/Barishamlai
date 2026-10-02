@@ -38,8 +38,12 @@ async function getDashboardData(role: string, userId: string, buildingId: string
       }),
       prisma.buildingConfig.findUnique({ where: { id: bId ?? 'none' } }),
     ])
-    const collected = bills.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0)
-    const totalDue = bills.reduce((s, b) => s + b.amount, 0)
+    const opBills       = bills.filter(b => b.type !== 'RENT')
+    const rentBills     = bills.filter(b => b.type === 'RENT')
+    const collected     = opBills.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0)
+    const totalDue      = opBills.reduce((s, b) => s + b.amount, 0)
+    const rentCollected = rentBills.filter(b => b.status === 'PAID').reduce((s, b) => s + b.amount, 0)
+    const rentTotalDue  = rentBills.reduce((s, b) => s + b.amount, 0)
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)
     const unitsForMap = unitsWithBills.map(u => ({
       ...u,
@@ -101,7 +105,7 @@ async function getDashboardData(role: string, userId: string, buildingId: string
       return b.amount - a.amount
     }).slice(0, 5)
 
-    return { role, totalUnits, occupiedCount, vacantCount, bills, collected, totalDue, totalExpenses, recentMessages, pendingCount, overdueCount, month, year, unitsForMap, enabledModules, noiData, topUrgentBills }
+    return { role, totalUnits, occupiedCount, vacantCount, bills, collected, totalDue, rentCollected, rentTotalDue, totalExpenses, recentMessages, pendingCount, overdueCount, month, year, unitsForMap, enabledModules, noiData, topUrgentBills }
   }
 
   if (role === 'OWNER') {
@@ -151,12 +155,13 @@ export default async function DashboardPage() {
       {/* ADMIN / VIEWER VIEW */}
       {(data.role === 'ADMIN' || data.role === 'PRESIDENT' || data.role === 'SECRETARY' || data.role === 'MEMBER') && (
         <>
-          {/* Row 1: 4 main stats */}
-          <div className="resp-grid-4" style={{ marginBottom: '1rem' }}>
+          {/* Row 1: Segregated KPI cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
             <StatCard label="Total Units" value={(data as any).totalUnits} icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            <StatCard label="Collected This Month" value={formatCurrency((data as any).collected)} sub={`of ${formatCurrency((data as any).totalDue)} total`} color="#15803d" icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <StatCard label="Operating Inflow" value={formatCurrency((data as any).collected)} sub={`of ${formatCurrency((data as any).totalDue)} due`} color="#15803d" icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <StatCard label="Owner Rent (Fiduciary)" value={formatCurrency((data as any).rentCollected)} sub={`of ${formatCurrency((data as any).rentTotalDue)} collected`} color="#4338ca" icon="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             <StatCard label="Pending Bills" value={(data as any).pendingCount} sub={`${(data as any).overdueCount} overdue`} color="#d97706" icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            <StatCard label="Total Expenses" value={formatCurrency((data as any).totalExpenses)} sub="This month" color="#dc2626" icon="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            <StatCard label="Operating Expenses" value={formatCurrency((data as any).totalExpenses)} sub="This month" color="#dc2626" icon="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
           </div>
 
           {/* Top Section: NOI Chart & Consolidated Funds */}

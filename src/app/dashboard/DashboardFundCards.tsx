@@ -51,7 +51,9 @@ export function DashboardFundCards({ initialMonth, initialYear, enabledModules }
     return flag ? enabledModules[flag] : true
   })
 
-  const totals = visible.reduce((acc, m) => {
+  const operatingVisible = visible.filter(m => m.key !== 'rent')
+
+  const totals = operatingVisible.reduce((acc, m) => {
     const f: FundSummary = funds?.[m.key] ?? { opening: 0, collection: 0, expenses: 0, closing: 0 }
     acc.opening += f.opening
     acc.collection += f.collection
@@ -64,7 +66,7 @@ export function DashboardFundCards({ initialMonth, initialYear, enabledModules }
     <Card style={{ marginBottom: '1.5rem', overflow: 'hidden' }}>
       {/* Header & Controls */}
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: 0 }}>Consolidated Cash Flow</h3>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--brand)', margin: 0 }}>Consolidated Operating Funds</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <select value={month} onChange={e => setMonth(Number(e.target.value))} style={sel}>
             {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
@@ -82,14 +84,14 @@ export function DashboardFundCards({ initialMonth, initialYear, enabledModules }
         <div style={{ display: 'flex', flexWrap: 'wrap' }}>
           {/* Total Summary Left Side */}
           <div style={{ flex: '1 1 300px', padding: '1.5rem', borderRight: '1px solid var(--border)' }}>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px', marginTop: 0 }}>Total Closing Balance</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px', marginTop: 0 }}>Operating Cash Balance</p>
             <h2 style={{ fontSize: '2.5rem', fontFamily: 'var(--font-display)', color: totals.closing >= 0 ? '#15803d' : '#dc2626', margin: '0 0 1.5rem 0', lineHeight: 1 }}>
               {formatCurrency(totals.closing)}
             </h2>
 
             <div style={{ display: 'flex', gap: '1.5rem' }}>
               <div>
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 2px' }}>Total Collections</p>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 2px' }}>Operating Inflow</p>
                 <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#15803d' }}>{formatCurrency(totals.collection)}</div>
               </div>
               <div>
@@ -105,10 +107,14 @@ export function DashboardFundCards({ initialMonth, initialYear, enabledModules }
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
               {visible.map(m => {
                 const f: FundSummary = funds?.[m.key] ?? { opening: 0, collection: 0, expenses: 0, closing: 0 }
+                const isRent = m.key === 'rent'
                 return (
-                  <div key={m.key} style={{ padding: '12px', borderRadius: '8px', background: 'var(--surface-subtle)', border: '1px solid var(--border)' }}>
+                  <div key={m.key} style={{ padding: '12px', borderRadius: '8px', background: isRent ? 'rgba(79, 70, 229, 0.05)' : 'var(--surface-subtle)', border: isRent ? '1px solid rgba(79, 70, 229, 0.25)' : '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                      <p style={{ fontSize: '11px', fontWeight: 600, color: m.color, margin: 0 }}>{m.label}</p>
+                      <div>
+                        <p style={{ fontSize: '11px', fontWeight: 600, color: m.color, margin: 0 }}>{m.label}</p>
+                        {isRent && <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#4f46e5' }}>Fiduciary</span>}
+                      </div>
                       <a href={m.href} style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'none' }}>→</a>
                     </div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 700, color: f.closing >= 0 ? 'var(--text)' : '#dc2626' }}>
