@@ -49,8 +49,8 @@ export async function GET(req: NextRequest) {
   // Sort bills by flat number numerically (Prisma sorts lexicographically)
   bills.sort((a, b) => a.unit.number.localeCompare(b.unit.number, undefined, { numeric: true }))
 
-  // ── Closing balance calculation ────────────────────────────
-  const fundBalanceTotal   = fundBalances.reduce((s, f) => s + Number(f.amount), 0)
+  // ── Closing balance calculation (T12: Common Maintenance Fund) ─────
+  const fundBalanceTotal   = fundBalances.filter(f => f.fundType !== 'RENT').reduce((s, f) => s + Number(f.amount), 0)
   const priorCollectedSum  = priorBills.reduce((s, b) => s + Number(b.amount), 0)
   const priorExpensesSum   = priorExpenses.reduce((s, e) => s + Number(e.amount), 0)
   const openingBalance     = fundBalanceTotal + priorCollectedSum - priorExpensesSum
@@ -59,11 +59,13 @@ export async function GET(req: NextRequest) {
   const thisMonthExpenses  = expenses.reduce((s, e) => s + Number(e.amount), 0)
   const closingBalance     = openingBalance + thisMonthCollected - thisMonthExpenses
 
-  // ── Totals for summary cards ───────────────────────────────
-  const totalCollected = bills.filter(b => b.status === 'PAID').reduce((s, b) => s + Number(b.amount), 0)
-  const totalDue       = bills.filter(b => b.status !== 'PAID').reduce((s, b) => s + Number(b.amount), 0)
-  const totalExpenses  = expenses.reduce((s, e) => s + Number(e.amount), 0)
-  const netIncome      = thisMonthCollected - thisMonthExpenses
+  // ── Segregated Totals for summary cards ────────────────────
+  const opBillsCollected   = thisMonthCollected
+  const opBillsDue         = bills.filter(b => b.type !== 'RENT' && b.status !== 'PAID').reduce((s, b) => s + Number(b.amount), 0)
+  const rentBillsCollected = bills.filter(b => b.type === 'RENT' && b.status === 'PAID').reduce((s, b) => s + Number(b.amount), 0)
+  const rentBillsDue       = bills.filter(b => b.type === 'RENT' && b.status !== 'PAID').reduce((s, b) => s + Number(b.amount), 0)
+  const totalExpenses      = thisMonthExpenses
+  const netIncome          = thisMonthCollected - thisMonthExpenses
 
   const buildingName = escapeHtml(building?.name || 'Building Management')
   const buildingAddress = escapeHtml(building?.address || '')
@@ -116,7 +118,7 @@ export async function GET(req: NextRequest) {
   .report-title{text-align:right}
   .period{font-size:20px;font-weight:600;color:#1e3a5f}
   .generated{font-size:11px;color:#9c9890;margin-top:4px}
-  .summary{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:32px}
+  .summary{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:32px}
   .stat{background:#f5f4f0;border-radius:10px;padding:14px 16px}
   .stat-label{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#9c9890;margin-bottom:6px}
   .stat-value{font-family:'DM Serif Display',serif;font-size:19px;color:#1e3a5f}
@@ -162,20 +164,24 @@ export async function GET(req: NextRequest) {
 
 <div class="summary">
   <div class="stat">
-    <div class="stat-label">Collected</div>
-    <div class="stat-value green">${fmt(totalCollected)}</div>
+    <div class="stat-label">Operating Inflow</div>
+    <div class="stat-value green">${fmt(opBillsCollected)}</div>
   </div>
   <div class="stat">
-    <div class="stat-label">Outstanding</div>
-    <div class="stat-value red">${fmt(totalDue)}</div>
+    <div class="stat-label">Operating Due</div>
+    <div class="stat-value red">${fmt(opBillsDue)}</div>
   </div>
   <div class="stat">
     <div class="stat-label">Expenses</div>
     <div class="stat-value red">${fmt(totalExpenses)}</div>
   </div>
   <div class="stat">
-    <div class="stat-label">Net (Fund)</div>
+    <div class="stat-label">Operating Net</div>
     <div class="stat-value ${netIncome >= 0 ? 'green' : 'red'}">${fmt(netIncome)}</div>
+  </div>
+  <div class="stat" style="background:#eef2ff;">
+    <div class="stat-label" style="color:#4f46e5;">Owner Rent (Fiduciary)</div>
+    <div class="stat-value" style="color:#4338ca;">${fmt(rentBillsCollected)}</div>
   </div>
   <div class="stat">
     <div class="stat-label">Total Units</div>
@@ -185,11 +191,11 @@ export async function GET(req: NextRequest) {
 
 <div class="balance-bar">
   <div class="balance-cell">
-    <div class="balance-label">Opening Balance</div>
+    <div class="balance-label">Operating Opening</div>
     <div class="balance-value ${openingBalance >= 0 ? 'green' : 'red'}">${fmt(openingBalance)}</div>
   </div>
   <div class="balance-cell">
-    <div class="balance-label">+ Collected (Fund)</div>
+    <div class="balance-label">+ Operating Inflow</div>
     <div class="balance-value green">${fmt(thisMonthCollected)}</div>
   </div>
   <div class="balance-cell">
@@ -197,7 +203,7 @@ export async function GET(req: NextRequest) {
     <div class="balance-value red">${fmt(thisMonthExpenses)}</div>
   </div>
   <div class="balance-cell">
-    <div class="balance-label">Closing Balance</div>
+    <div class="balance-label">Operating Closing</div>
     <div class="balance-value ${closingBalance >= 0 ? 'green' : 'red'}">${fmt(closingBalance)}</div>
   </div>
 </div>

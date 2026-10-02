@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { ok, Err, requireAuth, requireAdmin } from '@/lib/api'
 import { sendEmail, emailBase, amountBox, detailTable } from '@/lib/email'
 import { getBillTypeLabel, getMonthName } from '@/lib/utils'
+import { payBillDirect, revertBillPayment } from '@/lib/finance/paymentService'
+import { toPaisa } from '@/lib/finance/money'
+import type { PaymentMethod } from '@prisma/client'
 
 function rentPaidHtml(opts: {
   recipientName: string
@@ -36,7 +39,7 @@ function rentPaidHtml(opts: {
   })
 }
 
-export async function PATCH(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const [session, e] = await requireAuth()
   if (e) return e
 
@@ -50,10 +53,11 @@ export async function PATCH(_req: NextRequest, { params }: { params: { id: strin
             owner:  { select: { id: true, name: true, email: true } },
           },
         },
-        building: { select: { name: true } },
+        building: { select: { id: true, name: true } },
       },
     })
     if (!bill) return Err.notFound('Bill not found')
+    if (!bill.buildingId) return Err.badRequest('Bill not assigned to a building')
 
     const isAdmin =
       session.user.role === 'ADMIN' && bill.buildingId === session.user.buildingId
@@ -64,13 +68,26 @@ export async function PATCH(_req: NextRequest, { params }: { params: { id: strin
 
     if (!isAdmin && !isOwnerPayingRent) return Err.forbidden()
 
-    const updated = await prisma.bill.update({
-      where: { id: params.id },
-      data: { status: 'PAID', paidAt: new Date() },
+    const body = await req.json().catch(() => ({}))
+    const method: PaymentMethod = body.method ?? 'CASH'
+    const amountPaisa = body.amount !== undefined ? toPaisa(Number(body.amount)) : undefined
+    const reference: string | undefined = body.reference
+    const notes: string | undefined = body.notes
+
+    const result = await payBillDirect({
+      buildingId: bill.buildingId,
+      billId: bill.id,
+      userId: session.user.id,
+      method,
+      amountPaisa,
+      externalReference: reference,
+      notes,
     })
 
+    const updated = result.bill
+
     // ── Auto-email on rent payment ───────────────────────────────
-    if (bill.type === 'RENT') {
+    if (bill.type === 'RENT' && updated.status === 'PAID') {
       const buildingName = bill.building?.name ?? 'Bari Shamlai'
       const unit         = bill.unit
       const paidAt       = updated.paidAt ?? new Date()
@@ -110,8 +127,8 @@ export async function PATCH(_req: NextRequest, { params }: { params: { id: strin
     }
 
     return ok(updated)
-  } catch {
-    return Err.internal('Failed to update bill')
+  } catch (err: any) {
+    return Err.internal(err?.message || 'Failed to update bill')
   }
 }
 
@@ -125,15 +142,17 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
       select: { buildingId: true, status: true },
     })
     if (!bill) return Err.notFound('Bill not found')
-    if (bill.buildingId !== session.user.buildingId) return Err.forbidden()
+    if (!bill.buildingId || bill.buildingId !== session.user.buildingId) return Err.forbidden()
     if (bill.status !== 'PAID') return Err.badRequest('Bill is not paid')
 
-    const updated = await prisma.bill.update({
-      where: { id: params.id },
-      data: { status: 'PENDING', paidAt: null },
-    })
+    const updated = await revertBillPayment(
+      bill.buildingId,
+      params.id,
+      session.user.id,
+      'Bill marked unpaid by admin'
+    )
     return ok(updated)
-  } catch {
-    return Err.internal('Failed to revert bill')
+  } catch (err: any) {
+    return Err.internal(err?.message || 'Failed to revert bill')
   }
 }

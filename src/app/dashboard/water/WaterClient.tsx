@@ -80,11 +80,15 @@ export function WaterClient({ units, waterBills, waterExpenses, fundBalance, mon
     if (!setup.waterBillTotal || !setup.waterOccupied) return alert('Monthly water setup not complete')
     setGenerating(true); setGenResult(null)
 
-    const perUnit = Math.round(setup.waterBillTotal / setup.waterOccupied)
-    const bills = occupiedUnits.map(u => ({
+    const totalPaisa = Math.round(setup.waterBillTotal * 100)
+    const count = occupiedUnits.length
+    const basePaisa = Math.floor(totalPaisa / count)
+    const remainder = totalPaisa % count
+
+    const bills = occupiedUnits.map((u, i) => ({
       unitId: u.id,
       type: 'WATER',
-      amount: perUnit,
+      amount: (basePaisa + (i < remainder ? 1 : 0)) / 100,
       month: currentMonth,
       year: currentYear,
       dueDate: genDueDate,

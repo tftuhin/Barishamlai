@@ -62,6 +62,27 @@ export async function GET(req: NextRequest) {
       result[m.key] = { opening, collection: thisBills, expenses: thisExp, closing }
     })
 
+    // T12: Explicit segregation of common maintenance funds from owner rent
+    const operatingKeys = ['sc', 'gas', 'water', 'garbage', 'cs']
+    const opOpening    = operatingKeys.reduce((s, k) => s + (result[k]?.opening ?? 0), 0)
+    const opCollection = operatingKeys.reduce((s, k) => s + (result[k]?.collection ?? 0), 0)
+    const opExpenses   = operatingKeys.reduce((s, k) => s + (result[k]?.expenses ?? 0), 0)
+    const opClosing    = operatingKeys.reduce((s, k) => s + (result[k]?.closing ?? 0), 0)
+
+    result.operatingSummary = {
+      opening:    opOpening,
+      collection: opCollection,
+      expenses:   opExpenses,
+      closing:    opClosing,
+    }
+
+    result.fiduciaryRentSummary = {
+      opening:    result.rent?.opening ?? 0,
+      collection: result.rent?.collection ?? 0,
+      expenses:   result.rent?.expenses ?? 0,
+      closing:    result.rent?.closing ?? 0,
+    }
+
     return ok(result)
   } catch {
     return Err.internal()

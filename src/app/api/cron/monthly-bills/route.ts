@@ -205,48 +205,79 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      // ── GAS ─────────────────────────────────────────────
-      // Gas bills are generated per unit when featureGas is on.
-      // Amount is based on meter reading; for auto-generation we use
-      // a flat rate (gasUnitRate × 1 unit as placeholder — admin will
-      // update the meterReading and recalculate from the Gas page).
-      // We only auto-create if gasRate > 0.
+      // ── GAS (T10 Invariant Enforcement) ─────────────────
+      // Stop unmetered placeholder billing without verified meter readings.
+      // Only auto-generate if a verified reading exists for this unit in the billing cycle.
       if (featureGas && gasRate > 0 && unit.status === 'OCCUPIED' && !unit.isOwnerOccupied) {
-        try {
-          await prisma.bill.create({
-            data: {
-              unitId:     unit.id,
-              buildingId: building.id,
-              type:       'GAS',
-              amount:     gasRate, // placeholder; admin updates from Gas page
-              month, year, dueDate,
-              status: 'PENDING',
-            },
-          })
-          gasCreated++
+        const periodStart = new Date(year, month - 1, 1)
+        const periodEnd   = new Date(year, month, 1)
 
-          const recipient = unit.tenant
-          if (recipient?.email) {
+        const currentReading = await prisma.meterReading.findFirst({
+          where: {
+            unitId: unit.id,
+            meterType: 'GAS',
+            readAt: { gte: periodStart, lt: periodEnd },
+          },
+          orderBy: { readAt: 'desc' },
+        })
+
+        if (currentReading) {
+          const prevReading = await prisma.meterReading.findFirst({
+            where: {
+              unitId: unit.id,
+              meterType: 'GAS',
+              readAt: { lt: periodStart },
+            },
+            orderBy: { readAt: 'desc' },
+          })
+
+          const prevVal = prevReading?.reading ?? 0
+          const consumed = currentReading.reading > prevVal ? currentReading.reading - prevVal : 0
+          const gasAmount = Math.round(consumed * gasRate)
+
+          if (gasAmount > 0) {
             try {
-              const sent = await sendEmail({
-                to:      recipient.email,
-                toName:  recipient.name,
-                subject: `Gas Bill for ${monthName(month)} ${year} — ${building.name}`,
-                html: billNotificationHtml({
-                  recipientName: recipient.name,
-                  buildingName:  building.name,
-                  billType:      'Gas',
-                  unit:          unit.number,
-                  amount:        gasRate,
+              await prisma.bill.create({
+                data: {
+                  unitId:              unit.id,
+                  buildingId:          building.id,
+                  type:                'GAS',
+                  amount:              gasAmount,
                   month, year, dueDate,
-                }),
+                  status:              'PENDING',
+                  meterReading:        currentReading.reading,
+                  openingMeterReading: prevVal,
+                  note:                `Verified meter reading (${consumed} units @ ৳${gasRate})`,
+                },
               })
-              if (sent) emailsSent++
-            } catch { /* non-fatal */ }
+              gasCreated++
+
+              const recipient = unit.tenant
+              if (recipient?.email) {
+                try {
+                  const sent = await sendEmail({
+                    to:      recipient.email,
+                    toName:  recipient.name,
+                    subject: `Gas Bill for ${monthName(month)} ${year} — ${building.name}`,
+                    html: billNotificationHtml({
+                      recipientName: recipient.name,
+                      buildingName:  building.name,
+                      billType:      'Gas',
+                      unit:          unit.number,
+                      amount:        gasAmount,
+                      month, year, dueDate,
+                    }),
+                  })
+                  if (sent) emailsSent++
+                } catch { /* non-fatal */ }
+              }
+            } catch (e) {
+              if (!isPrismaConflict(e)) throw e
+            }
           }
-        } catch (e) {
-          if (!isPrismaConflict(e)) throw e
         }
+        // If no verified meter reading exists, skip auto-generation
+        // Admin will enter readings and generate batch from Gas page
       }
     }
   }

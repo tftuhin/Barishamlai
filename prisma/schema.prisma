@@ -104,6 +104,7 @@ enum FundType {
   GARBAGE
   COMMUNITY_SECURITY
   RENT
+  GENERAL
 }
 
 enum JoinRequestStatus {
